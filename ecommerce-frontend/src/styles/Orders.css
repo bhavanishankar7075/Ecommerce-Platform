@@ -63,3 +63,47 @@
     font-size: 1.2rem;
     margin-bottom: 1rem;
   }
+
+
+
+
+
+
+
+
+
+
+
+
+  /* ecommerce-frontend/src/styles/Orders.css */
+.orders-page {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.orders-list {
+  list-style: none;
+  padding: 0;
+}
+
+.order-item {
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.error {
+  color: red;
+  margin-bottom: 10px;
+}
+
+.loading-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.spinner {
+  font-size: 18px;
+}

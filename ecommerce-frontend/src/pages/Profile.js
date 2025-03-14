@@ -1,3 +1,4 @@
+
 // ecommerce-frontend/src/pages/Profile.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -20,46 +21,79 @@ function Profile() {
   const [addresses, setAddresses] = useState([]);
   const [newAddress, setNewAddress] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [newPaymentMethod, setNewPaymentMethod] = useState({ cardNumber: '', expiry: '', name: '' });
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showFullOrders, setShowFullOrders] = useState(false);
 
   useEffect(() => {
+    console.log('useEffect - user:', user, 'authLoading:', authLoading);
     if (!authLoading && !user && !isLoggingOut) {
       navigate('/login');
-    } else if (user) {
+    } else if (user && user._id) { // Use _id instead of id
       setProfile({ fullName: user.fullName, address: user.address || '', avatar: user.avatar || '' });
       fetchOrders();
       fetchAddresses();
+      fetchPaymentMethods();
     }
-  }, [user, authLoading, navigate, isLoggingOut]);
+  }, [user, authLoading, navigate,  isLoggingOut]);
 
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching orders with token:', token); // Debug
-      if (!token) throw new Error('No token found');
-      const res = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`, {
+      console.log('Fetching orders - user._id:', user._id, 'token:', token);
+      if (!token) {
+        navigate('/login');
+        throw new Error('No token found');
+      }
+      if (!user._id) {
+        throw new Error('User ID is undefined');
+      }
+      const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log('Orders fetched:', res.data);
       setOrders(res.data);
       setLoading(false);
     } catch (err) {
-      console.error('Fetch Orders Error:', err);
-      setError(err.response?.data?.message || 'Failed to load orders');
+      console.error('Error fetching orders:', err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+        setError('Session expired. Please log in again.');
+      } else if (err.response?.status === 403) {
+        setError('Unauthorized access. Please log in with correct credentials.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load orders');
+      }
       setLoading(false);
     }
   };
 
+
   const fetchAddresses = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching addresses with token:', token); // Debug
       if (!token) throw new Error('No token found');
       const res = await axios.get(`http://localhost:5001/api/users/profile/addresses`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAddresses(res.data.addresses || []);
     } catch (err) {
-      console.error('Fetch Addresses Error:', err);
       setError(err.response?.data?.message || 'Failed to load addresses');
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+      const res = await axios.get(`http://localhost:5001/api/users/profile/payment-methods`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPaymentMethods(res.data.paymentMethods || []);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load payment methods');
     }
   };
 
@@ -73,10 +107,14 @@ function Profile() {
     setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePaymentInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewPaymentMethod((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSaveProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Saving profile with token:', token); // Debug
       if (!token) throw new Error('No token found');
       const res = await axios.put('http://localhost:5001/api/users/profile', profile, {
         headers: { Authorization: `Bearer ${token}` },
@@ -86,7 +124,6 @@ function Profile() {
       setIsEditing(false);
       setError('');
     } catch (err) {
-      console.error('Save Profile Error:', err);
       setError(err.response?.data?.message || 'Failed to update profile');
     }
   };
@@ -94,7 +131,6 @@ function Profile() {
   const handleChangePassword = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Changing password with token:', token); // Debug
       if (!token) throw new Error('No token found');
       await axios.put('http://localhost:5001/api/users/profile/password', passwordData, {
         headers: { Authorization: `Bearer ${token}` },
@@ -104,7 +140,6 @@ function Profile() {
       alert('Password updated successfully');
       setShowPasswordForm(false);
     } catch (err) {
-      console.error('Change Password Error:', err);
       setError(err.response?.data?.message || 'Failed to change password');
     }
   };
@@ -115,19 +150,16 @@ function Profile() {
     formData.append('avatar', avatarFile);
     try {
       const token = localStorage.getItem('token');
-      console.log('Uploading avatar with token:', token); // Debug
       if (!token) throw new Error('No token found');
       const res = await axios.post('http://localhost:5001/api/users/profile/avatar', formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
       });
-      console.log('Avatar Upload Response:', res.data);
       const updatedUser = res.data.user;
       setProfile((prev) => ({ ...prev, avatar: updatedUser.avatar }));
       updateUser(updatedUser);
       setAvatarFile(null);
       setError('');
     } catch (err) {
-      console.error('Avatar Upload Error:', err);
       setError(err.response?.data?.message || 'Failed to upload avatar');
     }
   };
@@ -136,7 +168,6 @@ function Profile() {
     if (!newAddress.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      console.log('Adding address with token:', token); // Debug
       if (!token) throw new Error('No token found');
       const res = await axios.post(
         'http://localhost:5001/api/users/profile/addresses',
@@ -148,7 +179,6 @@ function Profile() {
       setShowAddressForm(false);
       setError('');
     } catch (err) {
-      console.error('Add Address Error:', err);
       setError(err.response?.data?.message || 'Failed to add address');
     }
   };
@@ -156,7 +186,6 @@ function Profile() {
   const handleDeleteAddress = async (addressId) => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Deleting address with token:', token); // Debug
       if (!token) throw new Error('No token found');
       const res = await axios.delete(`http://localhost:5001/api/users/profile/addresses/${addressId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -164,8 +193,40 @@ function Profile() {
       setAddresses(res.data.addresses);
       setError('');
     } catch (err) {
-      console.error('Delete Address Error:', err);
       setError(err.response?.data?.message || 'Failed to delete address');
+    }
+  };
+
+  const handleAddPaymentMethod = async () => {
+    if (!newPaymentMethod.cardNumber.trim() || !newPaymentMethod.expiry.trim() || !newPaymentMethod.name.trim()) return;
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+      const res = await axios.post(
+        'http://localhost:5001/api/users/profile/payment-methods',
+        newPaymentMethod,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPaymentMethods(res.data.paymentMethods);
+      setNewPaymentMethod({ cardNumber: '', expiry: '', name: '' });
+      setShowPaymentForm(false);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to add payment method');
+    }
+  };
+
+  const handleDeletePaymentMethod = async (paymentId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+      const res = await axios.delete(`http://localhost:5001/api/users/profile/payment-methods/${paymentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPaymentMethods(res.data.paymentMethods);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete payment method');
     }
   };
 
@@ -190,8 +251,6 @@ function Profile() {
   }
 
   if (!user) return null;
-
-  console.log('Rendering profile:', profile);
 
   return (
     <div className="profile-dashboard">
@@ -307,6 +366,66 @@ function Profile() {
             )}
           </div>
 
+          <div className="card payment-methods-card">
+            <h3
+              onClick={() => setShowPaymentForm(!showPaymentForm)}
+              className="card-title"
+              style={{ cursor: 'pointer' }}
+            >
+              Payment Methods {showPaymentForm ? '▼' : '►'}
+            </h3>
+            {paymentMethods.length > 0 ? (
+              <ul className="payment-list">
+                {paymentMethods.map((method) => (
+                  <li key={method._id} className="payment-item">
+                    {method.name} - **** **** **** {method.cardNumber.slice(-4)} (Exp: {method.expiry})
+                    <button
+                      className="action-btn delete-btn"
+                      onClick={() => handleDeletePaymentMethod(method._id)}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No saved payment methods</p>
+            )}
+            {showPaymentForm && (
+              <div className="payment-form">
+                <input
+                  type="text"
+                  name="name"
+                  value={newPaymentMethod.name}
+                  onChange={handlePaymentInputChange}
+                  placeholder="Cardholder Name"
+                  className="input-field"
+                />
+                <input
+                  type="text"
+                  name="cardNumber"
+                  value={newPaymentMethod.cardNumber}
+                  onChange={handlePaymentInputChange}
+                  placeholder="Card Number (e.g., 1234 5678 9012 3456)"
+                  className="input-field"
+                  maxLength="19"
+                />
+                <input
+                  type="text"
+                  name="expiry"
+                  value={newPaymentMethod.expiry}
+                  onChange={handlePaymentInputChange}
+                  placeholder="MM/YY"
+                  className="input-field"
+                  maxLength="5"
+                />
+                <button className="action-btn add-btn" onClick={handleAddPaymentMethod}>
+                  Add Payment Method
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="card password-card">
             <h3 onClick={() => setShowPasswordForm(!showPasswordForm)} className="card-title">
               Change Password {showPasswordForm ? '▼' : '►'}
@@ -337,28 +456,49 @@ function Profile() {
           </div>
 
           <div className="card orders-card">
-            <h3 className="card-title">Recent Orders</h3>
-            <div className="orders-grid">
-              {orders.length > 0 ? (
-                orders.slice(0, 3).map((order) => (
+            <h3
+              onClick={() => setShowFullOrders(!showFullOrders)}
+              className="card-title"
+              style={{ cursor: 'pointer' }}
+            >
+              Order History {showFullOrders ? '▼' : '►'}
+            </h3>
+            {orders.length > 0 ? (
+              <div className="orders-list">
+                {(showFullOrders ? orders : orders.slice(0, 3)).map((order) => (
                   <div key={order._id} className="order-item">
-                    <p>
-                      <strong>Order #{order._id.slice(-6)}</strong>
-                    </p>
-                    <p>{new Date(order.createdAt).toLocaleDateString()}</p>
-                    <p>₹{order.total.toFixed(2)}</p>
-                    <span className={`status-badge status-${order.status.toLowerCase()}`}>
-                      {order.status}
-                    </span>
+                    <div className="order-header">
+                      <p><strong>Order #{order._id.slice(-6)}</strong></p>
+                      <p>{new Date(order.createdAt).toLocaleDateString()}</p>
+                      <p>₹{order.total.toFixed(2)}</p>
+                      <span className={`status-badge status-${order.status.toLowerCase()}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="order-details">
+                      <p><strong>Shipping Address:</strong> {order.shippingAddress}</p>
+                      <ul className="order-items">
+                        {order.items.map((item, index) => (
+                          <li key={index}>
+                            {item.name} - Qty: {item.quantity} - ₹{item.price.toFixed(2)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                ))
-              ) : (
-                <p>No recent orders</p>
-              )}
-            </div>
-            <button className="action-btn view-all-btn" onClick={() => navigate('/orders')}>
-              View All Orders
-            </button>
+                ))}
+              </div>
+            ) : (
+              <p>No orders yet</p>
+            )}
+            {orders.length > 3 && (
+              <button
+                className="action-btn view-all-btn"
+                onClick={() => setShowFullOrders(!showFullOrders)}
+              >
+                {showFullOrders ? 'Show Less' : 'View All Orders'}
+              </button>
+            )}
           </div>
         </section>
       </main>

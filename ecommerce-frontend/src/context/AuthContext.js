@@ -1,5 +1,5 @@
 // ecommerce-frontend/src/context/AuthContext.js
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect ,navigate} from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -19,13 +19,14 @@ export function AuthProvider({ children }) {
   }, []); */
 
 
-  useEffect(() => {
+ /*  useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && !user) {
       axios.get('http://localhost:5001/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => {
+          console.log('Profile fetch response:', res.data);
           setUser(res.data);
           setLoading(false);
         })
@@ -36,7 +37,30 @@ export function AuthProvider({ children }) {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, []); */
+
+
+// ecommerce-frontend/src/context/AuthContext.js
+useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (token && !user) {
+    axios.get('http://localhost:5001/api/users/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(res => {
+      console.log('Profile fetch response:', res.data);
+      setUser(res.data);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Profile fetch error:', err);
+      localStorage.removeItem('token');
+      navigate('/login');
+      setUser(null);
+      setLoading(false);
+    });
+  } else {
+    setLoading(false);
+  }
+}, [navigate, user]);
 
 
   const verifyToken = async (token) => {
@@ -58,6 +82,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const res = await axios.post('http://localhost:5001/api/auth/login', { email, password });
+      console.log('Login response:', res.data);
       const { token } = res.data;
       localStorage.setItem('token', token);
       setUser(res.data.user);

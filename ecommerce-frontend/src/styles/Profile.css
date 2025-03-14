@@ -290,3 +290,94 @@
 .action-btn.delete-btn:hover {
   background-color: #c82333;
 }
+
+
+
+
+/* ecommerce-frontend/src/styles/Profile.css */
+/* Existing styles remain unchanged, adding new styles for payment methods */
+.payment-methods-card {
+  padding: 20px;
+}
+
+.payment-list {
+  list-style: none;
+  padding: 0;
+}
+
+.payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.payment-form {
+  margin-top: 15px;
+}
+
+.payment-form .input-field {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.action-btn.add-btn {
+  background-color: #28a745;
+}
+
+.action-btn.add-btn:hover {
+  background-color: #218838;
+}
+
+.action-btn.delete-btn {
+  background-color: #dc3545;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.action-btn.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* ecommerce-frontend/src/styles/Profile.css */
+/* Existing styles remain unchanged, adding new styles for orders */
+.orders-list {
+  padding: 0;
+}
+
+.order-item {
+  padding: 15px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.order-details {
+  margin-top: 10px;
+  padding-left: 20px;
+}
+
+.order-items {
+  list-style: none;
+  padding: 0;
+}
+
+.order-items li {
+  margin: 5px 0;
+}
+
+.action-btn.view-all-btn {
+  margin-top: 15px;
+  background-color: #007bff;
+}
+
+.action-btn.view-all-btn:hover {
+  background-color: #0056b3;
+}
+

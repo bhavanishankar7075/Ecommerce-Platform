@@ -1,5 +1,133 @@
 // ecommerce-frontend/src/pages/Orders.js
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import '../styles/Orders.css';
+
+function Orders() {
+  const { user, loading: authLoading } = useAuth(); // Get user from AuthContext
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login'); // Redirect if not logged in
+    } else if (user && user._id) {
+      fetchOrders();
+    }
+  }, [user, authLoading, navigate]);
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Fetching orders - user._id:', user._id, 'token:', token); // Debug
+      if (!token) {
+        navigate('/login');
+        throw new Error('No token found');
+      }
+      if (!user._id) {
+        throw new Error('User ID is undefined');
+      }
+      const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('Orders fetched:', res.data); // Debug
+      setOrders(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        localStorage.removeItem('token');
+        navigate('/login');
+        setError('Session expired or unauthorized. Please log in again.');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load orders');
+      }
+      setLoading(false);
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="orders-page">
+      <h1>Your Orders</h1>
+      {error && <p className="error">{error}</p>}
+      {orders.length > 0 ? (
+        <ul className="orders-list">
+          {orders.map(order => (
+            <li key={order._id} className="order-item">
+              <p><strong>Order #{order._id.slice(-6)}</strong> - ₹{order.total.toFixed(2)}</p>
+              <p>Status: {order.status}</p>
+              <p>Shipping: {order.shippingAddress}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No orders found.</p>
+      )}
+    </div>
+  );
+}
+
+export default Orders;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-frontend/src/pages/Orders.js
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Orders.css';
@@ -99,4 +227,4 @@ function Orders() {
   );
 }
 
-export default Orders;
+export default Orders; */

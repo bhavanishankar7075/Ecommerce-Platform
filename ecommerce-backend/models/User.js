@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
+/* const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   fullName: { type: String, required: true },
@@ -14,9 +14,48 @@ const userSchema = new mongoose.Schema({
       address: { type: String, required: true },
     },
   ],
+  paymentMethods: [
+    {
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+      cardNumber: { type: String, required: true },
+      expiry: { type: String, required: true },
+      name: { type: String, required: true },
+    },
+  ],
   role: { type: String, enum: ['user', 'admin','customer'], default: 'user' },
   createdAt: { type: Date, default: Date.now },
+}); */
+
+
+
+const userSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  fullName: { type: String, required: true },
+  address: { type: String },
+  avatar: { type: String },
+  isAdmin: { type: Boolean, default: false }, // Add this
+  addresses: [
+    {
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+      address: { type: String, required: true },
+    },
+  ],
+  paymentMethods: [
+    {
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+      cardNumber: { type: String, required: true },
+      expiry: { type: String, required: true },
+      name: { type: String, required: true },
+    },
+  ],
+  createdAt: { type: Date, default: Date.now },
 });
+
+
+
+
+
 
 userSchema.pre('save', async function (next) {
   if (this.isModified('password')) {
