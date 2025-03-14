@@ -1,4 +1,101 @@
+/* 
 const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const path = require('path');
+const http = require('http');
+
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+const server = http.createServer(app);
+
+// Configure CORS
+app.use(cors({
+  origin: 'http://localhost:3001', // Allow only your frontend origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
+  credentials: true, // Allow credentials (e.g., Authorization header with JWT)
+}));
+
+// Middleware
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads/avatars')));
+
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.log('MongoDB connection error:', err));
+
+// Routes
+const authRoutes = require('./routes/auth');
+const cartRoutes = require('./routes/Cart');
+const customerRoutes = require('./routes/customer');
+const { router: adminRouter } = require('./routes/admin');
+const productRoutes = require('./routes/products');
+const checkoutRoutes = require('./routes/checkout');
+const { router: orderRouter } = require('./routes/orders');
+const userRoutes = require('./routes/users');
+
+// Mount Routes
+app.use('/api/auth', authRoutes);
+app.use('/api', customerRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/admin/products', productRoutes);
+app.use('/api/admin', adminRouter);
+app.use('/api/orders', orderRouter);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/users', userRoutes);
+
+// Root Route
+app.get('/', (req, res) => {
+  res.send('E-commerce Backend is running on port 5001');
+});
+
+// Start server
+const PORT = process.env.PORT || 5001;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -52,9 +149,9 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+ 
 
-
-
+ 
 
 
 

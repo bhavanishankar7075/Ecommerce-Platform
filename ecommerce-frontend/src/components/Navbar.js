@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import '../styles/Navbar.css';
-import Profile from '../pages/Profile';
 
 function Navigation() {
   const { user,  } = useAuth();    //logout to add init
@@ -66,7 +65,7 @@ function Navigation() {
               <>
                 <li className="nav-item">
                   <span className="nav-link welcome-text">
-                    Welcome,{user.username || user.email} 
+                    Welcome,{ user.fullname ||user.username  || user.email} 
                   </span>
                 </li> 
                {/*  <li className="nav-item">

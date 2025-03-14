@@ -1,4 +1,3 @@
-// ecommerce-frontend/src/pages/Orders.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -6,15 +5,16 @@ import axios from 'axios';
 import '../styles/Orders.css';
 
 function Orders() {
-  const { user, loading: authLoading } = useAuth(); // Get user from AuthContext
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedOrder, setExpandedOrder] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login'); // Redirect if not logged in
+      navigate('/login');
     } else if (user && user._id) {
       fetchOrders();
     }
@@ -23,7 +23,7 @@ function Orders() {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching orders - user._id:', user._id, 'token:', token); // Debug
+      console.log('Fetching orders - user._id:', user._id, 'token:', token);
       if (!token) {
         navigate('/login');
         throw new Error('No token found');
@@ -34,7 +34,7 @@ function Orders() {
       const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Orders fetched:', res.data); // Debug
+      console.log('Orders fetched:', res.data);
       setOrders(res.data);
       setLoading(false);
     } catch (err) {
@@ -50,10 +50,32 @@ function Orders() {
     }
   };
 
+  const toggleOrderDetails = (orderId) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  };
+
+  const handleReorder = (order) => {
+    // Placeholder for reorder functionality
+    console.log('Reordering order:', order);
+    alert('Reorder functionality coming soon!');
+  };
+
   if (authLoading || loading) {
     return (
-      <div className="loading-screen">
-        <div className="spinner">Loading...</div>
+      <div className="orders-container">
+        <h1 className="orders-title">Your Orders</h1>
+        <div className="orders-timeline">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="order-card skeleton">
+              <div className="order-header">
+                <div className="skeleton-text skeleton-order-id"></div>
+                <div className="skeleton-text skeleton-status"></div>
+              </div>
+              <div className="skeleton-text skeleton-date"></div>
+              <div className="skeleton-text skeleton-total"></div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -61,21 +83,68 @@ function Orders() {
   if (!user) return null;
 
   return (
-    <div className="orders-page">
-      <h1>Your Orders</h1>
-      {error && <p className="error">{error}</p>}
+    <div className="orders-container">
+      <h1 className="orders-title">Your Orders</h1>
+      {error && <p className="error-message">{error}</p>}
       {orders.length > 0 ? (
-        <ul className="orders-list">
-          {orders.map(order => (
-            <li key={order._id} className="order-item">
-              <p><strong>Order #{order._id.slice(-6)}</strong> - ₹{order.total.toFixed(2)}</p>
-              <p>Status: {order.status}</p>
-              <p>Shipping: {order.shippingAddress}</p>
-            </li>
+        <div className="orders-timeline">
+          {orders.map((order) => (
+            <div
+              key={order._id}
+              className={`order-card ${expandedOrder === order._id ? 'expanded' : ''}`}
+            >
+              <div className="timeline-dot"></div>
+              <div className="order-header" onClick={() => toggleOrderDetails(order._id)}>
+                <div className="order-id">Order #{order._id.slice(-6)}</div>
+                <div className={`status-badge status-${order.status.toLowerCase()}`}>
+                  {order.status}
+                </div>
+              </div>
+              <div className="order-meta">
+                <span className="order-date">
+                  {new Date(order.createdAt).toLocaleDateString()}
+                </span>
+                <span className="order-total">₹{order.total.toFixed(2)}</span>
+              </div>
+              <div className={`order-details ${expandedOrder === order._id ? 'show' : ''}`}>
+                <div className="order-details-content">
+                  <p>
+                    <strong>Shipping Address:</strong>{' '}
+                    {typeof order.shippingAddress === 'string'
+                      ? order.shippingAddress
+                      : order.shippingAddress?.address || 'Not specified'}
+                  </p>
+                  <h4>Items:</h4>
+                  <ul className="order-items">
+                    {order.items.map((item, index) => (
+                      <li key={index} className="order-item-detail">
+                        <span className="item-name">{item.name}</span>
+                        <span className="item-quantity">Qty: {item.quantity}</span>
+                        <span className="item-price">₹{item.price.toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    className="reorder-btn"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card toggle when clicking reorder
+                      handleReorder(order);
+                    }}
+                  >
+                    Reorder
+                  </button>
+                </div>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : (
-        <p>No orders found.</p>
+        <div className="no-orders">
+          <p>No orders found.</p>
+          <button className="shop-now-btn" onClick={() => navigate('/products')}>
+            Shop Now
+          </button>
+        </div>
       )}
     </div>
   );

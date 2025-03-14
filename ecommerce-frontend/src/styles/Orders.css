@@ -1,109 +1,408 @@
-/* ecommerce-frontend/src/styles/Orders.css */
-.orders-wrapper {
-    min-height: 100vh;
-    background: #f8f9fa;
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f5f7fa;
+}
+
+/* Orders Container */
+.orders-container {
+  padding: 1rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e0e7ff 0%, #f5f7fa 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Orders Title */
+.orders-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a202c;
+  text-align: center;
+  margin: 1rem 0;
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.orders-title::after {
+  content: '';
+  width: 50px;
+  height: 4px;
+  background: linear-gradient(90deg, #4a00e0, #8e2de2);
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+/* Error Message */
+.error-message {
+  color: #e53e3e;
+  background-color: #fed7d7;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  text-align: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+/* Orders Timeline */
+.orders-timeline {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Timeline Line */
+.orders-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #4a00e0, #8e2de2);
+  border-radius: 2px;
+}
+
+/* Order Card */
+.order-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem 0;
+  padding: 1rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.order-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Timeline Dot */
+.timeline-dot {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  background: #4a00e0;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+/* Order Header */
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.order-id {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.status-pending {
+  background-color: #ed8936;
+}
+
+.status-shipped {
+  background-color: #48bb78;
+}
+
+.status-delivered {
+  background-color: #4299e1;
+}
+
+.status-cancelled {
+  background-color: #e53e3e;
+}
+
+/* Order Meta */
+.order-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.order-date,
+.order-total {
+  font-weight: 500;
+}
+
+/* Order Details */
+.order-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.order-details.show {
+  max-height: 500px; /* Adjust based on content */
+}
+
+.order-details-content {
+  padding: 1rem 0;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 0.5rem;
+}
+
+.order-details-content p {
+  font-size: 0.9rem;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.order-details-content h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0.5rem 0;
+}
+
+/* Order Items */
+.order-items {
+  list-style: none;
+  margin: 0.5rem 0;
+}
+
+.order-item-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.item-name {
+  font-size: 0.9rem;
+  color: #2d3748;
+  font-weight: 500;
+}
+
+.item-quantity {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.item-price {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+/* Reorder Button */
+.reorder-btn {
+  display: block;
+  width: 100%;
+  padding: 0.5rem;
+  background: linear-gradient(90deg, #4a00e0, #8e2de2);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background 0.3s ease;
+}
+
+.reorder-btn:hover {
+  background: linear-gradient(90deg, #8e2de2, #4a00e0);
+}
+
+/* No Orders State */
+.no-orders {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.no-orders p {
+  font-size: 1.1rem;
+  color: #718096;
+  margin-bottom: 1rem;
+}
+
+.shop-now-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(90deg, #4a00e0, #8e2de2);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.shop-now-btn:hover {
+  background: linear-gradient(90deg, #8e2de2, #4a00e0);
+}
+
+/* Skeleton Loading */
+.skeleton {
+  background: #e2e8f0;
+  border-radius: 12px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-text {
+  height: 16px;
+  background: #edf2f7;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.skeleton-order-id {
+  width: 60%;
+}
+
+.skeleton-status {
+  width: 30%;
+}
+
+.skeleton-date,
+.skeleton-total {
+  width: 40%;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
   }
-  
-  .orders-title {
-    text-align: center;
-    margin-bottom: 2rem;
-    font-size: 2.5rem;
-    color: #333;
+  50% {
+    opacity: 0.5;
   }
-  
-  .orders-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  100% {
+    opacity: 1;
   }
-  
-  .order-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
-  
-  .order-card h3 {
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-  }
-  
-  .order-items {
-    list-style: none;
-    padding: 0;
-  }
-  
-  .order-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .item-image {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 4px;
-  }
-  
-  .item-details p {
-    margin: 0;
-  }
-  
-  .no-orders {
+}
+
+/* Responsive Design (Tablet and Desktop) */
+@media (min-width: 768px) {
+  .orders-container {
     padding: 2rem;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
-  
+
+  .orders-title {
+    font-size: 2.2rem;
+  }
+
+  .orders-timeline {
+    max-width: 800px;
+  }
+
+  .order-card {
+    padding: 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .order-id {
+    font-size: 1.1rem;
+  }
+
+  .status-badge {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.75rem;
+  }
+
+  .order-meta {
+    font-size: 0.9rem;
+  }
+
+  .order-details-content p,
+  .order-details-content h4 {
+    font-size: 1rem;
+  }
+
+  .item-name,
+  .item-price {
+    font-size: 1rem;
+  }
+
+  .item-quantity {
+    font-size: 0.9rem;
+  }
+
+  .reorder-btn {
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+
   .no-orders p {
     font-size: 1.2rem;
-    margin-bottom: 1rem;
   }
 
-
-
-
-
-
-
-
-
-
-
-
-  /* ecommerce-frontend/src/styles/Orders.css */
-.orders-page {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
+  .shop-now-btn {
+    font-size: 1.1rem;
+    padding: 1rem 2rem;
+  }
 }
 
-.orders-list {
-  list-style: none;
-  padding: 0;
-}
+@media (min-width: 1024px) {
+  .orders-timeline {
+    max-width: 1000px;
+  }
 
-.order-item {
-  padding: 15px;
-  border-bottom: 1px solid #ddd;
-}
+  .order-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    width: 45%;
+    margin: 2rem 0;
+  }
 
-.error {
-  color: red;
-  margin-bottom: 10px;
-}
+  /* Alternate cards on left and right of the timeline */
+  .orders-timeline .order-card:nth-child(odd) {
+    align-self: flex-start;
+    margin-right: 55%;
+  }
 
-.loading-screen {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+  .orders-timeline .order-card:nth-child(even) {
+    align-self: flex-end;
+    margin-left: 55%;
+  }
 
-.spinner {
-  font-size: 18px;
+  .orders-timeline .order-card:nth-child(odd) .timeline-dot {
+    left: calc(100% + 1rem);
+  }
+
+  .orders-timeline .order-card:nth-child(even) .timeline-dot {
+    left: calc(-1rem - 16px);
+  }
 }
