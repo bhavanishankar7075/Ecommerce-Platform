@@ -1,0 +1,101 @@
+/* admin-frontend/src/styles/Sidebar.css */
+.sidebar {
+  width: 250px;
+  background: #16213e;
+  padding: 20px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+  transition: width 0.3s ease;
+  z-index: 1000;
+}
+
+.sidebar h3 {
+  color: #00d4ff;
+  margin-bottom: 30px;
+  font-size: 1.5rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar li {
+  margin-bottom: 15px;
+}
+
+.sidebar a,
+.sidebar button {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  background: #0f3460;
+  border-radius: 8px;
+  transition: background 0.3s, transform 0.2s;
+  text-decoration: none;
+}
+
+.sidebar button {
+  border: none;
+  width: 100%;
+  cursor: pointer;
+}
+
+.sidebar .icon {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.sidebar .text {
+  flex: 1;
+}
+
+.sidebar a:hover,
+.sidebar button:hover {
+  background: #00d4ff;
+  color: #1a1a2e;
+  transform: translateX(5px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+    padding: 10px;
+  }
+
+  .sidebar h3 {
+    font-size: 0; /* Hide text on small screens */
+    background: url('https://via.placeholder.com/40') no-repeat center; /* Replace with your logo */
+    height: 40px;
+    margin-bottom: 20px;
+  }
+
+  .sidebar a,
+  .sidebar button {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .sidebar .text {
+    display: none; /* Hide text on small screens */
+  }
+
+  .sidebar .icon {
+    margin-right: 0;
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 60px;
+  }
+}

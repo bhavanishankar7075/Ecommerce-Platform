@@ -1,0 +1,286 @@
+.login-wrapper {
+  min-height: 100vh;
+  background: radial-gradient(circle at center, #0d041b, #1f1136);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.galaxy-portal {
+  position: relative;
+  width: 450px;
+  padding: 40px;
+  text-align: center;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Ensure all child elements are centered */
+}
+
+.login-title {
+  font-size: 2.4rem;
+  color: #00eaff;
+  text-transform: uppercase;
+  letter-spacing: 5px;
+  text-shadow: 0 0 20px #00eaff;
+  margin-bottom: 35px;
+  font-weight: 700;
+}
+
+/* Starfield with Layers */
+.starfield {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #fff;
+  animation: twinkle 3s infinite ease-in-out;
+}
+.star:nth-child(odd) { animation-duration: 4s; opacity: 0.6; }
+@keyframes twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Form Nebula with Glow Ring */
+.login-form {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 40px;
+  border-radius: 50%;
+  box-shadow: 0 0 50px rgba(0, 234, 255, 0.3), inset 0 0 20px rgba(0, 234, 255, 0.1);
+  animation: nebulaFadeIn 1s ease-in-out;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 350px; /* Slightly narrower for better proportion */
+}
+@keyframes nebulaFadeIn {
+  0% { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Input Orbs */
+.input-orb {
+  position: relative;
+  margin: 20px 0; /* Consistent vertical spacing */
+  width: 100%;
+  max-width: 300px; /* Fixed width for alignment */
+  animation: orbitIn 0.8s ease-out forwards;
+}
+.input-orb:nth-child(1) { animation-delay: 0.2s; }
+.input-orb:nth-child(2) { animation-delay: 0.4s; }
+.orb-label {
+  color: #00eaff;
+  font-size: 1.1rem;
+  text-shadow: 0 0 8px #00eaff;
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%); /* Center labels perfectly */
+  white-space: nowrap;
+}
+.orb-input {
+  width: 100%;
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid #00eaff;
+  border-radius: 25px;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.4s ease;
+}
+.orb-input:focus {
+  box-shadow: 0 0 25px #00eaff;
+  border-color: #ff4081;
+  outline: none;
+}
+@keyframes orbitIn {
+  0% { opacity: 0; transform: translateY(60px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Error Comet */
+.error-comet {
+  background: rgba(255, 64, 129, 0.2);
+  padding: 12px 20px;
+  border-radius: 20px;
+  margin: 15px 0;
+  color: #ff4081;
+  font-size: 1rem;
+  width: 100%;
+  max-width: 300px; /* Match input width */
+  text-align: center;
+  animation: cometFly 1s ease-in-out;
+}
+.error-comet span {
+  display: inline-block;
+}
+@keyframes cometFly {
+  0% { opacity: 0; transform: translateX(-120px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Portal Button */
+.portal-btn {
+  background: linear-gradient(45deg, #00eaff, #ff4081);
+  border: none;
+  padding: 14px 40px;
+  border-radius: 25px;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  box-shadow: 0 0 20px rgba(0, 234, 255, 0.5);
+  width: 100%;
+  max-width: 300px; /* Match input width */
+  margin-top: 20px; /* Consistent spacing */
+  position: relative;
+  overflow: hidden;
+}
+.portal-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+.portal-btn:hover::after {
+  width: 200px;
+  height: 200px;
+}
+.portal-btn:disabled {
+  background: #3a2b5e;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.portal-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 64, 129, 0.7);
+}
+
+/* Signup Link */
+.signup-link {
+  margin-top: 25px;
+  color: #fff;
+  font-size: 0.9rem;
+  width: 100%;
+  max-width: 300px; /* Match form width */
+  text-align: center;
+}
+.signup-link a {
+  color: #ff4081;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+.signup-link a:hover {
+  text-shadow: 0 0 12px #ff4081;
+}
+
+/* Portal Animation on Success */
+.portal-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(0, 234, 255, 0.8), transparent);
+  border-radius: 50%;
+  animation: portalOpen 1.5s forwards;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+@keyframes portalOpen {
+  0% { width: 0; height: 0; opacity: 1; }
+  50% { width: 600px; height: 600px; opacity: 1; }
+  100% { width: 800px; height: 800px; opacity: 0; }
+}
+
+
+/* ecommerce-frontend/src/styles/Login.css */
+.login-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  background: #f9fafb;
+  min-height: 100vh;
+}
+
+.login-header {
+  font-size: 2.5rem;
+  color: #1e3a8a;
+  margin-bottom: 20px;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 1.1rem;
+  color: #4b5563;
+  margin-bottom: 5px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.btn-login {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1.1rem;
+}
+
+.btn-login:hover {
+  background: #1e3a8a;
+}
+
+.link {
+  color: #10b981;
+  cursor: pointer;
+  text-decoration: underline;
+}

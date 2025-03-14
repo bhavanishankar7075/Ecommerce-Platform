@@ -1,0 +1,187 @@
+/* admin-frontend/src/styles/ProductManagement.css */
+.product-management {
+  margin-left: 250px;
+  padding: 40px;
+  min-height: 100vh;
+  background: #1a1a2e;
+  transition: margin-left 0.3s ease;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.product-management h2 {
+  color: #00d4ff;
+  font-size: 2.5rem;
+  text-transform: uppercase;
+}
+
+.back-btn {
+  padding: 10px 20px;
+  background: #00d4ff;
+  border: none;
+  border-radius: 8px;
+  color: #1a1a2e;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.back-btn:hover {
+  background: #00b0cc;
+  transform: scale(1.05);
+}
+
+.product-management form {
+  background: #2a2a4a;
+  padding: 30px;
+  border-radius: 15px;
+  margin-bottom: 40px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.product-management input,
+.product-management select,
+.product-management textarea,
+.product-management input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 8px;
+  background: #3a3a5a;
+  color: #e0e0e0;
+  font-size: 1rem;
+  outline: none;
+  transition: background 0.3s;
+}
+
+.product-management input:focus,
+.product-management select:focus,
+.product-management textarea:focus {
+  background: #4a4a6a;
+}
+
+.product-management textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.product-management button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 20px;
+  background: #00d4ff;
+  border: none;
+  border-radius: 8px;
+  color: #1a1a2e;
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.product-management button:hover {
+  background: #00b0cc;
+  transform: scale(1.05);
+}
+
+.product-management table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #2a2a4a;
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.product-management th,
+.product-management td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #3a3a5a;
+}
+
+.product-management th {
+  background: #0f3460;
+  color: #00d4ff;
+  font-size: 1.1rem;
+}
+
+.product-management td {
+  color: #e0e0e0;
+}
+
+.product-management td img {
+  border-radius: 5px;
+}
+
+.product-management td button {
+  padding: 8px 15px;
+  margin-right: 10px;
+  background: #00d4ff;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.product-management td button:hover {
+  background: #00b0cc;
+}
+
+.product-management td button:last-child {
+  background: #ff4d4d;
+}
+
+.product-management td button:last-child:hover {
+  background: #cc3939;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .product-management {
+    margin-left: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-management {
+    margin-left: 70px;
+    padding: 20px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .back-btn {
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .product-management h2 {
+    font-size: 2rem;
+  }
+
+  .product-management table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-management form {
+    padding: 20px;
+  }
+
+  .product-management td button {
+    display: block;
+    margin: 5px 0;
+    width: 100%;
+  }
+}

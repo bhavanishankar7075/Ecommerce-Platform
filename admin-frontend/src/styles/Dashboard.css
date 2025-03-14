@@ -1,0 +1,122 @@
+/* admin-frontend/src/styles/Dashboard.css */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background: #1a1a2e;
+}
+
+.dashboard-content {
+  margin-left: 250px;
+  padding: 40px;
+  width: 100%;
+  transition: margin-left 0.3s ease;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.dashboard-content h2 {
+  color: #00d4ff;
+  font-size: 2.5rem;
+  text-transform: uppercase;
+}
+
+.products-btn {
+  padding: 10px 20px;
+  background: #00d4ff;
+  border: none;
+  border-radius: 8px;
+  color: #1a1a2e;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.products-btn:hover {
+  background: #00b0cc;
+  transform: scale(1.05);
+}
+
+.products-list h3 {
+  color: #e0e0e0;
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+.products-list ul {
+  list-style: none;
+}
+
+.products-list li {
+  display: flex;
+  align-items: center;
+  background: #2a2a4a;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  transition: transform 0.2s;
+}
+
+.products-list li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.products-list li img {
+  margin-left: 15px;
+  border-radius: 5px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #00d4ff;
+  padding: 40px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    margin-left: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-content {
+    margin-left: 70px;
+    padding: 20px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .products-btn {
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .dashboard-content h2 {
+    font-size: 2rem;
+  }
+
+  .products-list h3 {
+    font-size: 1.5rem;
+  }
+
+  .products-list li {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .products-list li img {
+    margin: 10px 0 0;
+  }
+}

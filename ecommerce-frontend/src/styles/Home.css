@@ -1,0 +1,429 @@
+/* General Wrapper */
+.home-wrapper {
+  background-color: #f4f7fa;
+}
+
+/* Main carousel container */
+.carousel-inner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px; /* Optional: Rounded corners for the carousel */
+}
+
+/* Carousel items (images) */
+.carousel-item {
+  position: relative;
+  display: block;
+  transition: transform 0.5s ease-in-out; /* Smooth transition for sliding images */
+}
+
+/* Carousel image styling */
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Ensure the image scales without zooming */
+  border-radius: 10px; /* Optional: Rounded corners for images */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Soft shadow for image depth */
+  transition: transform 0.3s ease-in-out; /* Smooth scaling effect */
+}
+
+/* Add some styling for the caption text overlay */
+.carousel-caption {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent background for text */
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  transition: opacity 0.3s ease; /* Fade in/out effect for caption */
+}
+
+.carousel-item:hover .carousel-caption {
+  opacity: 1; /* Show caption text when hovering over the image */
+}
+
+.carousel-caption h3 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.carousel-caption p {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.carousel-caption button {
+  font-size: 1.1rem;
+  padding: 10px 20px;
+  background-color: #007bff; /* Bootstrap primary color */
+  border: none;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.carousel-caption button:hover {
+  background-color: #0056b3; /* Darken on hover */
+}
+
+/* Active state for the carousel item */
+.carousel-item.active {
+  opacity: 1;
+  transform: scale(1.05); /* Zoom in effect for active image */
+}
+
+/* Responsive Styles */
+
+/* For screens larger than 1200px */
+@media (min-width: 1200px) {
+  .carousel-image {
+    height: auto; /* Let the height adjust automatically to maintain aspect ratio */
+    max-height: 600px; /* Set max height */
+    object-fit: contain;
+    object-position: center; 
+  }
+  .carousel-caption h3 {
+    font-size: 2rem;
+  }
+  .carousel-caption p {
+    font-size: 1.3rem;
+  }
+  .carousel-caption button {
+    font-size: 1.2rem;
+  }
+}
+
+/* For screens between 992px and 1199px */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .carousel-image {
+    height: auto; /* Let the height adjust automatically */
+    max-height: 500px; /* Set max height */
+  }
+  .carousel-caption h3 {
+    font-size: 1.7rem;
+  }
+  .carousel-caption p {
+    font-size: 1.1rem;
+  }
+  .carousel-caption button {
+    font-size: 1.1rem;
+  }
+}
+
+/* For screens between 768px and 991px */
+@media (min-width: 768px) and (max-width: 991px) {
+  .carousel-image {
+    height: auto; /* Let the height adjust automatically */
+    max-height: 400px; /* Set max height */
+  }
+  .carousel-caption h3 {
+    font-size: 1.5rem;
+  }
+  .carousel-caption p {
+    font-size: 1rem;
+  }
+  .carousel-caption button {
+    font-size: 1rem;
+  }
+}
+
+/* For screens smaller than 768px (mobiles) */
+@media (max-width: 767px) {
+  .carousel-image {
+    height: auto; /* Let the height adjust automatically */
+    max-height: 300px; /* Set max height */
+  }
+  .carousel-caption h3 {
+    font-size: 1.4rem;
+  }
+  .carousel-caption p {
+    font-size: 0.9rem;
+  }
+  .carousel-caption button {
+    font-size: 0.9rem;
+  }
+}
+
+
+
+/* Hero Section */
+/* .hero-section {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.hero-section .carousel-inner {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section .carousel-caption {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1.5rem;
+  border-radius: 8px;
+  bottom: 20%;
+}
+
+.hero-section .carousel-caption h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.hero-section .carousel-caption p {
+  font-size: 1.5rem;
+  color: #e5e7eb;
+} */
+
+.hero-section .btn-primary {
+  background: linear-gradient(45deg, #3b82f6, #1e3a8a);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+.hero-section .btn-primary:hover {
+  transform: scale(1.05);
+  background: linear-gradient(45deg, #1e3a8a, #3b82f6);
+}
+
+/* Welcome Section */
+.welcome-section {
+  padding: 4rem 0;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.welcome-section h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.welcome-section .lead {
+  font-size: 1.25rem;
+  color: #4b5563;
+}
+
+.welcome-section .btn-gradient {
+  background: linear-gradient(45deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  transition: transform 0.3s ease;
+}
+
+.welcome-section .btn-gradient:hover {
+  transform: scale(1.05);
+  background: linear-gradient(45deg, #059669, #10b981);
+}
+
+/* Trending Products Section */
+.trending-section {
+  padding: 4rem 0;
+  background: #f9fafb;
+}
+
+.trending-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.product-card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Ensure all cards are the same height */
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
+
+.product-card .image-container {
+  width: 100%;
+  height: 200px; /* Fixed height for consistency */
+  overflow: hidden;
+}
+
+.product-card .image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Ensures images fit perfectly */
+}
+
+.product-card .card-body {
+  padding: 1.5rem;
+  flex-grow: 1; /* Allows body to expand and align content */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.product-card h5 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.product-card .price {
+  font-size: 1.1rem;
+  color: #6b7280;
+  margin-bottom: 1rem;
+}
+
+.product-card .btn-outline-primary {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transition: all 0.3s ease;
+  align-self: center; /* Center the button */
+}
+
+.product-card .btn-outline-primary:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+/* Category Section */
+.category-section {
+  padding: 4rem 0;
+}
+
+.category-section h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.category-card {
+  position: relative;
+  height: 200px;
+  background: url('https://via.placeholder.com/400x200') center/cover no-repeat;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.category-card .category-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.category-card:hover .category-overlay {
+  opacity: 1;
+}
+
+.category-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.category-card .btn-light {
+  background: #ffffff;
+  color: #1f2937;
+  border: none;
+  padding: 0.5rem 1rem;
+}
+
+.category-card .btn-light:hover {
+  background: #e5e7eb;
+}
+
+/* CTA Section */
+.cta-section {
+  padding: 4rem 0;
+  background: linear-gradient(45deg, #10b981, #34d399);
+  color: white;
+}
+
+.cta-section h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.cta-section .lead {
+  font-size: 1.25rem;
+}
+
+.cta-section .btn-success {
+  background: #ffffff;
+  color: #10b981;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1.1rem;
+  transition: transform 0.3s ease;
+}
+
+.cta-section .btn-success:hover {
+  transform: scale(1.05);
+  background: #e5e7eb;
+}
+
+/* Spinner */
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 576px) {
+  .hero-section .carousel-caption h3 { font-size: 1.5rem; }
+  .hero-section .carousel-caption p { font-size: 1rem; }
+  .hero-section .btn-primary { padding: 0.5rem 1rem; font-size: 0.9rem; }
+  .welcome-section { padding: 2rem 0; }
+  .welcome-section h1 { font-size: 1.75rem; }
+  .trending-section, .category-section { padding: 2rem 0; }
+  .trending-section h2, .category-section h2 { font-size: 1.75rem; }
+  .product-card { margin: 0 auto; max-width: 300px; }
+  .cta-section { padding: 2rem 0; }
+  .cta-section h2 { font-size: 1.75rem; }
+}
+
+@media (min-width: 576px) and (max-width: 768px) {
+  .hero-section .carousel-caption h3 { font-size: 1.75rem; }
+  .welcome-section h1 { font-size: 2rem; }
+  .trending-section h2, .category-section h2 { font-size: 1.75rem; }
+  .product-card { margin: 0 auto; max-width: 350px; }
+}
+
+@media (min-width: 768px) and (max-width: 992px) {
+  .hero-section .carousel-caption h3 { font-size: 2rem; }
+  .welcome-section h1 { font-size: 2.25rem; }
+  .product-card { height: 100%; }
+}

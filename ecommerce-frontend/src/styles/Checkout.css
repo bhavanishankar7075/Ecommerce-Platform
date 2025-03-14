@@ -1,0 +1,209 @@
+.checkout-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a0b2e, #2e1b4e);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.orbital-container {
+  position: relative;
+  width: 800px;
+  padding: 40px;
+  color: #fff;
+  text-align: center;
+}
+
+.checkout-title {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #00d4ff;
+  text-shadow: 0 0 10px #00d4ff;
+}
+
+/* Progress Ring */
+.progress-ring {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+.progress-circle-bg {
+  fill: none;
+  stroke: #3a2b5e;
+  stroke-width: 10;
+}
+.progress-circle-fill {
+  fill: none;
+  stroke: #00d4ff;
+  stroke-dasharray: 314;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  transition: stroke-dashoffset 0.5s ease;
+}
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  color: #00d4ff;
+}
+
+/* ... (Keep all other existing styles unchanged) */
+
+/* Cart Orbit */
+.cart-orbit {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 20px 0;
+}
+.cart-planet {
+  position: relative;
+  width: 150px;
+  margin: 15px;
+  animation: orbit 10s infinite linear;
+}
+.planet-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #00d4ff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+.planet-info {
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 10px;
+}
+.quantity-controls {
+  display: flex;
+  align-items: center; /* Vertically center the buttons and quantity */
+  justify-content: center; /* Horizontally center the group */
+  gap: 8px; /* Consistent spacing between elements */
+  margin-top: 8px; /* Space above the controls */
+}
+.quantity-controls button {
+  background: #00d4ff;
+  border: none;
+  color: #fff;
+  width: 24px; /* Fixed width for uniformity */
+  height: 24px; /* Fixed height for uniformity */
+  border-radius: 50%; /* Circular buttons */
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.quantity-controls button:hover {
+  background: #ff4081; /* Hover effect for contrast */
+  box-shadow: 0 0 10px #ff4081;
+}
+.quantity-controls span {
+  font-size: 1rem;
+  color: #fff;
+  min-width: 20px; /* Prevent shifting when quantity changes */
+  text-align: center;
+}
+
+/* ... (Rest of the CSS remains unchanged) */
+
+
+
+
+
+.empty-cart {
+  color: #ff4081;
+  font-size: 1.2rem;
+}
+
+/* Form Nebula */
+.checkout-form {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+}
+.form-section {
+  font-size: 1.5rem;
+  margin: 20px 0 10px;
+  color: #00d4ff;
+}
+.input-orbit {
+  margin: 15px 0;
+  position: relative;
+}
+.form-input {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid #00d4ff;
+  border-radius: 25px;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+.form-input:focus {
+  box-shadow: 0 0 15px #00d4ff;
+  outline: none;
+}
+.dual-orbit {
+  display: flex;
+  gap: 10px;
+}
+.form-input.half {
+  width: 50%;
+}
+.total-pod {
+  margin: 20px 0;
+  font-size: 1.5rem;
+  color: #ff4081;
+}
+.submit-btn {
+  background: #00d4ff;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.submit-btn:disabled {
+  background: #3a2b5e;
+  cursor: not-allowed;
+}
+.submit-btn:hover:not(:disabled) {
+  box-shadow: 0 0 20px #00d4ff;
+}
+
+/* Particle Burst Animation */
+.particle-burst {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0, 212, 255, 0.5), transparent);
+  animation: burst 2s forwards;
+}
+@keyframes burst {
+  0% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+/* Orbit Animation */
+@keyframes orbit {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
