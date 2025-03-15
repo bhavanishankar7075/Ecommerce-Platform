@@ -13,7 +13,11 @@ import ProductDetails from './pages/ProductDetails';
 import Profile from './pages/Profile';
 import Signup from './pages/Signup';
 import Orders from './pages/Orders';
-import Products from './pages/Products'; // Import the new component
+import Products from './pages/Products'; 
+import Success from './pages/Success'; // New component
+import Failure from './pages/Failure'; // New component
+import { ToastContainer } from 'react-toastify'; // Import ToastContainer
+import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
 
 function App() {
   return (
@@ -21,6 +25,17 @@ function App() {
       <AuthProvider>
         <ProductProvider>
           <CartProvider>
+           <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        /> 
             <NavBar />
             <Routes>
               <Route path="/" element={<Home />} />
@@ -32,6 +47,8 @@ function App() {
               <Route path="/signup" element={<Signup />} />
               <Route path="/products" element={<Products />} /> {/* Updated route */}
               <Route path="/orders" element={<Orders />} />
+              <Route path="/success" element={<Success />} />
+              <Route path="/failure" element={<Failure />} />
             </Routes>
           </CartProvider>
         </ProductProvider>

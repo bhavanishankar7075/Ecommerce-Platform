@@ -5,6 +5,7 @@ const Order = require('../models/Order');
 const mongoose = require('mongoose');
 const { verifyAdmin } = require('./admin');
 const multer = require('multer');
+const stripe = require('stripe')('sk_test_51PwKUJL4Eh51qnT6ELLRA7Gz4dU6mdeS5FT3FIf2Op7VMGoNaEBAZVz8a9R1ajWO9uF9DiFBq2cm9pLJW1ntlKMy00gmjWPI8J');
 
 // Configure multer to handle form-data without file uploads
 const upload = multer();
@@ -88,7 +89,7 @@ router.get('/admin', verifyAdmin, async (req, res) => {
 });
 
 // Create a new order (updated to handle FormData)
-router.post('/', authMiddleware, upload.none(), async (req, res) => {
+/* router.post('/', authMiddleware, upload.none(), async (req, res) => {
   try {
     const { userId, total, payment, items, shippingAddress } = req.body;
 
@@ -96,7 +97,7 @@ router.post('/', authMiddleware, upload.none(), async (req, res) => {
 
     let parsedItems;
     try {
-      parsedItems = JSON.parse(items);
+      parsedItems = JSON.parse(items); 
     } catch (e) {
       return res.status(400).json({ message: 'Items must be a valid JSON array' });
     }
@@ -155,7 +156,215 @@ router.post('/', authMiddleware, upload.none(), async (req, res) => {
     console.error('Error creating order:', error);
     res.status(400).json({ message: error.message || 'Failed to place order' });
   }
+}); */
+
+
+// Existing POST /api/orders route
+router.post('/', authMiddleware, upload.none(), async (req, res) => {
+  try {
+    const { userId, total, payment, items, shippingAddress, savePaymentMethod } = req.body;
+
+    console.log('Received FormData (raw req.body):', req.body);
+
+    let parsedItems;
+    try {
+      parsedItems = JSON.parse(items);
+    } catch (e) {
+      return res.status(400).json({ message: 'Items must be a valid JSON array' });
+    }
+
+    let parsedShippingAddress;
+    try {
+      parsedShippingAddress = JSON.parse(shippingAddress);
+    } catch (e) {
+      return res.status(400).json({ message: 'Shipping address must be a valid JSON object' });
+    }
+
+    console.log('Parsed shippingAddress:', parsedShippingAddress);
+
+    if (!parsedItems || !Array.isArray(parsedItems) || parsedItems.length === 0) {
+      return res.status(400).json({ message: 'Items are required and must be a non-empty array' });
+    }
+    if (!parsedShippingAddress.address) {
+      return res.status(400).json({ message: 'Shipping address field is required' });
+    }
+    if (!parsedShippingAddress.city) {
+      return res.status(400).json({ message: 'Shipping city field is required' });
+    }
+    if (!parsedShippingAddress.postalCode) {
+      return res.status(400).json({ message: 'Shipping postalCode field is required' });
+    }
+    if (!parsedShippingAddress.country) {
+      return res.status(400).json({ message: 'Shipping country field is required' });
+    }
+    if (!parsedShippingAddress.phoneNumber) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+    if (!total || isNaN(total)) {
+      return res.status(400).json({ message: 'Total is required and must be a number' });
+    }
+    if (!payment) {
+      return res.status(400).json({ message: 'Payment information is required' });
+    }
+
+    parsedItems.forEach((item, index) => {
+      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+        throw new Error(`Invalid productId at index ${index}: ${item.productId}`);
+      }
+      item.productId = new mongoose.Types.ObjectId(item.productId);
+      item.quantity = Number(item.quantity);
+      item.price = Number(item.price);
+    });
+
+    if (savePaymentMethod && payment !== 'Cash on Delivery') {
+      let paymentData;
+      try {
+        paymentData = JSON.parse(savePaymentMethod);
+      } catch (e) {
+        return res.status(400).json({ message: 'Invalid payment method data' });
+      }
+
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      user.paymentMethods.push({
+        name: paymentData.name,
+        cardNumber: paymentData.cardNumber,
+        expiry: paymentData.expiry,
+      });
+      await user.save();
+    }
+
+    const order = new Order({
+      userId: userId || req.user.id,
+      items: parsedItems,
+      shippingAddress: parsedShippingAddress,
+      payment,
+      total: Number(total),
+    });
+
+    const savedOrder = await order.save();
+    res.status(201).json({ message: 'Order placed successfully', orderId: savedOrder._id });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(400).json({ message: error.message || 'Failed to place order' });
+  }
 });
+
+// New route for creating Stripe Checkout session
+// Updated /create-session route to save order after success
+router.post('/create-session', authMiddleware, async (req, res) => {
+  try {
+    console.log('Received request to create Stripe session:', req.body);
+
+    const { userId, items, shippingAddress, total, paymentMethod, cardDetails } = req.body;
+
+    if (!userId || !items || !shippingAddress || !total) {
+      console.error('Missing required fields:', { userId, items, shippingAddress, total });
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    if (paymentMethod === 'cod') {
+      console.log('COD selected, returning dummy session ID');
+      return res.json({ sessionId: 'cod-' + Date.now() });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      console.error('Invalid items array:', items);
+      return res.status(400).json({ message: 'Items must be a non-empty array' });
+    }
+
+    const lineItems = items.map(item => {
+      if (!item.name || !item.price || !item.quantity) {
+        console.error('Invalid item:', item);
+        throw new Error('Each item must have name, price, and quantity');
+      }
+      return {
+        price_data: {
+          currency: 'inr',
+          product_data: { name: item.name },
+          unit_amount: Math.round(Number(item.price) * 100),
+        },
+        quantity: Number(item.quantity),
+      };
+    });
+
+    console.log('Creating Stripe session with line_items:', lineItems);
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: 'http://localhost:3000/failure',
+      metadata: {
+        userId,
+        shippingAddress: JSON.stringify(shippingAddress),
+        payment: paymentMethod === 'saved' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'Online Payment',
+        items: JSON.stringify(items),
+        total: total.toString(),
+      },
+    });
+
+    console.log('Stripe session created successfully:', session.id);
+    res.json({ sessionId: session.id });
+  } catch (error) {
+    console.error('Error creating Stripe session:', error.message, error.stack);
+    res.status(500).json({ message: 'Failed to create payment session', error: error.message });
+  }
+});
+
+// New route to fetch order details by session ID
+router.get('/session/:sessionId', authMiddleware, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    // Retrieve the session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ message: 'Payment not completed' });
+    }
+
+    // Check if order already exists
+    let order = await Order.findOne({ stripeSessionId: sessionId });
+    if (!order) {
+      // Create order from session metadata
+      const { userId, shippingAddress, payment, items, total } = session.metadata;
+
+      order = new Order({
+        userId,
+        items: JSON.parse(items),
+        shippingAddress: JSON.parse(shippingAddress),
+        payment,
+        total: Number(total),
+        stripeSessionId: sessionId,
+      });
+
+      await order.save();
+    }
+
+    res.json({
+      orderId: order._id,
+      items: order.items,
+      shippingAddress: order.shippingAddress,
+      total: order.total,
+      payment: order.payment,
+    });
+  } catch (error) {
+    console.error('Error fetching session:', error);
+    res.status(500).json({ message: 'Failed to fetch order details', error: error.message });
+  }
+});
+
+
+
+
+
+
+
+
 
 // Get user's orders
 router.get('/user/:userId', authMiddleware, async (req, res) => {

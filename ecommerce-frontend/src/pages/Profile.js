@@ -1,3 +1,4 @@
+// ecommerce-frontend/src/pages/Profile.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -23,9 +24,15 @@ function Profile() {
   const [newPaymentMethod, setNewPaymentMethod] = useState({ cardNumber: '', expiry: '', name: '' });
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [showFullOrders, setShowFullOrders] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    console.log('useEffect - user:', user, 'authLoading:', authLoading);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!authLoading && !user && !isLoggingOut) {
       navigate('/login');
     } else if (user && user._id) {
@@ -39,32 +46,14 @@ function Profile() {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Fetching orders - user._id:', user._id, 'token:', token);
-      if (!token) {
-        navigate('/login');
-        throw new Error('No token found');
-      }
-      if (!user._id) {
-        throw new Error('User ID is undefined');
-      }
+      if (!token) throw new Error('No token found');
       const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Orders fetched:', res.data);
       setOrders(res.data);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching orders:', err);
-      if (err.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-        setError('Session expired. Please log in again.');
-      } else if (err.response?.status === 403) {
-        setError('Unauthorized access. Please log in with correct credentials.');
-      } else {
-        setError(err.response?.data?.message || 'Failed to load orders');
-      }
-      setLoading(false);
+      handleError(err, 'Failed to load orders');
     }
   };
 
@@ -94,6 +83,19 @@ function Profile() {
     }
   };
 
+  const handleError = (err, defaultMsg) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('token');
+      navigate('/login');
+      setError('Session expired. Please log in again.');
+    } else if (err.response?.status === 403) {
+      setError('Unauthorized access. Please log in with correct credentials.');
+    } else {
+      setError(err.response?.data?.message || defaultMsg);
+    }
+    setLoading(false);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
@@ -112,7 +114,6 @@ function Profile() {
   const handleSaveProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       const res = await axios.put('http://localhost:5001/api/users/profile', profile, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -128,14 +129,13 @@ function Profile() {
   const handleChangePassword = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       await axios.put('http://localhost:5001/api/users/profile/password', passwordData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPasswordData({ currentPassword: '', newPassword: '' });
+      setShowPasswordForm(false);
       setError('');
       alert('Password updated successfully');
-      setShowPasswordForm(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to change password');
     }
@@ -147,7 +147,6 @@ function Profile() {
     formData.append('avatar', avatarFile);
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       const res = await axios.post('http://localhost:5001/api/users/profile/avatar', formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
       });
@@ -165,7 +164,6 @@ function Profile() {
     if (!newAddress.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       const res = await axios.post(
         'http://localhost:5001/api/users/profile/addresses',
         { address: newAddress },
@@ -183,7 +181,6 @@ function Profile() {
   const handleDeleteAddress = async (addressId) => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       const res = await axios.delete(`http://localhost:5001/api/users/profile/addresses/${addressId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -198,7 +195,6 @@ function Profile() {
     if (!newPaymentMethod.cardNumber.trim() || !newPaymentMethod.expiry.trim() || !newPaymentMethod.name.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       const res = await axios.post(
         'http://localhost:5001/api/users/profile/payment-methods',
         newPaymentMethod,
@@ -216,7 +212,6 @@ function Profile() {
   const handleDeletePaymentMethod = async (paymentId) => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
       const res = await axios.delete(`http://localhost:5001/api/users/profile/payment-methods/${paymentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -227,10 +222,10 @@ function Profile() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setIsLoggingOut(true);
     try {
-      setIsLoggingOut(true);
-      await logout();
+      logout(); // Call logout without await
       navigate('/', { replace: true });
     } catch (err) {
       console.error('Logout error:', err);
@@ -241,8 +236,9 @@ function Profile() {
 
   if (authLoading || loading || (isLoggingOut && !user)) {
     return (
-      <div className="loading-screen">
-        <div className="spinner"></div>
+      <div className="cosmic-loading">
+        <div className="spinner-orbit"></div>
+        <p>Navigating the Cosmos...</p>
       </div>
     );
   }
@@ -250,53 +246,75 @@ function Profile() {
   if (!user) return null;
 
   return (
-    <div className="profile-dashboard">
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <h2>Control Hub</h2>
-        </div>
-        <nav className="sidebar-nav">
-          <button className="nav-btn active">Profile</button>
-          <button className="nav-btn" onClick={() => navigate('/orders')}>Orders</button>
-          <button className="nav-btn logout-btn" onClick={handleLogout}>Logout</button>
-        </nav>
-      </aside>
-      <main className="dashboard-content">
-        <header className="dashboard-header">
-          <h1>User Interface</h1>
-          {error && <p className="error-alert">{error}</p>}
-        </header>
-        <section className="profile-grid">
-          <div className="card profile-card">
-            <div className="avatar-container">
-              <img
-                src={profile.avatar || 'https://via.placeholder.com/100'}
-                alt="Avatar"
-                className="avatar-img"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setAvatarFile(e.target.files[0])}
-                className="avatar-upload"
-              />
-              {avatarFile && (
-                <button className="action-btn upload-btn" onClick={handleAvatarUpload}>
-                  Upload
-                </button>
-              )}
-            </div>
-            <div className="profile-info">
-              <p><strong>Email:</strong> {user.email}</p>
-              <p><strong>Name:</strong> {profile.fullName}</p>
-              {isEditing ? (
-                <>
+    <div className="profile-galaxy">
+      <div className="profile-container">
+        <aside className="stellar-sidebar">
+          <div className="sidebar-header">
+            <h2>Galactic Hub</h2>
+          </div>
+          <nav className="sidebar-nav">
+            <button className="nav-btn" onClick={() => setIsEditing(!isEditing)}>
+              <i className="fas fa-user"></i> Profile
+            </button>
+            <button className="nav-btn" onClick={() => navigate('/cart')}>
+              <i className="fas fa-shopping-cart"></i> Cart
+            </button>
+            <button className="nav-btn" onClick={() => navigate('/orders')}>
+              <i className="fas fa-box"></i> Orders
+            </button>
+            <button className="nav-btn" onClick={() => setShowAddressForm(!showAddressForm)}>
+              <i className="fas fa-map-marker-alt"></i> Addresses
+            </button>
+            <button className="nav-btn" onClick={() => setShowPaymentForm(!showPaymentForm)}>
+              <i className="fas fa-credit-card"></i> Payments
+            </button>
+            <button className="nav-btn" onClick={() => setShowPasswordForm(!showPasswordForm)}>
+              <i className="fas fa-lock"></i> Password
+            </button>
+            <button className="nav-btn logout-btn" onClick={handleLogout}>
+              <i className="fas fa-sign-out-alt"></i> Logout
+            </button>
+          </nav>
+        </aside>
+        <main className="cosmic-dashboard">
+          <header className="dashboard-header">
+            <h1>{user.fullName || user.username || user.email}'s Control Center</h1>
+            <button className="cart-btn" onClick={() => navigate('/cart')}>
+              <i className="fas fa-shopping-cart"></i> View Cart
+            </button>
+            {error && <p className="error-pod">{error}</p>}
+          </header>
+          <section className="profile-orbit">
+            {isEditing && (
+              <div className="stellar-card profile-pod">
+                <h3 className="card-title">Profile Core</h3>
+                <div className="avatar-cluster">
+                  <img
+                    src={profile.avatar || 'https://via.placeholder.com/120'}
+                    alt="Avatar"
+                    className="avatar-star"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAvatarFile(e.target.files[0])}
+                    className="avatar-upload"
+                  />
+                  {avatarFile && (
+                    <button className="nebula-btn upload-btn" onClick={handleAvatarUpload}>
+                      Upload
+                    </button>
+                  )}
+                </div>
+                <div className="profile-data">
+                  <p><strong>Email:</strong> {user.email}</p>
                   <input
                     type="text"
                     name="fullName"
                     value={profile.fullName}
                     onChange={handleInputChange}
                     className="input-field"
+                    placeholder="Full Name"
                   />
                   <textarea
                     name="address"
@@ -305,205 +323,156 @@ function Profile() {
                     placeholder="Primary Address"
                     className="input-field textarea-field"
                   />
-                  <button className="action-btn save-btn" onClick={handleSaveProfile}>
-                    Save
-                  </button>
-                  <button className="action-btn cancel-btn" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </button>
-                </>
+                  <div className="action-cluster">
+                    <button className="nebula-btn save-btn" onClick={handleSaveProfile}>Save</button>
+                    <button className="nebula-btn cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {showAddressForm && (
+              <div className="stellar-card addresses-pod">
+                <h3 className="card-title">Shipping Coordinates</h3>
+                {addresses.length > 0 ? (
+                  <ul className="address-constellation">
+                    {addresses.map((addr) => (
+                      <li key={addr._id} className="address-star">
+                        {addr.address}
+                        <button className="nebula-btn delete-btn" onClick={() => handleDeleteAddress(addr._id)}>
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No additional coordinates</p>
+                )}
+                <div className="address-form">
+                  <textarea
+                    value={newAddress}
+                    onChange={(e) => setNewAddress(e.target.value)}
+                    placeholder="New Shipping Coordinate"
+                    className="input-field textarea-field"
+                  />
+                  <button className="nebula-btn add-btn" onClick={handleAddAddress}>Add</button>
+                </div>
+              </div>
+            )}
+
+            {showPaymentForm && (
+              <div className="stellar-card payments-pod">
+                <h3 className="card-title">Payment Portals</h3>
+                {paymentMethods.length > 0 ? (
+                  <ul className="payment-constellation">
+                    {paymentMethods.map((method) => (
+                      <li key={method._id} className="payment-star">
+                        {method.name} - **** {method.cardNumber.slice(-4)} (Exp: {method.expiry})
+                        <button className="nebula-btn delete-btn" onClick={() => handleDeletePaymentMethod(method._id)}>
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No saved portals</p>
+                )}
+                <div className="payment-form">
+                  <input
+                    type="text"
+                    name="name"
+                    value={newPaymentMethod.name}
+                    onChange={handlePaymentInputChange}
+                    placeholder="Cardholder Name"
+                    className="input-field"
+                  />
+                  <input
+                    type="text"
+                    name="cardNumber"
+                    value={newPaymentMethod.cardNumber}
+                    onChange={handlePaymentInputChange}
+                    placeholder="Card Number"
+                    className="input-field"
+                    maxLength="19"
+                  />
+                  <input
+                    type="text"
+                    name="expiry"
+                    value={newPaymentMethod.expiry}
+                    onChange={handlePaymentInputChange}
+                    placeholder="MM/YY"
+                    className="input-field"
+                    maxLength="5"
+                  />
+                  <button className="nebula-btn add-btn" onClick={handleAddPaymentMethod}>Add</button>
+                </div>
+              </div>
+            )}
+
+            {showPasswordForm && (
+              <div className="stellar-card password-pod">
+                <h3 className="card-title">Security Code</h3>
+                <div className="password-form">
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Current Code"
+                    className="input-field"
+                  />
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="New Code"
+                    className="input-field"
+                  />
+                  <button className="nebula-btn update-btn" onClick={handleChangePassword}>Update</button>
+                </div>
+              </div>
+            )}
+
+            <div className="stellar-card orders-pod">
+              <h3 className="card-title">Cosmic Orders</h3>
+              {orders.length > 0 ? (
+                <div className="orders-orbit">
+                  {(showFullOrders ? orders : orders.slice(0, 3)).map((order) => (
+                    <div key={order._id} className="order-planet">
+                      <div className="order-header">
+                        <p><strong>Order #{order._id.slice(-6)}</strong></p>
+                        <p>{new Date(order.createdAt).toLocaleDateString()}</p>
+                        <p>₹{order.total.toFixed(2)}</p>
+                        <span className={`status-badge status-${order.status.toLowerCase()}`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <div className="order-details">
+                        <p><strong>Shipping:</strong> {order.shippingAddress?.address || 'N/A'}</p>
+                        <ul className="order-items">
+                          {order.items.map((item, index) => (
+                            <li key={index}>
+                              {item.name} - Qty: {item.quantity} - ₹{item.price.toFixed(2)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                  {orders.length > 3 && (
+                    <button className="nebula-btn view-all-btn" onClick={() => setShowFullOrders(!showFullOrders)}>
+                      {showFullOrders ? 'Collapse' : 'Expand'}
+                    </button>
+                  )}
+                </div>
               ) : (
-                <>
-                  <p><strong>Primary Address:</strong> {profile.address || 'Not set'}</p>
-                  <button className="action-btn edit-btn" onClick={() => setIsEditing(true)}>
-                    Edit
-                  </button>
-                </>
+                <p>No orders in orbit</p>
               )}
             </div>
-          </div>
-
-          <div className="card addresses-card">
-            <h3
-              onClick={() => setShowAddressForm(!showAddressForm)}
-              className="card-title"
-              style={{ cursor: 'pointer' }}
-            >
-              Shipping Addresses {showAddressForm ? '▼' : '►'}
-            </h3>
-            {addresses.length > 0 ? (
-              <ul className="address-list">
-                {addresses.map((addr) => (
-                  <li key={addr._id} className="address-item">
-                    {addr.address}
-                    <button
-                      className="action-btn delete-btn"
-                      onClick={() => handleDeleteAddress(addr._id)}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No additional addresses</p>
-            )}
-            {showAddressForm && (
-              <div className="address-form">
-                <textarea
-                  value={newAddress}
-                  onChange={(e) => setNewAddress(e.target.value)}
-                  placeholder="Enter new shipping address"
-                  className="input-field textarea-field"
-                />
-                <button className="action-btn add-btn" onClick={handleAddAddress}>
-                  Add Address
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="card payment-methods-card">
-            <h3
-              onClick={() => setShowPaymentForm(!showPaymentForm)}
-              className="card-title"
-              style={{ cursor: 'pointer' }}
-            >
-              Payment Methods {showPaymentForm ? '▼' : '►'}
-            </h3>
-            {paymentMethods.length > 0 ? (
-              <ul className="payment-list">
-                {paymentMethods.map((method) => (
-                  <li key={method._id} className="payment-item">
-                    {method.name} - **** **** **** {method.cardNumber.slice(-4)} (Exp: {method.expiry})
-                    <button
-                      className="action-btn delete-btn"
-                      onClick={() => handleDeletePaymentMethod(method._id)}
-                    >
-                      Delete
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>No saved payment methods</p>
-            )}
-            {showPaymentForm && (
-              <div className="payment-form">
-                <input
-                  type="text"
-                  name="name"
-                  value={newPaymentMethod.name}
-                  onChange={handlePaymentInputChange}
-                  placeholder="Cardholder Name"
-                  className="input-field"
-                />
-                <input
-                  type="text"
-                  name="cardNumber"
-                  value={newPaymentMethod.cardNumber}
-                  onChange={handlePaymentInputChange}
-                  placeholder="Card Number (e.g., 1234 5678 9012 3456)"
-                  className="input-field"
-                  maxLength="19"
-                />
-                <input
-                  type="text"
-                  name="expiry"
-                  value={newPaymentMethod.expiry}
-                  onChange={handlePaymentInputChange}
-                  placeholder="MM/YY"
-                  className="input-field"
-                  maxLength="5"
-                />
-                <button className="action-btn add-btn" onClick={handleAddPaymentMethod}>
-                  Add Payment Method
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="card password-card">
-            <h3 onClick={() => setShowPasswordForm(!showPasswordForm)} className="card-title">
-              Change Password {showPasswordForm ? '▼' : '►'}
-            </h3>
-            {showPasswordForm && (
-              <div className="password-form">
-                <input
-                  type="password"
-                  name="currentPassword"
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="Current Password"
-                  className="input-field"
-                />
-                <input
-                  type="password"
-                  name="newPassword"
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  placeholder="New Password"
-                  className="input-field"
-                />
-                <button className="action-btn change-btn" onClick={handleChangePassword}>
-                  Update Password
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="card orders-card">
-            <h3
-              onClick={() => setShowFullOrders(!showFullOrders)}
-              className="card-title"
-              style={{ cursor: 'pointer' }}
-            >
-              Order History {showFullOrders ? '▼' : '►'}
-            </h3>
-            {orders.length > 0 ? (
-              <div className="orders-list">
-                {(showFullOrders ? orders : orders.slice(0, 3)).map((order) => (
-                  <div key={order._id} className="order-item">
-                    <div className="order-header">
-                      <p><strong>Order #{order._id.slice(-6)}</strong></p>
-                      <p>{new Date(order.createdAt).toLocaleDateString()}</p>
-                      <p>₹{order.total.toFixed(2)}</p>
-                      <span className={`status-badge status-${order.status.toLowerCase()}`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    <div className="order-details">
-                      <p>
-                        <strong>Shipping Address:</strong>{' '}
-                        {order.shippingAddress
-                          ? `${order.shippingAddress.fullName || ''}, ${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}`
-                          : 'Not available'}
-                      </p>
-                      <ul className="order-items">
-                        {order.items.map((item, index) => (
-                          <li key={index}>
-                            {item.name} - Qty: {item.quantity} - ₹{item.price.toFixed(2)}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No orders yet</p>
-            )}
-            {orders.length > 3 && (
-              <button
-                className="action-btn view-all-btn"
-                onClick={() => setShowFullOrders(!showFullOrders)}
-              >
-                {showFullOrders ? 'Show Less' : 'View All Orders'}
-              </button>
-            )}
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

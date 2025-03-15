@@ -1,382 +1,111 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+// ecommerce-frontend/src/components/Navbar.js
+import { useState, useEffect } from 'react';
+import { Link,  } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import '../styles/Navbar.css';
 
 function Navigation() {
-  const { user,  } = useAuth();    //logout to add init
+  const { user,  } = useAuth();
   const { cart } = useCart();
-  
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMedium, setIsMedium] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
-  const handleNavToggle = () => {
-    setIsNavCollapsed(!isNavCollapsed);
-  };
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsMedium(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  const closeNavbar = () => {
-    setIsNavCollapsed(true);
-  };
+  /* const handleLogout = () => {
+    logout();
+    navigate('/login');
+  }; */
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-custom fixed-top">
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/">E-Shop</Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          onClick={handleNavToggle}
-          aria-controls="navbarNav"
-          aria-expanded={!isNavCollapsed}
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className={`collapse navbar-collapse ${isNavCollapsed ? '' : 'show'}`} id="navbarNav">
-          <ul className="navbar-nav main-nav">
-            <li className="nav-item">
-              <Link className="nav-link" to="/" onClick={closeNavbar}>Home</Link>
-            </li>
-            {user && (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/products" onClick={closeNavbar}>Products</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/cart" onClick={closeNavbar}>
-                    Cart
-                    {cartCount > 0 && (
-                      <span className="cart-badge ms-1">{cartCount}</span>
-                    )}
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/checkout" onClick={closeNavbar}>Checkout</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/profile" onClick={closeNavbar}>Profile</Link>
-                </li>
-              </>
-            )}
-          </ul>
-          <ul className="navbar-nav auth-nav ms-auto">
-            {user ? (
-              <>
-                <li className="nav-item">
-                  <span className="nav-link welcome-text">
-                    Welcome,{ user.fullname ||user.username  || user.email} 
-                  </span>
-                </li> 
-               {/*  <li className="nav-item">
-                  <button className="nav-link logout-btn" onClick={() => { logout(); closeNavbar(); }}>
-                    Logout
-                  </button>
-                </li> */} 
-              </>
-            ) : (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/login" onClick={closeNavbar}>Login</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/signup" onClick={closeNavbar}>Signup</Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
+    <nav className="cosmic-navbar fixed-top">
+      <div className="navbar-container">
+        <Link className="navbar-brand" to="/">
+          Cosmic Shop
+        </Link>
+        <ul className="nav-orbit main-orbit">
+          <li className="nav-star">
+            <Link to="/" className="nav-link" title="Home">
+              <i className="fas fa-home"></i>
+              {!isMobile && <span>Home</span>}
+            </Link>
+          </li>
+          {user && (
+            <>
+              <li className="nav-star">
+                <Link to="/products" className="nav-link" title="Products">
+                  <i className="fas fa-store"></i>
+                  {!isMobile && <span>Products</span>}
+                </Link>
+              </li>
+              <li className="nav-star">
+                <Link to="/cart" className="nav-link" title="Cart">
+                  <i className="fas fa-shopping-cart"></i>
+                  {!isMobile && <span>Cart</span>}
+                  {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+                </Link>
+              </li>
+              <li className="nav-star">
+                <Link to="/checkout" className="nav-link" title="Checkout">
+                  <i className="fas fa-credit-card"></i>
+                  {!isMobile && <span className='nav-link'>Checkout</span>}
+                </Link>
+              </li>
+              <li className="nav-star">
+                <Link to="/profile" className="nav-link" title="Profile">
+                  <i className="fas fa-user"></i>
+                  {!isMobile && <span>Profile</span>}
+                </Link>
+              </li>
+            </>
+          )}
+        </ul>
+        <ul className="nav-orbit auth-orbit">
+          {user ? (
+            <>
+              <li className="nav-star welcome-star">
+                <span className="nav-link" title={`Welcome, ${user.fullname || user.username || user.email}`}>
+                  <i className="fas fa-user-astronaut"></i>
+                  {!isMobile && <span>{user.fullname || user.username || user.email}</span>}
+                </span>
+              </li>
+              {/* <li className="nav-star">
+                <button className="nav-link logout-btn" onClick={handleLogout} title="Logout">
+                  <i className="fas fa-sign-out-alt"></i>
+                  {!isMobile && <span>Logout</span>}
+                </button>
+              </li> */}
+            </>
+          ) : (
+            <>
+              <li className="nav-star">
+                <Link to="/login" className="nav-link" title="Login">
+                  <i className="fas fa-sign-in-alt"></i>
+                  {!isMobile && <span>Login</span>}
+                </Link>
+              </li>
+              <li className="nav-star">
+                <Link to="/signup" className="nav-link" title="Signup">
+                  <i className="fas fa-user-plus"></i>
+                  {!isMobile && <span>Signup</span>}
+                </Link>
+              </li>
+            </>
+          )}
+        </ul>
       </div>
     </nav>
   );
 }
 
 export default Navigation;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* // ecommerce-frontend/src/components/Navigation.js
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import '../styles/Navbar.css';
-
-function Navigation() {
-  const { user, logout } = useAuth();
-  const { cart } = useCart();
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  console.log('User in Navigation:', user); // Debug
-  console.log('Cart in Navigation:', cart); // Debug
- 
-  return (
-    <nav className="navbar navbar-expand-lg navbar-custom fixed-top">
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/">E-Shop</Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav main-nav">
-            <li className="nav-item">
-              <Link className="nav-link" to="/">Home</Link>
-            </li>
-            {user && (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/products">Products</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/cart">
-                    Cart
-                    {cartCount > 0 && (
-                      <span className="cart-badge ms-1">{cartCount}</span>
-                    )}
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/checkout">Checkout</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/profile">Profile</Link>
-                </li>
-              </>
-            )}
-          </ul>
-          <ul className="navbar-nav auth-nav ms-auto">
-            {user ? (
-              <>
-                <li className="nav-item">
-                  <span className="nav-link welcome-text">
-                    Welcome, {user.username || user.email}
-                  </span>
-                </li>
-                <li className="nav-item">
-                  <button className="nav-link logout-btn" onClick={logout}>
-                    Logout
-                  </button>
-                </li>
-              </>
-            ) : (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/login">Login</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/signup">Signup</Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-export default Navigation; */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* // ecommerce-frontend/src/components/NavBar.js
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import '../styles/Navbar.css';
-
-function Navigation() {
-  const { user, logout, loading: authLoading } = useAuth();
-  const { cart, loading: cartLoading } = useCart();
-  const cartCount = Array.isArray(cart) ? cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) : 0;
-
-  if (authLoading || cartLoading) {
-    return null;
-  }
-
-  return (
-    <nav className="navbar navbar-expand-lg navbar-custom fixed-top">
-      <div className="container-fluid">
-        <Link className="navbar-brand" to="/">E-Shop</Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav main-nav">
-            <li className="nav-item">
-              <Link className="nav-link" to="/">Home</Link>
-            </li>
-            {user && (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/products">Products</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/cart">
-                    Cart
-                    {cartCount > 0 && (
-                      <span className="cart-badge ms-1">{cartCount}</span>
-                    )}
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/checkout">Checkout</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/profile">Profile</Link>
-                </li>
-              </>
-            )}
-          </ul>
-          <ul className="navbar-nav auth-nav ms-auto">
-            {user ? (
-              <>
-                <li className="nav-item">
-                  <span className="nav-link welcome-text">
-                    Welcome, {user.username}
-                  </span>
-                </li>
-                <li className="nav-item">
-                  <button className="nav-link logout-btn" onClick={logout}>
-                    Logout
-                  </button>
-                </li>
-              </>
-            ) : (
-              <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/login">Login</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/signup">Signup</Link>
-                </li>
-              </>
-            )}
-          </ul>
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-export default Navigation; */

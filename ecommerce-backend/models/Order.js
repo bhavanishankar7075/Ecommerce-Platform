@@ -11,7 +11,6 @@ const orderSchema = new mongoose.Schema({
       productId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
-        required: [true, 'Product ID is required'],
       },
       name: {
         type: String,
@@ -42,6 +41,7 @@ const orderSchema = new mongoose.Schema({
     },
     fullName: {
       type: String,
+      required: [true, 'Full name is required'],
       trim: true,
     },
     city: {
@@ -59,6 +59,11 @@ const orderSchema = new mongoose.Schema({
       required: [true, 'Country is required'],
       trim: true,
     },
+    phoneNumber: {
+      type: String,
+      required: [true, 'Phone number is required'],
+      trim: true,
+    },
   },
   payment: {
     type: String,
@@ -70,6 +75,7 @@ const orderSchema = new mongoose.Schema({
     required: [true, 'Total amount is required'],
     min: [0, 'Total cannot be negative'],
   },
+  stripeSessionId: { type: String },
   status: {
     type: String,
     enum: {

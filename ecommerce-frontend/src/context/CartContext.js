@@ -1,4 +1,3 @@
-
 // ecommerce-frontend/src/context/CartContext.js
 import { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
@@ -11,17 +10,19 @@ export function CartProvider({ children }) {
     return savedCart ? JSON.parse(savedCart) : [];
   });
 
+  const [coupon, setCoupon] = useState(null); // Store coupon details (e.g., code and discount percentage)
+
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
+  // Add to cart
   const addToCart = (product) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item._id === product._id); // Use _id instead of id
-      // Ensure price is a number and normalize product object
+      const existing = prev.find((item) => item._id === product._id);
       const normalizedProduct = {
         ...product,
-        price: Number(product.price) || 0, // Default to 0 if price is invalid
+        price: Number(product.price) || 0,
       };
       if (existing) {
         return prev.map((item) =>
@@ -40,35 +41,93 @@ export function CartProvider({ children }) {
     });
   };
 
+  // Remove from cart
   const removeFromCart = (id) => {
-    setCart((prev) => prev.filter((item) => item._id !== id)); // Use _id instead of id
+    setCart((prev) => prev.filter((item) => item._id !== id));
+    toast.info('Item removed from cart!', {
+      position: 'top-right',
+      autoClose: 3000,
+    });
   };
 
+  // Update quantity
   const updateQuantity = (id, quantity) => {
     setCart((prev) =>
       prev.map((item) =>
-        item._id === id ? { ...item, quantity: Math.max(1, quantity) } : item
+        item._id === id ? { ...item, quantity: Math.max(1, Number(quantity)) } : item
       )
     );
   };
 
+  // Clear cart
   const clearCart = () => {
     setCart([]);
+    setCoupon(null); // Reset coupon when clearing cart
     toast.info('Cart cleared!', {
       position: 'top-right',
       autoClose: 3000,
     });
   };
 
+  // Apply coupon
+  const applyCoupon = (couponCode) => {
+    // Simulate coupon validation (replace with actual API call if needed)
+    const validCoupons = {
+      'SAVE10': 10, // 10% discount
+      'SAVE20': 20, // 20% discount
+    };
+
+    const discount = validCoupons[couponCode];
+    if (discount) {
+      setCoupon({ code: couponCode, discount });
+      toast.success(`Coupon "${couponCode}" applied! ${discount}% off`, {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } else {
+      setCoupon(null);
+      toast.error('Invalid coupon code!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
+  // Calculate subtotal
+  const calculateSubtotal = () => {
+    return cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  };
+
+  // Calculate total with discount
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    if (coupon) {
+      const discountAmount = subtotal * (coupon.discount / 100);
+      return subtotal - discountAmount;
+    }
+    return subtotal;
+  };
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        applyCoupon,
+        coupon,
+        calculateSubtotal,
+        calculateTotal,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
 }
 
 export const useCart = () => useContext(CartContext);
-
 
 
 

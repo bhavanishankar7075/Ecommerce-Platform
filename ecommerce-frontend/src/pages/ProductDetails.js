@@ -19,8 +19,6 @@ function ProductDetails() {
 
   useEffect(() => {
     if (product) {
-      console.log('Product Data:', product);
-      console.log('Images Available:', product.images || product.image);
       const defaultImage = product.images?.[0] || product.image || '';
       setCurrentImage(defaultImage);
       setStockCount(product.stock || 0);
@@ -29,21 +27,20 @@ function ProductDetails() {
 
   if (loading) {
     return (
-      <div className="container my-5 text-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+      <div className="cosmic-loading">
+        <div className="spinner-orbit"></div>
+        <p>Loading Product...</p>
       </div>
     );
   }
 
   if (productsError) {
     return (
-      <div className="container my-5 text-center">
-        <h3>Error loading products</h3>
+      <div className="cosmic-error">
+        <h3>Error Loading Product</h3>
         <p>{productsError}</p>
-        <button className="btn btn-outline-secondary" onClick={() => navigate('/')}>
-          Back to Home
+        <button className="btn-return" onClick={() => navigate('/products')}>
+          Back to Products
         </button>
       </div>
     );
@@ -51,20 +48,20 @@ function ProductDetails() {
 
   if (!product) {
     return (
-      <div className="container my-5 text-center">
-        <p className="text-danger">Product not found with ID: {id}</p>
-        <button className="btn btn-outline-secondary" onClick={() => navigate('/')}>
-          Back to Home
+      <div className="cosmic-error">
+        <p>Product Not Found: {id}</p>
+        <button className="btn-return" onClick={() => navigate('/products')}>
+          Back to Products
         </button>
       </div>
     );
   }
 
   const description = product.description || 'No description available.';
-  const stockStatus = stockCount > 5 ? 'In-Stock' : stockCount > 0 ? 'Low-Stock' : 'Out-of-Stock';
+  const stockStatus = stockCount > 5 ? 'In Stock' : stockCount > 0 ? 'Low Stock' : 'Out of Stock';
   const imageList = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images
-    : [product.image || ''];
+    : [product.image || 'https://via.placeholder.com/400'];
 
   const handleAddToCart = () => {
     if (stockCount > 0) {
@@ -102,76 +99,73 @@ function ProductDetails() {
     .slice(0, 3);
 
   return (
-    <div className="productDetails-wrapper">
-      <div className="container py-5">
-        <div className="product-layout">
+    <div className="product-details-universe">
+      <div className="product-container">
+        <div className="product-galaxy">
           {/* Image Section */}
-          <div className="image-section">
-            <div className="thumbnail-orbit">
+          <div className="image-orbit">
+            <div className="thumbnail-constellation">
               {imageList.map((img, index) => (
                 <div
                   key={index}
-                  className={`thumbnail-orb ${img === currentImage ? 'active' : ''}`}
+                  className={`thumbnail-star ${img === currentImage ? 'active' : ''}`}
                   onClick={() => handleThumbnailClick(img)}
-                  style={{ '--orbit-delay': `${index * 0.2}s` }}
                 >
                   <img
                     src={img}
                     alt={`${product.name} view ${index + 1}`}
-                    onError={(e) => {
-                      console.log(`Failed to load thumbnail for ${product.name}: ${img}`);
-                      e.target.style.display = 'none';
-                    }}
+                    onError={(e) => (e.target.style.display = 'none')}
                   />
                 </div>
               ))}
             </div>
-            <div className="image-container">
-              <div className="main-image-wrapper" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-                {currentImage ? (
+            <div className="main-image-pod" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+              <img
+                src={currentImage}
+                alt={product.name}
+                className="main-image"
+                onError={(e) => (e.target.src = 'https://via.placeholder.com/400')}
+              />
+              {isZoomVisible && (
+                <div className="zoom-portal">
                   <img
                     src={currentImage}
-                    alt={product.name}
-                    className="main-image"
-                    onError={(e) => {
-                      console.log(`Failed to load main image for ${product.name}: ${currentImage}`);
-                      e.target.style.display = 'none';
+                    alt={`${product.name} zoomed`}
+                    style={{
+                      transform: `translate(-${zoomPosition.x * 1.5}%, -${zoomPosition.y * 1.5}%) scale(2.5)`,
                     }}
                   />
-                ) : (
-                  <div className="no-image">No Image Available</div>
-                )}
-                {isZoomVisible && currentImage && (
-                  <div className="zoom-lens">
-                    <img
-                      src={currentImage}
-                      alt={`${product.name} zoomed`}
-                      style={{
-                        transform: `translate(-${zoomPosition.x * 1.5}%, -${zoomPosition.y * 1.5}%) scale(2)`,
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Product Info */}
-          <div className="product-info">
-            <h2>{product.name}</h2>
-            <p className="price">₹{Number(product.price).toFixed(2)}</p>
-            <p className="category">Category: {product.category}</p>
-            <p className="brand">Brand: {product.brand || 'N/A'}</p>
-            <p className="model">Model: {product.model || 'N/A'}</p>
-            <p className="weight">Weight: {product.weight || 'N/A'} kg</p>
-            <p className={`stock-status ${stockStatus}`}>
+          <div className="info-nebula">
+            <h1 className="product-name">{product.name}</h1>
+            <p className="product-price">₹{Number(product.price).toFixed(2)}</p>
+            <div className="product-meta">
+              <span className="meta-item">Category: {product.category || 'N/A'}</span>
+              <span className="meta-item">Brand: {product.brand || 'N/A'}</span>
+              <span className="meta-item">Model: {product.model || 'N/A'}</span>
+              <span className="meta-item">Weight: {product.weight || 'N/A'} kg</span>
+            </div>
+            <p className={`stock-status ${stockStatus.toLowerCase().replace(' ', '-')}`}>
               {stockStatus} {stockCount > 0 && `(${stockCount} left)`}
             </p>
-            <div className="button-group">
-              <button className="btn-add-to-cart" onClick={handleAddToCart} disabled={stockCount <= 0}>
+            <div className="action-cluster">
+              <button
+                className="btn-cart"
+                onClick={handleAddToCart}
+                disabled={stockCount <= 0}
+              >
                 <i className="fas fa-shopping-cart"></i> Add to Cart
               </button>
-              <button className="btn-buy-now" onClick={handleBuyNow} disabled={stockCount <= 0}>
+              <button
+                className="btn-buy"
+                onClick={handleBuyNow}
+                disabled={stockCount <= 0}
+              >
                 <i className="fas fa-bolt"></i> Buy Now
               </button>
             </div>
@@ -179,45 +173,35 @@ function ProductDetails() {
         </div>
 
         {/* Description */}
-        <div className="row mt-5">
-          <div className="col-12">
-            <div className="info-card">
-              <h3>Product Description</h3>
-              <p>{description}</p>
-            </div>
-          </div>
+        <div className="description-comet">
+          <h2>Description</h2>
+          <p>{description}</p>
         </div>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <div className="row mt-5">
-            <div className="col-12">
-              <h3 className="related-title">Related Products</h3>
-              <div className="related-stack">
-                {relatedProducts.map((related, index) => (
-                  <div
-                    key={related._id}
-                    className="related-product-card"
-                    style={{ '--stack-offset': `${index * 10}px` }}
-                  >
-                    <img
-                      src={related.image || ''}
-                      alt={related.name}
-                      onError={(e) => {
-                        console.log(`Failed to load related product image for ${related.name}: ${related.image}`);
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                    <div className="card-body">
-                      <h5>{related.name}</h5>
-                      <p>₹{Number(related.price).toFixed(2)}</p>
-                      <button className="btn-view" onClick={() => navigate(`/product/${related._id}`)}>
-                        View Details
-                      </button>
-                    </div>
+          <div className="related-galaxy">
+            <h2>Related Cosmic Finds</h2>
+            <div className="related-orbit">
+              {relatedProducts.map((related) => (
+                <div key={related._id} className="related-planet">
+                  <img
+                    src={related.image || 'https://via.placeholder.com/150'}
+                    alt={related.name}
+                    onError={(e) => (e.target.src = 'https://via.placeholder.com/150')}
+                  />
+                  <div className="related-info">
+                    <h3>{related.name}</h3>
+                    <p>₹{Number(related.price).toFixed(2)}</p>
+                    <button
+                      className="btn-explore"
+                      onClick={() => navigate(`/product/${related._id}`)}
+                    >
+                      Explore
+                    </button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

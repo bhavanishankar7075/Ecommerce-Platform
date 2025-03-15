@@ -1,20 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { loadStripe } from '@stripe/stripe-js';
 import '../styles/Checkout.css';
+
+const stripePromise = loadStripe('pk_test_51PwKUJL4Eh51qnT6VIIEEXuLQQEuAcdbPOXFH36DIQ10wlSmntvODebkaUkfpm3Yn18GKUevcRYbBcHQ1IaOBX6200DmcOugdB'); // Replace with your actual key
 
 function Checkout() {
   const { cart, updateQuantity, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { subtotal: passedSubtotal, discount: passedDiscount, total: passedTotal } = location.state || {};
+
   const [formData, setFormData] = useState({
     fullName: '',
     address: '',
     city: '',
     postalCode: '',
     country: '',
+    phoneNumber: '',
     cardNumber: '',
     expiry: '',
     cvv: '',
@@ -22,6 +29,9 @@ function Checkout() {
   const [progress, setProgress] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('new');
+  const [showNewPaymentForm, setShowNewPaymentForm] = useState(false);
 
   useEffect(() => {
     const savedData = JSON.parse(localStorage.getItem('checkoutForm')) || {};
@@ -34,21 +44,44 @@ function Checkout() {
     } else if (cart.length === 0) {
       setError('Your cart is empty. Redirecting to products...');
       setTimeout(() => navigate('/products'), 3000);
+    } else if (user) {
+      fetchPaymentMethods();
     }
   }, [cart, user, authLoading, navigate]);
 
   useEffect(() => {
     localStorage.setItem('checkoutForm', JSON.stringify(formData));
     const filledFields = Object.values(formData).filter(Boolean).length;
-    setProgress((filledFields / 8) * 100);
+    setProgress((filledFields / 9) * 100);
   }, [formData]);
 
-  const subtotal = cart.reduce((sum, item) => {
+  const fetchPaymentMethods = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+      const res = await axios.get('http://localhost:5001/api/users/profile/payment-methods', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPaymentMethods(res.data.paymentMethods || []);
+      if (res.data.paymentMethods.length > 0) {
+        setSelectedPaymentMethod(res.data.paymentMethods[0]._id);
+        setShowNewPaymentForm(false);
+      } else {
+        setSelectedPaymentMethod('new');
+        setShowNewPaymentForm(true);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load payment methods');
+    }
+  };
+
+  const subtotal = passedSubtotal || cart.reduce((sum, item) => {
     const price = Number(item.price) || 0;
     return sum + price * item.quantity;
   }, 0);
   const deliveryFee = 5.00;
-  const total = subtotal + deliveryFee;
+  const discountedSubtotal = passedDiscount ? subtotal * (1 - passedDiscount) : subtotal;
+  const total = passedTotal || (discountedSubtotal + deliveryFee);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -67,100 +100,171 @@ function Checkout() {
   };
 
   const validateForm = () => {
-    const cardNumberRegex = /^\d{16}$/;
-    if (!cardNumberRegex.test(formData.cardNumber)) {
-      setError('Card number must be 16 digits');
+    if (!formData.fullName.trim() || !formData.address.trim() || !formData.city.trim() || !formData.postalCode.trim() || !formData.country.trim() || !formData.phoneNumber.trim()) {
+      setError('All shipping address fields, including phone number, must be filled');
       return false;
     }
-    const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
-    if (!expiryRegex.test(formData.expiry)) {
-      setError('Expiry must be in MM/YY format');
-      return false;
+    if (selectedPaymentMethod === 'new') {
+      const cardNumberRegex = /^\d{16}$/;
+      if (!cardNumberRegex.test(formData.cardNumber)) {
+        setError('Card number must be 16 digits');
+        return false;
+      }
+      const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+      if (!expiryRegex.test(formData.expiry)) {
+        setError('Expiry must be in MM/YY format');
+        return false;
+      }
+      const cvvRegex = /^\d{3}$/;
+      if (!cvvRegex.test(formData.cvv)) {
+        setError('CVV must be 3 digits');
+        return false;
+      }
     }
-    const cvvRegex = /^\d{3}$/;
-    if (!cvvRegex.test(formData.cvv)) {
-      setError('CVV must be 3 digits');
-      return false;
-    }
-    if (!formData.fullName.trim() || !formData.address.trim() || !formData.city.trim() || !formData.postalCode.trim() || !formData.country.trim()) {
-      setError('All shipping address fields must be filled');
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      setError('Phone number must be 10 digits');
       return false;
     }
     return true;
   };
+
+  const handlePaymentMethodChange = (e) => {
+    const value = e.target.value;
+    setSelectedPaymentMethod(value);
+    setShowNewPaymentForm(value === 'new');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-  
+
     if (!validateForm()) return;
-  
+
     if (!cart || !Array.isArray(cart) || cart.length === 0) {
       setError('Cannot place order: Your cart is empty');
       return;
     }
-  
+
     for (const item of cart) {
       if (!item._id || !item.name || !item.quantity || !item.price) {
         setError(`Invalid cart item: Missing required fields (id, name, quantity, price)`);
         return;
       }
     }
-  
-    const orderFormData = new FormData();
-    orderFormData.append('userId', user._id);
-    orderFormData.append('total', total);
-    orderFormData.append('items', JSON.stringify(cart.map(item => ({
-      productId: item._id,
-      name: item.name,
-      quantity: item.quantity,
-      price: Number(item.price),
-      image: item.image || ''
-    }))));
-    orderFormData.append('shippingAddress', JSON.stringify({
-      address: formData.address.trim(),
-      fullName: formData.fullName.trim(),
-      city: formData.city.trim(),
-      postalCode: formData.postalCode.trim(),
-      country: formData.country.trim()
-    }));
-    orderFormData.append('payment', `Card ending in ${formData.cardNumber.slice(-4)}`);
-  
-    console.log('FormData being sent:');
-    for (let [key, value] of orderFormData.entries()) {
-      console.log(`${key}: ${value}`);
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No token found');
+      navigate('/login');
+      return;
     }
-  
+
     try {
       setIsSubmitted(true);
-      const token = localStorage.getItem('token');
-      console.log('Submitting order - user._id:', user._id, 'token:', token);
-      if (!token) {
-        throw new Error('No token found');
+
+      if (selectedPaymentMethod === 'cod') {
+        const orderFormData = new FormData();
+        orderFormData.append('userId', user._id);
+        orderFormData.append('total', total);
+        orderFormData.append('items', JSON.stringify(cart.map(item => ({
+          productId: item._id,
+          name: item.name,
+          quantity: item.quantity,
+          price: Number(item.price),
+          image: item.image || ''
+        }))));
+        orderFormData.append('shippingAddress', JSON.stringify({
+          address: formData.address.trim(),
+          fullName: formData.fullName.trim(),
+          city: formData.city.trim(),
+          postalCode: formData.postalCode.trim(),
+          country: formData.country.trim(),
+          phoneNumber: formData.phoneNumber.trim(),
+        }));
+        orderFormData.append('payment', 'Cash on Delivery');
+
+        const response = await axios.post('http://localhost:5001/api/orders', orderFormData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        console.log('COD Order response:', response.data);
+
+        setTimeout(() => {
+          clearCart();
+          localStorage.removeItem('checkoutForm');
+          alert('Order placed successfully! Order ID: ' + response.data.orderId);
+          navigate(`/success?session_id=cod-${response.data.orderId}`);
+          navigate('/products');
+        }, 2000);
+      } else {
+        const stripe = await stripePromise;
+
+        console.log('Sending request to create Stripe session:', {
+          userId: user._id,
+          items: cart,
+          shippingAddress: {
+            address: formData.address.trim(),
+            fullName: formData.fullName.trim(),
+            city: formData.city.trim(),
+            postalCode: formData.postalCode.trim(),
+            country: formData.country.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+          },
+          total,
+          paymentMethod: selectedPaymentMethod === 'new' ? 'stripe' : 'saved',
+          cardDetails: selectedPaymentMethod === 'new' ? {
+            cardNumber: formData.cardNumber,
+            expiry: formData.expiry,
+            cvv: formData.cvv,
+          } : paymentMethods.find(method => method._id === selectedPaymentMethod),
+        });
+
+        const response = await axios.post('http://localhost:5001/api/orders/create-session', {
+          userId: user._id,
+          items: cart.map(item => ({
+            name: item.name,
+            price: Number(item.price),
+            quantity: item.quantity,
+          })),
+          shippingAddress: {
+            address: formData.address.trim(),
+            fullName: formData.fullName.trim(),
+            city: formData.city.trim(),
+            postalCode: formData.postalCode.trim(),
+            country: formData.country.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+          },
+          total,
+          paymentMethod: selectedPaymentMethod === 'new' ? 'stripe' : 'saved',
+          cardDetails: selectedPaymentMethod === 'new' ? {
+            cardNumber: formData.cardNumber,
+            expiry: formData.expiry,
+            cvv: formData.cvv,
+          } : paymentMethods.find(method => method._id === selectedPaymentMethod),
+        }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log('Stripe session response:', response.data);
+
+        const { sessionId } = response.data;
+        const result = await stripe.redirectToCheckout({ sessionId });
+
+        if (result.error) {
+          setError(result.error.message);
+          setIsSubmitted(false);
+        }
       }
-  
-      const response = await axios.post('http://localhost:5001/api/orders', orderFormData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      console.log('Order response:', response.data);
-  
-      setTimeout(() => {
-        clearCart();
-        localStorage.removeItem('checkoutForm');
-        alert('Order placed successfully! Order ID: ' + response.data.orderId);
-        navigate('/products');
-      }, 2000);
     } catch (err) {
       console.error('Error placing order:', err);
-      if (err.response?.status === 401) {
-        localStorage.removeItem('token');
-        navigate('/login');
-        setError('Session expired. Please log in again.');
+      if (err.response) {
+        console.log('Error response data:', err.response.data);
+        setError(err.response.data.message || 'Failed to place order');
       } else {
-        console.log('Error details:', err.response?.data);
-        setError(err.response?.data?.message || 'Failed to place order');
+        setError('An unexpected error occurred');
       }
       setIsSubmitted(false);
     }
@@ -278,42 +382,80 @@ function Checkout() {
               className="form-input"
             />
           </div>
-
-          <h3 className="form-section">Payment Galaxy</h3>
           <div className="input-orbit">
             <input
               type="text"
-              name="cardNumber"
-              value={formData.cardNumber}
+              name="phoneNumber"
+              value={formData.phoneNumber}
               onChange={handleInputChange}
-              placeholder="Card Number"
+              placeholder="Phone Number (10 digits)"
               required
               className="form-input"
             />
           </div>
-          <div className="input-orbit dual-orbit">
-            <input
-              type="text"
-              name="expiry"
-              value={formData.expiry}
-              onChange={handleInputChange}
-              placeholder="Expiry (MM/YY)"
-              required
-              className="form-input half"
-            />
-            <input
-              type="text"
-              name="cvv"
-              value={formData.cvv}
-              onChange={handleInputChange}
-              placeholder="CVV"
-              required
-              className="form-input half"
-            />
+
+          <h3 className="form-section">Payment Galaxy</h3>
+          <div className="input-orbit">
+            <label htmlFor="paymentMethod">Payment Method:</label>
+            <select
+              id="paymentMethod"
+              value={selectedPaymentMethod}
+              onChange={handlePaymentMethodChange}
+              className="form-input"
+            >
+              {paymentMethods.length > 0 && (
+                paymentMethods.map((method) => (
+                  <option key={method._id} value={method._id}>
+                    {method.name} - **** **** **** {method.cardNumber.slice(-4)} (Exp: {method.expiry})
+                  </option>
+                ))
+              )}
+              <option value="new">Add New Card (Online Payment)</option>
+              <option value="cod">Cash on Delivery</option>
+            </select>
           </div>
+
+          {showNewPaymentForm && (
+            <>
+              <div className="input-orbit">
+                <input
+                  type="text"
+                  name="cardNumber"
+                  value={formData.cardNumber}
+                  onChange={handleInputChange}
+                  placeholder="Card Number (16 digits)"
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="input-orbit dual-orbit">
+                <input
+                  type="text"
+                  name="expiry"
+                  value={formData.expiry}
+                  onChange={handleInputChange}
+                  placeholder="Expiry (MM/YY)"
+                  required
+                  className="form-input half"
+                />
+                <input
+                  type="text"
+                  name="cvv"
+                  value={formData.cvv}
+                  onChange={handleInputChange}
+                  placeholder="CVV (3 digits)"
+                  required
+                  className="form-input half"
+                />
+              </div>
+            </>
+          )}
 
           <div className="total-pod">
             <strong>Subtotal: ₹{subtotal.toFixed(2)}</strong>
+            {passedDiscount > 0 && (
+              <p>Discount ({(passedDiscount * 100).toFixed(0)}%): -₹{(subtotal * passedDiscount).toFixed(2)}</p>
+            )}
             <br />
             <strong>Delivery Fee: ₹{deliveryFee.toFixed(2)}</strong>
             <br />

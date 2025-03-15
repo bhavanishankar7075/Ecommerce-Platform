@@ -1,45 +1,31 @@
 /* ecommerce-frontend/src/styles/Profile.css */
-.profile-dashboard {
-  display: flex;
+.profile-galaxy {
   min-height: 100vh;
-  background: #1e1e2f;
+  background: linear-gradient(135deg, #0d0d2b 0%, #1a1a3d 100%);
   color: #fff;
-  font-family: 'Arial', sans-serif;
-}
-
-.loading-screen {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background: #1e1e2f;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #00ffcc;
-  border-top: 4px solid transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 250px;
-  background: #252545;
   padding: 2rem 1rem;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+  font-family: 'Orbitron', sans-serif;
 }
 
-.sidebar-header {
-  margin-bottom: 2rem;
+.profile-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stellar-sidebar {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
 }
 
 .sidebar-header h2 {
-  color: #00ffcc;
   font-size: 1.5rem;
-  text-align: center;
+  text-shadow: 0 0 5px #00d4ff;
+  margin-bottom: 1rem;
 }
 
 .sidebar-nav {
@@ -49,108 +35,120 @@
 }
 
 .nav-btn {
-  padding: 0.75rem 1rem;
-  background: #3b3b5b;
-  color: #fff;
+  background: #00d4ff;
   border: none;
-  border-radius: 5px;
+  padding: 0.75rem;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 1rem;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   transition: background 0.3s, transform 0.2s;
 }
 
 .nav-btn:hover {
-  background: #00ffcc;
-  color: #1e1e2f;
-  transform: translateX(5px);
-}
-
-.nav-btn.active {
-  background: #00ffcc;
-  color: #1e1e2f;
+  background: #00a3cc;
+  transform: scale(1.05);
 }
 
 .logout-btn {
-  background: #ff4b4b;
-  margin-top: auto;
+  background: #ff4d4d;
 }
 
 .logout-btn:hover {
-  background: #ff6666;
+  background: #e60000;
 }
 
-/* Main Content */
-.dashboard-content {
+.cosmic-dashboard {
   flex: 1;
-  padding: 2rem;
 }
 
 .dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
 .dashboard-header h1 {
-  font-size: 2rem;
-  color: #00ffcc;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  text-shadow: 0 0 5px #00d4ff;
 }
 
-.error-alert {
-  background: #ff4b4b;
+.cart-btn {
+  background: #00d4ff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.cart-btn:hover {
+  background: #00a3cc;
+  transform: scale(1.05);
+}
+
+.error-pod {
+  background: rgba(255, 77, 77, 0.2);
   padding: 0.5rem 1rem;
-  border-radius: 5px;
-  margin-top: 1rem;
-}
-
-.profile-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-}
-
-.card {
-  background: #252545;
-  padding: 1.5rem;
   border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s;
+  color: #ff4d4d;
+  font-size: 0.9rem;
 }
 
-.card:hover {
+.profile-orbit {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.stellar-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  transition: transform 0.2s;
+}
+
+.stellar-card:hover {
   transform: translateY(-5px);
 }
 
 .card-title {
-  color: #00ffcc;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   margin-bottom: 1rem;
-  cursor: pointer;
+  text-shadow: 0 0 5px #00d4ff;
 }
 
-/* Profile Card */
-.profile-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.avatar-container {
-  position: relative;
+.avatar-cluster {
+  text-align: center;
   margin-bottom: 1rem;
 }
 
-.avatar-img {
-  width: 100px;
-  height: 100px;
+.avatar-star {
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
+  border: 2px solid #00d4ff;
   object-fit: cover;
-  border: 2px solid #00ffcc;
 }
 
 .avatar-upload {
-  margin-top: 0.5rem;
-  color: #fff;
+  display: block;
+  margin: 0.5rem auto;
 }
 
-.profile-info p {
+.profile-data p {
+  font-size: 1rem;
   margin: 0.5rem 0;
 }
 
@@ -158,197 +156,71 @@
   width: 100%;
   padding: 0.75rem;
   margin: 0.5rem 0;
-  background: #3b3b5b;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
+  font-size: 1rem;
 }
 
 .textarea-field {
-  height: 80px;
-  resize: none;
+  min-height: 80px;
+  resize: vertical;
 }
 
-/* Action Buttons */
-.action-btn {
-  padding: 0.5rem 1rem;
-  margin: 0.5rem;
-  background: #00ffcc;
-  color: #1e1e2f;
+.action-cluster {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.nebula-btn {
+  background: #00d4ff;
   border: none;
-  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  border-radius: 15px;
+  color: #fff;
   cursor: pointer;
   transition: background 0.3s, transform 0.2s;
 }
 
-.action-btn:hover {
-  background: #66ffcc;
+.nebula-btn:hover {
+  background: #00a3cc;
   transform: scale(1.05);
 }
 
-.upload-btn { background: #ffcc00; }
-.upload-btn:hover { background: #ffdd33; }
-.save-btn { background: #00ccff; }
-.save-btn:hover { background: #33ddff; }
-.cancel-btn { background: #ff6666; }
-.cancel-btn:hover { background: #ff8888; }
-.edit-btn { background: #ffcc00; }
-.edit-btn:hover { background: #ffdd33; }
-.change-btn { background: #00ff99; }
-.change-btn:hover { background: #33ffbb; }
-.view-all-btn { background: #ff00ff; }
-.view-all-btn:hover { background: #ff33ff; }
-
-/* Password Card */
-.password-form {
-  margin-top: 1rem;
+.delete-btn {
+  background: #ff4d4d;
 }
 
-/* Orders Card */
-.orders-grid {
-  display: grid;
+.delete-btn:hover {
+  background: #e60000;
+}
+
+.address-constellation, .payment-constellation {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.address-star, .payment-star {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.orders-orbit {
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
 
-.order-item {
-  background: #3b3b5b;
+.order-planet {
+  background: rgba(0, 212, 255, 0.05);
   padding: 1rem;
-  border-radius: 5px;
-  transition: background 0.3s;
-}
-
-.order-item:hover {
-  background: #4b4b6b;
-}
-
-.order-item p {
-  margin: 0.25rem 0;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
   border-radius: 10px;
-  font-size: 0.8rem;
-}
-
-.status-pending { background: #ffcc00; color: #1e1e2f; }
-.status-processing { background: #00ccff; color: #1e1e2f; }
-.status-shipped { background: #00ff00; color: #1e1e2f; }
-.status-delivered { background: #66ff66; color: #1e1e2f; }
-.status-cancelled { background: #ff4444; color: #fff; }
-
-/* Animations */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ecommerce-frontend/src/styles/Profile.css */
-/* Existing styles remain unchanged, adding new styles for addresses */
-.addresses-card {
-  padding: 20px;
-}
-
-.address-list {
-  list-style: none;
-  padding: 0;
-}
-
-.address-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.address-form {
-  margin-top: 15px;
-}
-
-.address-form .textarea-field {
-  width: 100%;
-  min-height: 80px;
-  margin-bottom: 10px;
-}
-
-.action-btn.add-btn {
-  background-color: #28a745;
-}
-
-.action-btn.add-btn:hover {
-  background-color: #218838;
-}
-
-.action-btn.delete-btn {
-  background-color: #dc3545;
-  padding: 5px 10px;
-  font-size: 12px;
-}
-
-.action-btn.delete-btn:hover {
-  background-color: #c82333;
-}
-
-
-
-
-/* ecommerce-frontend/src/styles/Profile.css */
-/* Existing styles remain unchanged, adding new styles for payment methods */
-.payment-methods-card {
-  padding: 20px;
-}
-
-.payment-list {
-  list-style: none;
-  padding: 0;
-}
-
-.payment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-.payment-form {
-  margin-top: 15px;
-}
-
-.payment-form .input-field {
-  width: 100%;
-  margin-bottom: 10px;
-}
-
-.action-btn.add-btn {
-  background-color: #28a745;
-}
-
-.action-btn.add-btn:hover {
-  background-color: #218838;
-}
-
-.action-btn.delete-btn {
-  background-color: #dc3545;
-  padding: 5px 10px;
-  font-size: 12px;
-}
-
-.action-btn.delete-btn:hover {
-  background-color: #c82333;
-}
-
-/* ecommerce-frontend/src/styles/Profile.css */
-/* Existing styles remain unchanged, adding new styles for orders */
-.orders-list {
-  padding: 0;
-}
-
-.order-item {
-  padding: 15px 0;
-  border-bottom: 1px solid #ddd;
 }
 
 .order-header {
@@ -356,27 +228,89 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .order-details {
-  margin-top: 10px;
-  padding-left: 20px;
+  margin-top: 0.5rem;
 }
 
 .order-items {
   list-style: none;
   padding: 0;
+  margin: 0.5rem 0 0;
 }
 
-.order-items li {
-  margin: 5px 0;
+.status-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.85rem;
 }
 
-.action-btn.view-all-btn {
-  margin-top: 15px;
-  background-color: #007bff;
+.status-pending { background: #ffcc00; color: #0d0d2b; }
+.status-shipped { background: #00ff85; color: #0d0d2b; }
+.status-delivered { background: #00d4ff; color: #0d0d2b; }
+
+.cosmic-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #0d0d2b;
+  color: #fff;
 }
 
-.action-btn.view-all-btn:hover {
-  background-color: #0056b3;
+.spinner-orbit {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #00d4ff;
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .profile-container {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .stellar-sidebar {
+    width: 250px;
+    position: sticky;
+    top: 2rem;
+  }
+  .profile-orbit {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile-orbit {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .nav-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
 }

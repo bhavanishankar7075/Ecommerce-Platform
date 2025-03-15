@@ -1,8 +1,8 @@
-// ecommerce-frontend/src/pages/ProductList.js
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { toast } from 'react-toastify'; // Add this import
 import '../styles/Products.css';
 
 function ProductList() {
@@ -22,8 +22,8 @@ function ProductList() {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [titleIndex, setTitleIndex] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(10000); // Dynamic max price
-  const [categories, setCategories] = useState(['']); // Dynamic categories
+  const [maxPrice, setMaxPrice] = useState(10000);
+  const [categories, setCategories] = useState(['']);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,7 +41,6 @@ function ProductList() {
     'Exclusive Home Deals - Save Big!',
   ];
 
-  // Handle URL query params (e.g., /products?category=electronics)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const category = params.get('category');
@@ -51,24 +50,18 @@ function ProductList() {
     }
   }, [location.search]);
 
-  // Initialize filtered products and compute dynamic categories and max price
   useEffect(() => {
     if (!loading && products.length > 0) {
       setFiltered([...products]);
-
-      // Compute unique categories
       const uniqueCategories = ['', ...new Set(products.map(p => p.category || 'Uncategorized'))];
       setCategories(uniqueCategories);
-
-      // Compute max price for price range
       const prices = products.map(p => Number(p.price) || 0);
-      const max = Math.ceil(Math.max(...prices) / 100) * 100; // Round up to nearest 100
+      const max = Math.ceil(Math.max(...prices) / 100) * 100;
       setMaxPrice(max || 10000);
       setPriceRange(prev => [prev[0], Math.min(prev[1], max)]);
     }
   }, [products, loading]);
 
-  // Rotate titles
   useEffect(() => {
     const interval = setInterval(() => {
       setTitleIndex((prev) => (prev + 1) % titles.length);
@@ -76,7 +69,6 @@ function ProductList() {
     return () => clearInterval(interval);
   }, [titles.length]);
 
-  // Track scroll position
   useEffect(() => {
     const handleScroll = () => {
       setScrollPosition(window.scrollY);
@@ -87,7 +79,6 @@ function ProductList() {
 
   const applyFilters = useCallback(() => {
     let updatedProducts = [...products];
-
     if (searchQuery) {
       updatedProducts = updatedProducts.filter((product) =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -95,15 +86,12 @@ function ProductList() {
     } else if (categoryFilter && categoryFilter !== '') {
       updatedProducts = updatedProducts.filter((product) => product.category === categoryFilter);
     }
-
     updatedProducts = updatedProducts.filter(
       (product) => Number(product.price) >= priceRange[0] && Number(product.price) <= priceRange[1]
     );
-
     if (inStockOnly) {
       updatedProducts = updatedProducts.filter((product) => (product.stock || 0) > 0);
     }
-
     if (sort === 'price-asc') {
       updatedProducts.sort((a, b) => Number(a.price) - Number(b.price));
     } else if (sort === 'price-desc') {
@@ -111,7 +99,6 @@ function ProductList() {
     } else if (sort === 'name-asc') {
       updatedProducts.sort((a, b) => a.name.localeCompare(b.name));
     }
-
     setFiltered(updatedProducts);
   }, [products, searchQuery, categoryFilter, priceRange, inStockOnly, sort]);
 
@@ -152,6 +139,17 @@ function ProductList() {
 
   const getStockStatus = (stock) => {
     return (stock || 0) > 0 ? 'In Stock' : 'Out of Stock';
+  };
+
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    // Optional: Add a custom toast here if you want a different message
+   /*  toast.success(`${product.name} blasted into your cart!`, {
+      position: 'bottom-right', // Custom position
+      autoClose: 2000,
+      hideProgressBar: true,
+      className: 'cosmic-toast',
+    }); */
   };
 
   if (loading) {
@@ -284,7 +282,7 @@ function ProductList() {
                       loading="lazy"
                       onError={(e) => {
                         console.log(`Failed to load image for ${product.name}: ${product.image}`);
-                        e.target.style.display = 'none'; // Hide the image if it fails
+                        e.target.style.display = 'none';
                       }}
                       onClick={() => handleImageClick(product._id)}
                     />
@@ -298,7 +296,7 @@ function ProductList() {
                     <div className="button-group">
                       <button
                         className="btn-add-to-cart"
-                        onClick={() => addToCart(product)}
+                        onClick={() => handleAddToCart(product)}
                         disabled={stock <= 0}
                       >
                         <i className="fas fa-shopping-cart"></i> Add
