@@ -1,5 +1,3 @@
-
-// ecommerce-frontend/src/pages/Profile.js
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -30,13 +28,13 @@ function Profile() {
     console.log('useEffect - user:', user, 'authLoading:', authLoading);
     if (!authLoading && !user && !isLoggingOut) {
       navigate('/login');
-    } else if (user && user._id) { // Use _id instead of id
-      setProfile({ fullName: user.fullName, address: user.address || '', avatar: user.avatar || '' });
+    } else if (user && user._id) {
+      setProfile({ fullName: user.fullName || '', address: user.address || '', avatar: user.avatar || '' });
       fetchOrders();
       fetchAddresses();
       fetchPaymentMethods();
     }
-  }, [user, authLoading, navigate,  isLoggingOut]);
+  }, [user, authLoading, navigate, isLoggingOut]);
 
   const fetchOrders = async () => {
     try {
@@ -69,7 +67,6 @@ function Profile() {
       setLoading(false);
     }
   };
-
 
   const fetchAddresses = async () => {
     try {
@@ -476,7 +473,12 @@ function Profile() {
                       </span>
                     </div>
                     <div className="order-details">
-                      <p><strong>Shipping Address:</strong> {order.shippingAddress}</p>
+                      <p>
+                        <strong>Shipping Address:</strong>{' '}
+                        {order.shippingAddress
+                          ? `${order.shippingAddress.fullName || ''}, ${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}`
+                          : 'Not available'}
+                      </p>
                       <ul className="order-items">
                         {order.items.map((item, index) => (
                           <li key={index}>

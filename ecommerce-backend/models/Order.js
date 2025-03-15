@@ -1,63 +1,97 @@
-// ecommerce-backend/models/Order.js
 const mongoose = require('mongoose');
 
-/* const orderSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId,ref: 'User', required: true }, // Dummy userId for now
-  items: [
-    {
-      productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
- 
-     name: { type: String, required: true },
-      price: { type: Number, required: true },
-      quantity: { type: Number, required: true },
-      image: { type: String },
-    },
-  ],
-  total: { type: Number, required: true },
-  shipping: {
-    fullName: { type: String, required: true },
-    address: { type: String, required: true },
-  },
-  payment: {
-    cardNumber: { type: String, required: true },
-    expiry: { type: String, required: true },
-    cvv: { type: String, required: true },
-  },
-  status: { 
-    type: String, 
-    enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'], 
-    default: 'Pending' 
-  },
-  createdAt: { type: Date, default: Date.now },
-});
- */
-
-
 const orderSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'User ID is required'],
+  },
   items: [
     {
-      productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-      name: { type: String, required: true },
-      quantity: { type: Number, required: true },
-      price: { type: Number, required: true },
-      image: { type: String },
+      productId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: [true, 'Product ID is required'],
+      },
+      name: {
+        type: String,
+        required: [true, 'Product name is required'],
+        trim: true,
+      },
+      quantity: {
+        type: Number,
+        required: [true, 'Quantity is required'],
+        min: [1, 'Quantity must be at least 1'],
+      },
+      price: {
+        type: Number,
+        required: [true, 'Price is required'],
+        min: [0, 'Price cannot be negative'],
+      },
+      image: {
+        type: String,
+        trim: true,
+      },
     },
   ],
   shippingAddress: {
-    address: { type: String, required: true },
-    city: { type: String, required: true },
-    postalCode: { type: String, required: true },
-    country: { type: String, required: true },
+    address: {
+      type: String,
+      required: [true, 'Shipping address is required'],
+      trim: true,
+    },
+    fullName: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      required: [true, 'City is required'],
+      trim: true,
+    },
+    postalCode: {
+      type: String,
+      required: [true, 'Postal code is required'],
+      trim: true,
+    },
+    country: {
+      type: String,
+      required: [true, 'Country is required'],
+      trim: true,
+    },
   },
-  payment: { type: String },
-  total: { type: Number, required: true },
+  payment: {
+    type: String,
+    required: [true, 'Payment information is required'],
+    trim: true,
+  },
+  total: {
+    type: Number,
+    required: [true, 'Total amount is required'],
+    min: [0, 'Total cannot be negative'],
+  },
   status: {
     type: String,
-    enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+    enum: {
+      values: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+      message: '{VALUE} is not a valid status',
+    },
     default: 'Pending',
   },
-  createdAt: { type: Date, default: Date.now },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+// Middleware to update `updatedAt` on save
+orderSchema.pre('save', function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Order', orderSchema);

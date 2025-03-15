@@ -4,6 +4,10 @@ const authMiddleware = require('../middleware/auth');
 const Order = require('../models/Order');
 const mongoose = require('mongoose');
 const { verifyAdmin } = require('./admin');
+const multer = require('multer');
+
+// Configure multer to handle form-data without file uploads
+const upload = multer();
 
 // Get all orders (admin only) with pagination, filtering, sorting, and search
 router.get('/admin', verifyAdmin, async (req, res) => {
@@ -20,38 +24,29 @@ router.get('/admin', verifyAdmin, async (req, res) => {
     const order = req.query.order || 'desc';
     const search = req.query.search || '';
 
-    // Build the match stage for filtering
     const matchStage = {};
     if (status) matchStage.status = status;
     if (mongoose.Types.ObjectId.isValid(search)) {
       matchStage._id = new mongoose.Types.ObjectId(search);
     }
 
-    // Build the aggregation pipeline
     const pipeline = [
-      // Match orders based on status and _id (if search is a valid ObjectId)
       { $match: matchStage },
-      // Lookup to join with Users collection
       {
         $lookup: {
-          from: 'users', // The name of the User collection in MongoDB (lowercase 'users')
+          from: 'users',
           localField: 'userId',
           foreignField: '_id',
-          as: 'userId'
-        }
+          as: 'userId',
+        },
       },
-      // Unwind the userId array (since $lookup creates an array)
       { $unwind: '$userId' },
-      // Match again to filter by email (if search term is provided)
       ...(search && !mongoose.Types.ObjectId.isValid(search)
         ? [{ $match: { 'userId.email': { $regex: search, $options: 'i' } } }]
         : []),
-      // Sort
       { $sort: { [sortBy]: order === 'asc' ? 1 : -1 } },
-      // Pagination
       { $skip: skip },
       { $limit: limit },
-      // Project to reshape the output (optional, to match previous structure)
       {
         $project: {
           _id: 1,
@@ -61,15 +56,13 @@ router.get('/admin', verifyAdmin, async (req, res) => {
           payment: 1,
           total: 1,
           status: 1,
-          createdAt: 1
-        }
-      }
+          createdAt: 1,
+          updatedAt: 1, // Include updatedAt from schema
+        },
+      },
     ];
 
-    // Execute the aggregation pipeline
     const orders = await Order.aggregate(pipeline);
-
-    // Count total documents for pagination (without search by email for simplicity)
     const countPipeline = [
       { $match: matchStage },
       { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'userId' } },
@@ -77,7 +70,7 @@ router.get('/admin', verifyAdmin, async (req, res) => {
       ...(search && !mongoose.Types.ObjectId.isValid(search)
         ? [{ $match: { 'userId.email': { $regex: search, $options: 'i' } } }]
         : []),
-      { $count: 'total' }
+      { $count: 'total' },
     ];
     const countResult = await Order.aggregate(countPipeline);
     const totalOrders = countResult.length > 0 ? countResult[0].total : 0;
@@ -94,36 +87,77 @@ router.get('/admin', verifyAdmin, async (req, res) => {
   }
 });
 
-// Existing routes (post, get user orders, get order details, put) remain unchanged
-router.post('/', authMiddleware, async (req, res) => {
+// Create a new order (updated to handle FormData)
+router.post('/', authMiddleware, upload.none(), async (req, res) => {
   try {
-    const { items, shippingAddress, payment, total } = req.body;
+    const { userId, total, payment, items, shippingAddress } = req.body;
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: 'Items are required and must be an array' });
+    console.log('Received FormData (raw req.body):', req.body);
+
+    let parsedItems;
+    try {
+      parsedItems = JSON.parse(items);
+    } catch (e) {
+      return res.status(400).json({ message: 'Items must be a valid JSON array' });
     }
-    if (!shippingAddress) {
-      return res.status(400).json({ message: 'Shipping address is required' });
+
+    let parsedShippingAddress;
+    try {
+      parsedShippingAddress = JSON.parse(shippingAddress);
+    } catch (e) {
+      return res.status(400).json({ message: 'Shipping address must be a valid JSON object' });
     }
-    if (!total || typeof total !== 'number') {
+
+    console.log('Parsed shippingAddress:', parsedShippingAddress);
+
+    if (!parsedItems || !Array.isArray(parsedItems) || parsedItems.length === 0) {
+      return res.status(400).json({ message: 'Items are required and must be a non-empty array' });
+    }
+    if (!parsedShippingAddress.address) {
+      return res.status(400).json({ message: 'Shipping address field is required' });
+    }
+    if (!parsedShippingAddress.city) {
+      return res.status(400).json({ message: 'Shipping city field is required' });
+    }
+    if (!parsedShippingAddress.postalCode) {
+      return res.status(400).json({ message: 'Shipping postalCode field is required' });
+    }
+    if (!parsedShippingAddress.country) {
+      return res.status(400).json({ message: 'Shipping country field is required' });
+    }
+    if (!total || isNaN(total)) {
       return res.status(400).json({ message: 'Total is required and must be a number' });
     }
+    if (!payment) {
+      return res.status(400).json({ message: 'Payment information is required' });
+    }
+
+    parsedItems.forEach((item, index) => {
+      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+        throw new Error(`Invalid productId at index ${index}: ${item.productId}`);
+      }
+      item.productId = new mongoose.Types.ObjectId(item.productId);
+      item.quantity = Number(item.quantity);
+      item.price = Number(item.price);
+    });
 
     const order = new Order({
-      userId: req.user.id,
-      items,
-      shippingAddress,
-      payment: payment || null,
-      total,
+      userId: userId || req.user.id,
+      items: parsedItems,
+      shippingAddress: parsedShippingAddress,
+      payment,
+      total: Number(total),
     });
-    await order.save();
-    res.status(201).json({ message: 'Order placed successfully', orderId: order._id });
+
+    const savedOrder = await order.save();
+    res.status(201).json({ message: 'Order placed successfully', orderId: savedOrder._id });
   } catch (error) {
     console.error('Error creating order:', error);
-    res.status(500).json({ message: 'Failed to place order', error: error.message });
+    res.status(400).json({ message: error.message || 'Failed to place order' });
   }
 });
 
+// Get user's orders
 router.get('/user/:userId', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -138,6 +172,7 @@ router.get('/user/:userId', authMiddleware, async (req, res) => {
   }
 });
 
+// Get order details (admin only)
 router.get('/admin/details/:orderId', verifyAdmin, async (req, res) => {
   try {
     if (!req.user.isAdmin) {
@@ -161,6 +196,7 @@ router.get('/admin/details/:orderId', verifyAdmin, async (req, res) => {
   }
 });
 
+// Update order status (admin only)
 router.put('/admin/:orderId', verifyAdmin, async (req, res) => {
   try {
     if (!req.user.isAdmin) {
