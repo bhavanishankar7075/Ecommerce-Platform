@@ -5,24 +5,31 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/Signup.css';
 
 function Signup() {
-  const [email, setEmail] = useState(''); // Changed from username to email
+  const [username, setUsername] = useState(''); // Changed from name to username
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const emailRef = useRef(null); // Changed from usernameRef to emailRef
+  const usernameRef = useRef(null); // Changed from nameRef to usernameRef
+  const emailRef = useRef(null);
 
-  // Auto-focus email field on mount
   useEffect(() => {
-    emailRef.current.focus();
+    usernameRef.current.focus();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+
+    if (!username.trim()) {
+      setError('Please enter your username');
+      setIsSubmitting(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -36,7 +43,6 @@ function Signup() {
       return;
     }
 
-    // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Please enter a valid email address');
@@ -45,17 +51,16 @@ function Signup() {
     }
 
     try {
-      const success = await signup(email, password); // Updated to pass email
+      const success = await signup(username, email, password); // Changed from name to username
       if (success) {
         setTimeout(() => {
           navigate('/products');
-        }, 1500); // Delay for starburst animation
-      } else {
-        setError('User already exists');
-        setIsSubmitting(false);
+        }, 1500);
       }
     } catch (err) {
-      setError('Failed to sign up. Please try again.');
+      console.error('Signup submit error:', err.response?.data?.message || err.message);
+      const errorMessage = err.response?.data?.message || 'Failed to sign up. Please try again.';
+      setError(errorMessage);
       setIsSubmitting(false);
     }
   };
@@ -66,8 +71,6 @@ function Signup() {
     <div className="signup-wrapper">
       <div className="stellar-genesis">
         <h1 className="signup-title">Forge Your Star</h1>
-
-        {/* Nebula Background */}
         <div className="nebula-core">
           <div className="nebula-tendrils"></div>
           {[...Array(30)].map((_, i) => (
@@ -82,15 +85,26 @@ function Signup() {
             ></span>
           ))}
         </div>
-
-        {/* Form Cloud */}
         <form className="signup-form" onSubmit={handleSubmit}>
           <div className="input-star">
-            <label htmlFor="email" className="star-label">Email</label> {/* Changed label */}
+            <label htmlFor="username" className="star-label">Username</label> {/* Changed label */}
             <input
-              type="email" // Changed type to email
+              type="text"
+              id="username"
+              ref={usernameRef}
+              className="star-input"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+          <div className="input-star">
+            <label htmlFor="email" className="star-label">Email</label>
+            <input
+              type="email"
               id="email"
-              ref={emailRef} // Updated ref
+              ref={emailRef}
               className="star-input"
               placeholder="Enter your email"
               value={email}
@@ -123,15 +137,11 @@ function Signup() {
             />
             {passwordsMatch && <span className="match-indicator">✓</span>}
           </div>
-
-          {/* Error Shockwave */}
           {error && (
             <div className="error-shockwave">
               <span>{error}</span>
             </div>
           )}
-
-          {/* Submit Button */}
           <button
             type="submit"
             className="ignite-btn"
@@ -140,13 +150,9 @@ function Signup() {
             {isSubmitting ? 'Igniting...' : 'Ignite Your Journey'}
           </button>
         </form>
-
-        {/* Login Link */}
         <p className="login-link">
           Already a star? <a href="/login">Enter here</a>
         </p>
-
-        {/* Starburst Animation on Success */}
         {isSubmitting && !error && <div className="starburst-effect"></div>}
       </div>
     </div>

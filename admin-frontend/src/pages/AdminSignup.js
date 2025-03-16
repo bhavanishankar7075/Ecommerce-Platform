@@ -5,7 +5,7 @@ import axios from 'axios';
 import '../styles/AdminSignup.css';
 
 function AdminSignup() {
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState(''); // Changed from name to username
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,10 +13,18 @@ function AdminSignup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Basic client-side validation
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     try {
-      await axios.post('http://localhost:5001/api/admin/register', { name, email, password });
-      navigate('/login');
+      const res = await axios.post('http://localhost:5001/api/admin/register', { username, email, password });
+      localStorage.setItem('token', res.data.token); // Store the token
+      navigate('/dashboard'); // Redirect to dashboard
     } catch (err) {
+      console.error('Admin Signup Error:', err);
       setError(err.response?.data?.message || 'Signup failed');
     }
   };
@@ -29,9 +37,9 @@ function AdminSignup() {
         <form onSubmit={handleSubmit}>
           <input
             type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            placeholder="Username" // Changed placeholder to Username
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
           <input
@@ -50,7 +58,7 @@ function AdminSignup() {
           />
           <button type="submit">Sign Up</button>
           <p className="login-link">
-            Already have an account? <Link to="/login">Login</Link>
+            Already have an account? <Link to="/login">Login</Link> {/* Updated path to /admin/login */}
           </p>
         </form>
       </div>

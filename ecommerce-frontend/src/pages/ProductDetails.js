@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import '../styles/ProductDetails.css';
 
 function ProductDetails() {
@@ -14,6 +15,10 @@ function ProductDetails() {
   const [stockCount, setStockCount] = useState(0);
   const [isZoomVisible, setIsZoomVisible] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [reviews, setReviews] = useState([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState('');
 
   const product = products.find((p) => p._id === id);
 
@@ -22,8 +27,36 @@ function ProductDetails() {
       const defaultImage = product.images?.[0] || product.image || '';
       setCurrentImage(defaultImage);
       setStockCount(product.stock || 0);
+      fetchReviews();
     }
   }, [product]);
+
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`http://localhost:5001/api/reviews/product/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setReviews(res.data);
+      calculateAverageRating(res.data);
+      setReviewsLoading(false);
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      setReviewsError('Failed to load reviews');
+      setReviewsLoading(false);
+    }
+  };
+
+  const calculateAverageRating = (reviews) => {
+    if (reviews.length === 0) {
+      setAverageRating(0);
+      return;
+    }
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const avg = totalRating / reviews.length;
+    setAverageRating(avg.toFixed(1));
+  };
 
   if (loading) {
     return (
@@ -61,7 +94,7 @@ function ProductDetails() {
   const stockStatus = stockCount > 5 ? 'In Stock' : stockCount > 0 ? 'Low Stock' : 'Out of Stock';
   const imageList = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images
-    : [product.image || 'https://via.placeholder.com/400'];
+    : [product.image || 'https://placehold.co/400?text=No+Image'];
 
   const handleAddToCart = () => {
     if (stockCount > 0) {
@@ -124,7 +157,7 @@ function ProductDetails() {
                 src={currentImage}
                 alt={product.name}
                 className="main-image"
-                onError={(e) => (e.target.src = 'https://via.placeholder.com/400')}
+                onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
               />
               {isZoomVisible && (
                 <div className="zoom-portal">
@@ -153,6 +186,11 @@ function ProductDetails() {
             <p className={`stock-status ${stockStatus.toLowerCase().replace(' ', '-')}`}>
               {stockStatus} {stockCount > 0 && `(${stockCount} left)`}
             </p>
+            <div className="rating-summary">
+              <span className="average-rating">
+                Average Rating: {averageRating} / 5 ({reviews.length} reviews)
+              </span>
+            </div>
             <div className="action-cluster">
               <button
                 className="btn-cart"
@@ -178,6 +216,32 @@ function ProductDetails() {
           <p>{description}</p>
         </div>
 
+        {/* Reviews Section */}
+        <div className="reviews-section">
+          <h2>Customer Reviews</h2>
+          {reviewsLoading ? (
+            <p>Loading reviews...</p>
+          ) : reviewsError ? (
+            <p className="error-text">{reviewsError}</p>
+          ) : reviews.length === 0 ? (
+            <p>No reviews yet for this product.</p>
+          ) : (
+            <div className="reviews-list">
+              {reviews.map((review) => (
+                <div key={review._id} className="review-item">
+                  <div className="review-header">
+                    <span className="review-rating">Rating: {review.rating} / 5</span>
+                    <span className="review-date">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="review-comment">{review.review}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="related-galaxy">
@@ -186,9 +250,9 @@ function ProductDetails() {
               {relatedProducts.map((related) => (
                 <div key={related._id} className="related-planet">
                   <img
-                    src={related.image || 'https://via.placeholder.com/150'}
+                    src={related.image || 'https://placehold.co/150?text=No+Image'}
                     alt={related.name}
-                    onError={(e) => (e.target.src = 'https://via.placeholder.com/150')}
+                    onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
                   />
                   <div className="related-info">
                     <h3>{related.name}</h3>

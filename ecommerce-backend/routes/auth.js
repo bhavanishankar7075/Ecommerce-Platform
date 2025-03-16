@@ -3,26 +3,166 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const bcrypt = require('bcrypt');
 
 // Login
-/* router.post('/login', async (req, res) => {
-  const { email, password } = req.body; // Changed from username to email
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email }); // Find by email
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    const user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect password' });
     }
     const token = jwt.sign(
-      { id: user._id, username: user.username }, // Include username in token
+      { id: user._id, username: user.username, email: user.email, isAdmin: user.isAdmin },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    res.json({ token, user: { username: user.username, email: user.email } });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ message: 'Server error' });
   }
-}); */
+});
+
+// Register
+router.post('/register', async (req, res) => {
+  const { username, email, password } = req.body; // Changed from name to username
+  try {
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'Username, email, and password are required' });
+    }
+    const existingUser = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+    const user = new User({
+      username,
+      email,
+      password,
+      role: 'user',
+    });
+    await user.save();
+    const token = jwt.sign(
+      { id: user._id, username: user.username, email: user.email, isAdmin: user.isAdmin },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (error) {
+    console.error('Register error:', error.message);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Verify token
+router.get('/verify', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (error) {
+    console.error('Verify token error:', error.message);
+    res.status(401).json({ message: 'Invalid token', error: error.message });
+  }
+});
+
+module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-backend/routes/auth.js
+const express = require('express');
+const router = express.Router();
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const bcrypt = require('bcrypt');
+
+// Login
+
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -69,8 +209,8 @@ router.get('/verify', async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-/*     req.user = decoded; // Should set req.user.id
- */    const user = await User.findById(decoded.id).select('-password');
+     req.user = decoded; // Should set req.user.id
+    const user = await User.findById(decoded.id).select('-password');
     if (!user) return res.status(401).json({ message: 'User not found' });
     res.json({ user: { username: user.username, email: user.email } });
   } catch (err) {
@@ -78,4 +218,4 @@ router.get('/verify', async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router; */

@@ -1,23 +1,18 @@
-/* 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-const http = require('http');
 
 dotenv.config();
 
-// Initialize Express app
 const app = express();
-const server = http.createServer(app);
 
 // Configure CORS
 app.use(cors({
-  origin: 'http://localhost:3001', // Allow only your frontend origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
-  credentials: true, // Allow credentials (e.g., Authorization header with JWT)
+  origin: ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5003', 'http://localhost:5004'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Middleware
@@ -39,26 +34,26 @@ const productRoutes = require('./routes/products');
 const checkoutRoutes = require('./routes/checkout');
 const { router: orderRouter } = require('./routes/orders');
 const userRoutes = require('./routes/users');
-
+/* const reviewRoutes = require('./routes/reviews');
+ */
 // Mount Routes
 app.use('/api/auth', authRoutes);
-app.use('/api', customerRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/admin/products', productRoutes);
 app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/users', userRoutes);
-
-// Root Route
+app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
+/* app.use('/api/reviews', reviewRoutes);
+ */
+// Root Route 
 app.get('/', (req, res) => {
   res.send('E-commerce Backend is running on port 5001');
 });
 
-// Start server
 const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
- */
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
@@ -95,6 +90,21 @@ server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 
  const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -131,6 +141,7 @@ const productRoutes = require('./routes/products');
 const checkoutRoutes = require('./routes/checkout');
 const { router: orderRouter } = require('./routes/orders'); // Destructure router
 const userRoutes = require('./routes/users');
+const reviewRoutes = require('./routes/reviews');
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
@@ -141,6 +152,7 @@ app.use('/api/admin', adminRouter); // Use the router instance
 app.use('/api/orders', orderRouter); // Use the router instance
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/reviews', require('./routes/reviews'));
 
 // Root Route
 app.get('/', (req, res) => {
@@ -149,7 +161,7 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
- 
+ */ 
 
  
 

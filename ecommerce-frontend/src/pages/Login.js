@@ -5,13 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/Login.css';
 
 function Login() {
-  const [email, setEmail] = useState(''); // Changed from username to email
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const emailRef = useRef(null); // Changed from usernameRef to emailRef
+  const emailRef = useRef(null);
 
   useEffect(() => {
     emailRef.current.focus();
@@ -23,17 +23,19 @@ function Login() {
     setIsSubmitting(true);
 
     try {
-      const success = await login(email, password); // Updated to pass email
+      const success = await login(email, password);
       if (success) {
         setTimeout(() => {
           navigate('/products');
         }, 1500); // Delay for portal effect animation
-      } else {
-        setError('Invalid email or password');
-        setIsSubmitting(false);
       }
     } catch (err) {
-      setError('Failed to log in. Please try again.');
+      console.error('Login submit error:', {
+        message: err.response?.data?.message || err.message,
+        status: err.response?.status,
+      });
+      const errorMessage = err.response?.data?.message || 'Failed to log in. Please try again.';
+      setError(errorMessage);
       setIsSubmitting(false);
     }
   };
@@ -59,11 +61,11 @@ function Login() {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="input-orb">
-            <label htmlFor="email" className="orb-label">Email</label> {/* Changed label */}
+            <label htmlFor="email" className="orb-label">Email</label>
             <input
-              type="email" // Changed type to email
+              type="email"
               id="email"
-              ref={emailRef} // Updated ref
+              ref={emailRef}
               className="orb-input"
               placeholder="Enter your galactic email"
               value={email}
