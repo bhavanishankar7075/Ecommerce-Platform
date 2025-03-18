@@ -11,13 +11,13 @@ function Profile() {
     username: '',
     email: '',
     address: '',
-    avatar: '/default-avatar.jpg' // Default avatar as fallback
+    avatar: '/default-avatar.jpg',
   });
   const [orders, setOrders] = useState([]);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [error, setError] = useState('');
@@ -26,6 +26,10 @@ function Profile() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showFullOrders, setShowFullOrders] = useState(false);
+  const [previewAvatar, setPreviewAvatar] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const [notification, setNotification] = useState({ message: '', type: '' });
+  const [filterStatus, setFilterStatus] = useState('All');
 
   // Responsive handling
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -37,35 +41,24 @@ function Profile() {
 
   // Sync profile data and fetch orders
   useEffect(() => {
-    console.log('Profile useEffect - authLoading:', authLoading, 'user:', user, 'isLoggingOut:', isLoggingOut);
-
     if (authLoading) {
       setLoading(true);
       return;
     }
 
     if (!user && !isLoggingOut) {
-      console.log('No user detected, navigating to /login');
       navigate('/login');
       return;
     }
 
     if (user && user._id) {
-      console.log('User detected, syncing profile data for:', user._id);
       setProfileData({
         username: user.username || '',
         email: user.email || '',
         address: user.address || '',
-        avatar: user.avatar || '/default-avatar.jpg'
+        avatar: user.avatar || '/default-avatar.jpg',
       });
-      fetchOrders().then(() => {
-        console.log('Orders fetch completed');
-        setLoading(false);
-      }).catch((err) => {
-        console.error('Error fetching orders:', err);
-        setError(err.response?.data?.message || 'Failed to load orders');
-        setLoading(false);
-      });
+      fetchOrders();
     } else {
       setLoading(false);
     }
@@ -74,16 +67,16 @@ function Profile() {
   const fetchOrders = async () => {
     try {
       if (!user?._id) throw new Error('User ID is undefined');
-      console.log('Fetching orders for user:', user._id);
       const token = localStorage.getItem('token');
       const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Orders response:', res.data);
       setOrders(res.data || []);
+      setLoading(false);
     } catch (err) {
-      console.error('Fetch orders error:', err.response?.data || err.message);
-      throw err;
+      console.error('Error fetching orders:', err);
+      setError(err.response?.data?.message || 'Failed to load orders');
+      setLoading(false);
     }
   };
 
@@ -99,34 +92,33 @@ function Profile() {
 
   const handleSaveProfile = async () => {
     try {
-      console.log('Saving profile:', profileData);
       const token = localStorage.getItem('token');
-      const res = await axios.put('http://localhost:5001/api/users/profile', {
-        username: profileData.username,
-        address: profileData.address
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log('Save profile response:', res.data);
-      const updatedUser = res.data.user || res.data; // Handle root-level or nested user
+      const res = await axios.put(
+        'http://localhost:5001/api/users/profile',
+        { username: profileData.username, address: profileData.address },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const updatedUser = res.data.user || res.data;
       const avatarUrl = updatedUser.avatar
         ? updatedUser.avatar.startsWith('http')
           ? updatedUser.avatar
           : `http://localhost:5001${updatedUser.avatar}`
-        : profileData.avatar; // Fallback to current avatar
+        : profileData.avatar;
       setProfileData({
         username: updatedUser.username || '',
         email: updatedUser.email || '',
         address: updatedUser.address || '',
-        avatar: avatarUrl
+        avatar: avatarUrl,
       });
       updateUser({ ...updatedUser, _id: updatedUser.id, avatar: avatarUrl });
       setIsEditing(false);
-      setError('');
-      console.log('Profile saved successfully:', updatedUser);
+      setNotification({ message: 'Profile updated successfully!', type: 'success' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     } catch (err) {
-      console.error('Save profile error:', err.response?.data || err.message);
+      console.error('Save profile error:', err);
       setError(err.response?.data?.message || 'Failed to save profile');
+      setNotification({ message: 'Failed to update profile.', type: 'error' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     }
   };
 
@@ -137,22 +129,15 @@ function Profile() {
     }
     const formData = new FormData();
     formData.append('avatar', avatarFile);
-    console.log('Uploading avatar:', {
-      fileName: avatarFile.name,
-      fileSize: avatarFile.size,
-      fileType: avatarFile.type,
-    });
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('Authentication token missing');
       const res = await axios.post('http://localhost:5001/api/users/profile/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log('Avatar upload response:', res.data);
-      const updatedUser = res.data.user || res.data; // Handle root-level or nested user
+      const updatedUser = res.data.user || res.data;
       const avatarUrl = updatedUser.avatar
         ? updatedUser.avatar.startsWith('http')
           ? updatedUser.avatar
@@ -161,11 +146,14 @@ function Profile() {
       setProfileData((prev) => ({ ...prev, avatar: avatarUrl }));
       updateUser({ ...updatedUser, _id: updatedUser.id, avatar: avatarUrl });
       setAvatarFile(null);
-      setError('');
-      console.log('Avatar updated successfully, new URL:', avatarUrl);
+      setPreviewAvatar(null);
+      setNotification({ message: 'Avatar updated successfully!', type: 'success' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     } catch (err) {
-      console.error('Avatar upload error:', err.response?.data || err.message);
+      console.error('Avatar upload error:', err);
       setError(err.response?.data?.message || 'Failed to upload avatar');
+      setNotification({ message: 'Failed to upload avatar.', type: 'error' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     }
   };
 
@@ -196,13 +184,16 @@ function Profile() {
       );
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowPasswordForm(false);
-      setError('');
-      alert('Password updated successfully. Please log in again.');
-      await logout();
-      navigate('/login');
+      setNotification({ message: 'Password updated successfully! Please log in again.', type: 'success' });
+      setTimeout(() => {
+        setNotification({ message: '', type: '' });
+        logout().then(() => navigate('/login'));
+      }, 3000);
     } catch (err) {
-      console.error('Password change error:', err.response?.data || err.message);
+      console.error('Password change error:', err);
       setError(err.response?.data?.message || 'Failed to change password');
+      setNotification({ message: 'Failed to change password.', type: 'error' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     }
   };
 
@@ -219,12 +210,26 @@ function Profile() {
   };
 
   const handleNavigateToOrders = () => {
-    navigate('/orders'); // Navigate to orders page
+    navigate('/orders');
   };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    setAvatarFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewAvatar(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const filteredOrders = filterStatus === 'All'
+    ? orders
+    : orders.filter(order => order.status === filterStatus);
 
   if (authLoading || loading) {
     return (
-      <div className="cosmic-loading">
+      <div className={`cosmic-loading ${darkMode ? 'dark-mode' : ''}`}>
         <div className="spinner-orbit"></div>
         <p>Loading Profile...</p>
         {error && <p className="error-pod">{error}</p>}
@@ -235,109 +240,139 @@ function Profile() {
   if (!user) return null;
 
   return (
-    <div className="profile-galaxy">
+    <div className={`profile-galaxy ${darkMode ? 'dark-mode' : ''}`}>
       <div className="profile-container">
         <aside className="stellar-sidebar">
           <div className="sidebar-header">
             <h2>Profile Dashboard</h2>
+            <button
+              className="theme-toggle"
+              onClick={() => setDarkMode(!darkMode)}
+            >
+              {darkMode ? '🌞 Light Mode' : '🌙 Dark Mode'}
+            </button>
           </div>
           <nav className="sidebar-nav">
-            <button className="nav-btn" onClick={() => setIsEditing(!isEditing)}>
-              <i className="fas fa-user"></i> {isEditing ? 'View Profile' : 'Edit Profile'}
+            <button
+              className="nav-btn"
+              onClick={() => setIsEditing(!isEditing)}
+            >
+              <i className="fas fa-user"></i> <span className="btn-text">Profile</span>
             </button>
             <button className="nav-btn" onClick={handleNavigateToOrders}>
-              <i className="fas fa-list"></i> Orders
+              <i className="fas fa-list"></i> <span className="btn-text">Orders</span>
+              {orders.length > 0 && (
+                <span className="notification-badge">{orders.length}</span>
+              )}
             </button>
             <button className="nav-btn" onClick={() => navigate('/cart')}>
-              <i className="fas fa-shopping-cart"></i> Cart
+              <i className="fas fa-shopping-cart"></i> <span className="btn-text">Cart</span>
             </button>
-            <button className="nav-btn" onClick={() => setShowPasswordForm(!showPasswordForm)}>
-              <i className="fas fa-lock"></i> {showPasswordForm ? 'Hide Password' : 'Change Password'}
+            <button
+              className="nav-btn"
+              onClick={() => setShowPasswordForm(!showPasswordForm)}
+            >
+              <i className="fas fa-lock"></i> <span className="btn-text">Password</span>
             </button>
             <button className="nav-btn logout-btn" onClick={handleLogout}>
-              <i className="fas fa-sign-out-alt"></i> Logout
+              <i className="fas fa-sign-out-alt"></i> <span className="btn-text">Logout</span>
             </button>
           </nav>
         </aside>
         <main className="cosmic-dashboard">
           <header className="dashboard-header">
             <h1>Welcome, {profileData.username || profileData.email}</h1>
+            {notification.message && (
+              <div className={`notification ${notification.type}`}>
+                {notification.message}
+                <button onClick={() => setNotification({ message: '', type: '' })}>✖</button>
+              </div>
+            )}
             {error && <p className="error-pod">{error}</p>}
           </header>
           <section className="profile-orbit">
-            {isEditing ? (
-              <div className="stellar-card profile-pod">
-                <h3 className="card-title">Edit Profile</h3>
-                <div className="avatar-cluster">
-                  <img
-                    src={profileData.avatar || '/default-avatar.jpg'}
-                    alt="User Avatar"
-                    className="avatar-star"
-                    onError={(e) => {
-                      console.log('Avatar load failed, using default:', e.target.src);
-                      e.target.src = '/default-avatar.jpg';
-                    }}
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setAvatarFile(e.target.files[0])}
-                    className="avatar-upload"
-                  />
-                  {avatarFile && (
-                    <button className="nebula-btn upload-btn" onClick={handleAvatarUpload}>
-                      Upload Avatar
-                    </button>
-                  )}
+            <div className="stellar-card profile-pod flip-card">
+              <div className={`flip-card-inner ${isEditing ? 'flipped' : ''}`}>
+                {/* Front Side (View Mode) */}
+                <div className="flip-card-front">
+                  <h3 className="card-title">Profile Details</h3>
+                  <div className="avatar-cluster">
+                    <div className="avatar-wrapper">
+                      <img
+                        src={profileData.avatar || '/default-avatar.jpg'}
+                        alt="User Avatar"
+                        className="avatar-star"
+                        onError={(e) => {
+                          console.log('Avatar load failed, using default:', e.target.src);
+                          e.target.src = '/default-avatar.jpg';
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="profile-data">
+                    <p><strong>Email:</strong> {profileData.email}</p>
+                    <p><strong>Username:</strong> {profileData.username || 'N/A'}</p>
+                    <p><strong>Address:</strong> {profileData.address || 'N/A'}</p>
+                  </div>
                 </div>
-                <div className="profile-data">
-                  <p><strong>Email:</strong> {profileData.email}</p>
-                  <input
-                    type="text"
-                    name="username"
-                    value={profileData.username || ''}
-                    onChange={handleInputChange}
-                    className="input-field"
-                    placeholder="Username"
-                  />
-                  <textarea
-                    name="address"
-                    value={profileData.address || ''}
-                    onChange={handleInputChange}
-                    className="input-field textarea-field"
-                    placeholder="Address"
-                  />
-                  <div className="action-cluster">
-                    <button className="nebula-btn save-btn" onClick={handleSaveProfile}>
-                      Save
-                    </button>
-                    <button className="nebula-btn cancel-btn" onClick={() => setIsEditing(false)}>
-                      Cancel
-                    </button>
+                {/* Back Side (Edit Mode) */}
+                <div className="flip-card-back">
+                  <h3 className="card-title">Edit Profile</h3>
+                  <div className="avatar-cluster">
+                    <div className="avatar-wrapper">
+                      <img
+                        src={previewAvatar || profileData.avatar || '/default-avatar.jpg'}
+                        alt="User Avatar"
+                        className="avatar-star"
+                        onError={(e) => {
+                          console.log('Avatar load failed, using default:', e.target.src);
+                          e.target.src = '/default-avatar.jpg';
+                        }}
+                      />
+                      <div className="avatar-edit">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                          className="avatar-upload"
+                        />
+                        {avatarFile && (
+                          <button className="nebula-btn upload-btn" onClick={handleAvatarUpload}>
+                            Upload Avatar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="profile-data">
+                    <p><strong>Email:</strong> {profileData.email}</p>
+                    <input
+                      type="text"
+                      name="username"
+                      value={profileData.username || ''}
+                      onChange={handleInputChange}
+                      className="input-field"
+                      placeholder="Username"
+                    />
+                    <textarea
+                      name="address"
+                      value={profileData.address || ''}
+                      onChange={handleInputChange}
+                      className="input-field textarea-field"
+                      placeholder="Address"
+                    />
+                    <div className="action-cluster">
+                      <button className="nebula-btn save-btn" onClick={handleSaveProfile}>
+                        Save
+                      </button>
+                      <button className="nebula-btn cancel-btn" onClick={() => setIsEditing(false)}>
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="stellar-card profile-pod">
-                <h3 className="card-title">Profile Details</h3>
-                <div className="avatar-cluster">
-                  <img
-                    src={profileData.avatar || '/default-avatar.jpg'}
-                    alt="User Avatar"
-                    className="avatar-star"
-                    onError={(e) => {
-                      console.log('Avatar load failed, using default:', e.target.src);
-                      e.target.src = '/default-avatar.jpg';
-                    }}
-                  />
-                </div>
-                <div className="profile-data">
-                  <p><strong>Username:</strong> {profileData.username || 'N/A'}</p>
-                  <p><strong>Email:</strong> {profileData.email}</p>
-                  <p><strong>Address:</strong> {profileData.address || 'N/A'}</p>
-                </div>
-              </div>
-            )}
+            </div>
 
             {showPasswordForm && (
               <div className="stellar-card password-pod">
@@ -376,17 +411,39 @@ function Profile() {
 
             <div className="stellar-card orders-pod">
               <h3 className="card-title">Orders</h3>
-              {orders.length > 0 ? (
+              <div className="order-filters">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="All">All</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div className="order-summary">
+                <p>Total Orders: {orders.length}</p>
+                <p>Total Spent: ₹{orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}</p>
+              </div>
+              {filteredOrders.length > 0 ? (
                 <div className="orders-orbit">
-                  {(showFullOrders ? orders : orders.slice(0, 3)).map((order) => (
+                  {(showFullOrders ? filteredOrders : filteredOrders.slice(0, 3)).map((order) => (
                     <div key={order._id} className="order-planet">
                       <p><strong>Order #{order._id.slice(-6)}</strong></p>
                       <p>{new Date(order.createdAt).toLocaleDateString()}</p>
                       <p>₹{order.total.toFixed(2)}</p>
-                      <p>Status: {order.status}</p>
+                      <div className="status-indicator">
+                        <span
+                          className={`status-dot ${order.status.toLowerCase()}`}
+                          title={order.status}
+                        ></span>
+                        <span>{order.status}</span>
+                      </div>
                     </div>
                   ))}
-                  {orders.length > 3 && (
+                  {filteredOrders.length > 3 && (
                     <button
                       className="nebula-btn"
                       onClick={() => setShowFullOrders(!showFullOrders)}
