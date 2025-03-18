@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import axios from 'axios';
 import '../styles/Orders.css';
 
 function Orders() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,34 +14,30 @@ function Orders() {
   const [expandedOrder, setExpandedOrder] = useState(null);
 
   useEffect(() => {
+    console.log('Orders useEffect - user:', user, 'authLoading:', authLoading);
     if (!authLoading && !user) {
+      console.log('No user found, navigating to /login');
       navigate('/login');
-    } else if (user && user._id) {
+    } else if (user && user.id) { // Changed user._id to user.id
       fetchOrders();
     }
   }, [user, authLoading, navigate]);
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('token');
-      console.log('Fetching orders - user._id:', user._id, 'token:', token);
-      if (!token) {
-        navigate('/login');
-        throw new Error('No token found');
-      }
-      if (!user._id) {
+      console.log('Fetching orders for user.id:', user.id);
+      if (!user.id) {
         throw new Error('User ID is undefined');
       }
-      const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`http://localhost:5001/api/orders/user/${user.id}`);
       console.log('Orders fetched:', res.data);
-      setOrders(res.data);
+      setOrders(res.data || []);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching orders:', err);
+      console.error('Error fetching orders:', err.response?.status, err.response?.data || err.message);
       if (err.response?.status === 401 || err.response?.status === 403) {
-        localStorage.removeItem('token');
+        console.log('Unauthorized or session expired, logging out');
+        await logout();
         navigate('/login');
         setError('Session expired or unauthorized. Please log in again.');
       } else {
@@ -110,9 +107,7 @@ function Orders() {
                 <div className="order-details-content">
                   <p>
                     <strong>Shipping Address:</strong>{' '}
-                    {typeof order.shippingAddress === 'string'
-                      ? order.shippingAddress
-                      : order.shippingAddress?.address || 'Not specified'}
+                    {order.shippingAddress?.address || 'Not specified'}
                   </p>
                   <h4>Items:</h4>
                   <ul className="order-items">
@@ -151,7 +146,6 @@ function Orders() {
 }
 
 export default Orders;
-
 
 
 

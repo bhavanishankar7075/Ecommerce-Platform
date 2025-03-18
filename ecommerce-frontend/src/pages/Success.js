@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -80,4 +82,99 @@ function Success() {
   );
 }
 
-export default Success;
+export default Success; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const Success = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const sessionId = searchParams.get('session_id');
+
+  useEffect(() => {
+    if (!sessionId) {
+      navigate('/failure');
+      return;
+    }
+
+    const fetchOrderDetails = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`http://localhost:5001/api/orders/session/${sessionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Order details:', response.data);
+        // Display success message or order details here
+      } catch (err) {
+        console.error('Error fetching order details:', err);
+        navigate('/failure');
+      }
+    };
+
+    fetchOrderDetails();
+  }, [sessionId, navigate]);
+
+  return (
+    <div>
+      <h1>Payment Successful!</h1>
+      <p>Thank you for your purchase. Your order is being processed.</p>
+    </div>
+  );
+};
+
+export default Success; */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

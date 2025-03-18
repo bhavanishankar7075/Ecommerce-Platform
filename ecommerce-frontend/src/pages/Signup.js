@@ -1,11 +1,10 @@
-// ecommerce-frontend/src/pages/Signup.js
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Signup.css';
 
 function Signup() {
-  const [username, setUsername] = useState(''); // Changed from name to username
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -13,7 +12,7 @@ function Signup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const usernameRef = useRef(null); // Changed from nameRef to usernameRef
+  const usernameRef = useRef(null);
   const emailRef = useRef(null);
 
   useEffect(() => {
@@ -24,6 +23,8 @@ function Signup() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+
+    console.log('Form data:', { username, email, password, confirmPassword });
 
     if (!username.trim()) {
       setError('Please enter your username');
@@ -51,7 +52,7 @@ function Signup() {
     }
 
     try {
-      const success = await signup(username, email, password); // Changed from name to username
+      const success = await signup(email, password, username);
       if (success) {
         setTimeout(() => {
           navigate('/products');
@@ -73,7 +74,7 @@ function Signup() {
         <h1 className="signup-title">Forge Your Star</h1>
         <div className="nebula-core">
           <div className="nebula-tendrils"></div>
-          {[...Array(30)].map((_, i) => (
+          {Array.from({ length: 30 }).map((_, i) => (
             <span
               key={i}
               className="nebula-spark"
@@ -87,7 +88,7 @@ function Signup() {
         </div>
         <form className="signup-form" onSubmit={handleSubmit}>
           <div className="input-star">
-            <label htmlFor="username" className="star-label">Username</label> {/* Changed label */}
+            <label htmlFor="username" className="star-label">Username</label>
             <input
               type="text"
               id="username"

@@ -1,4 +1,4 @@
-import React from 'react';
+ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Failure.css'; // Create this CSS file
 
@@ -33,4 +33,38 @@ function Failure() {
   );
 }
 
-export default Failure;
+
+
+export default Failure; 
+
+
+
+
+
+
+
+
+/* import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const Failure = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Optionally clear cart or reset state
+    console.log('Payment failed or canceled');
+    // Add a timeout to allow the user to see the failure message
+    const timer = setTimeout(() => navigate('/products'), 5000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
+  return (
+    <div>
+      <h1>Payment Failed!</h1>
+      <p>Sorry, your payment could not be processed. Please try again or contact support.</p>
+      <button onClick={() => navigate('/checkout')}>Try Again</button>
+    </div>
+  );
+};
+
+export default Failure; */

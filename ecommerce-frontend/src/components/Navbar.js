@@ -74,9 +74,9 @@ function Navigation() {
           {user ? (
             <>
               <li className="nav-star welcome-star">
-                <span className="nav-link" title={`Welcome, ${user.fullname || user.username || user.email}`}>
+                <span className="nav-link" title={`Welcome, ${ user.username || user.email}`}>
                   <i className="fas fa-user-astronaut"></i>
-                  {!isMobile && <span>{user.fullname || user.username || user.email}</span>}
+                  {!isMobile && <span>{ user.username || user.email}</span>}
                 </span>
               </li>
               {/* <li className="nav-star">

@@ -21,13 +21,13 @@ function Login() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
-
+  
     try {
       const success = await login(email, password);
       if (success) {
         setTimeout(() => {
           navigate('/products');
-        }, 1500); // Delay for portal effect animation
+        }, 1500);
       }
     } catch (err) {
       console.error('Login submit error:', {
