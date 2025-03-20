@@ -580,3 +580,36 @@
     gap: 0.3rem;
   }
 }
+
+.wishlist-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.wishlist-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.wishlist-btn.filled {
+  color: #e91e63;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+
+
+
+
+
+

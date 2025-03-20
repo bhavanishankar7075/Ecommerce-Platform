@@ -1,4 +1,210 @@
-import { useRef } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const OrderItem = ({
+  order,
+  item,
+  index,
+  handleProductClick,
+  reviewData,
+  setReviewData,
+  reviews,
+  handleReviewSubmit,
+  handleDeleteReview,
+  wishlist,
+  handleAddToWishlist,
+  handleRemoveFromWishlist,
+  wishlistMessages,
+}) => {
+  const key = `${order._id}_${item.productId}`;
+  const review = reviews[key];
+  const data = reviewData[key] || { rating: 0, comment: '', message: '', error: '', loading: false, showForm: false };
+
+  const isWishlisted = wishlist.some((w) => {
+    const wishlistProductId = w.productId && w.productId._id ? w.productId._id.toString() : null;
+    const itemProductId = item.productId ? item.productId.toString() : null;
+    return wishlistProductId && itemProductId && wishlistProductId === itemProductId;
+  });
+
+  const handleRatingChange = (rating) => {
+    setReviewData({ ...reviewData, [key]: { ...data, rating, error: '' } });
+  };
+
+  const toggleReviewForm = () => {
+    setReviewData({ ...reviewData, [key]: { ...data, showForm: !data.showForm } });
+  };
+
+  return (
+    <div className="order-item-card">
+      <img
+        src={item.image || '/default-product.jpg'}
+        alt={item.name}
+        className="item-image"
+        onError={(e) => (e.target.src = '/default-product.jpg')}
+        onClick={() => handleProductClick(item.productId || 'default')}
+      />
+      <div className="item-details">
+        <span className="item-name">
+          <Link to={`/product/${item.productId || 'default'}`}>{item.name}</Link>
+        </span>
+        <span className="item-quantity">Qty: {item.quantity}</span>
+        <span className="item-price">₹{item.price.toFixed(2)}</span>
+        <div className="wishlist-section">
+          {isWishlisted ? (
+            <button
+              className="wishlist-btn filled"
+              onClick={() => handleRemoveFromWishlist(item.productId)}
+            >
+              ♥
+            </button>
+          ) : (
+            <button
+              className="wishlist-btn"
+              onClick={() => handleAddToWishlist(item.productId)}
+            >
+              ♥
+            </button>
+          )}
+          {wishlistMessages[item.productId] && (
+            <span className="wishlist-message">{wishlistMessages[item.productId]}</span>
+          )}
+        </div>
+      </div>
+
+
+
+
+      
+      {order.status === 'Delivered' && (
+        <div className="review-section">
+          {review ? (
+            <div className="submitted-review">
+              <h4>Your Review</h4>
+              <p className="review-rating">{review.rating} ★</p>
+              <p className="review-comment">{review.comment}</p>
+              <div className="review-actions">
+                <button className="edit-review-btn" onClick={toggleReviewForm}>
+                  Edit Review
+                </button>
+                <button
+                  className="delete-review-btn"
+                  onClick={() => handleDeleteReview(order._id, item.productId)}
+                >
+                  Delete Review
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="review-btn" onClick={toggleReviewForm}>
+              Write a Review
+            </button>
+          )}
+          {data.showForm && (
+            <div className="review-form">
+              <h4>{review ? 'Edit Review' : 'Write a Review'}</h4>
+              <div className="form-group">
+                <label>Rating</label>
+                <select
+                  className="rating-dropdown"
+                  value={data.rating}
+                  onChange={(e) => handleRatingChange(Number(e.target.value))}
+                >
+                  <option value={0}>Select rating</option>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <option key={star} value={star}>
+                      {star} ★
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Comment</label>
+                <textarea
+                  className="review-input"
+                  value={data.comment}
+                  onChange={(e) => setReviewData({ ...reviewData, [key]: { ...data, comment: e.target.value, error: '' } })}
+                  placeholder="Write your review..."
+                />
+              </div>
+              <button
+                className="submit-review-btn"
+                onClick={() => handleReviewSubmit(order._id, item.productId, !!review)}
+                disabled={data.loading}
+              >
+                {data.loading ? 'Submitting...' : review ? 'Update Review' : 'Submit Review'}
+              </button>
+              {data.error && <p className="error-message">{data.error}</p>}
+              {data.message && <p className="success-message">{data.message}</p>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OrderItem;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* import { useRef } from 'react';
 import '../styles/OrderItem.css';
 
 function OrderItem({
@@ -89,7 +295,6 @@ function OrderItem({
           }}
           onClick={() => handleProductClick(productId || 'default')}
         />
-        {/* Loading spinner */}
         <div
           ref={spinnerRef}
           className="image-loading"
@@ -109,7 +314,6 @@ function OrderItem({
         <span className="item-quantity">Qty: {item.quantity}</span>
         <span className="item-price">₹{item.price.toFixed(2)}</span>
       </div>
-      {/* Show review section for each item if the order is Delivered or Completed */}
       {['Delivered', 'Completed'].includes(order.status) && (
         <div className="review-section">
           {existingReview && !reviewState.showForm ? (
@@ -207,4 +411,4 @@ function OrderItem({
   );
 }
 
-export default OrderItem;
+export default OrderItem; */

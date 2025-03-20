@@ -18,7 +18,7 @@ import Success from './pages/Success'; // New component
 import Failure from './pages/Failure'; // New component
 import { ToastContainer } from 'react-toastify'; // Import ToastContainer
 import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
-import Favorites from './pages/Favorites';
+import Wishlist from './pages/Wishlist.';
 
 function App() {
   return (
@@ -50,7 +50,7 @@ function App() {
               <Route path="/orders" element={<Orders />} />
               <Route path="/success" element={<Success />} />
               <Route path="/failure" element={<Failure />} />
-              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/wishlist" element={<Wishlist />} />
             </Routes>
           </CartProvider>
         </ProductProvider>

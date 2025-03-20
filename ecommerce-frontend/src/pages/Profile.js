@@ -213,6 +213,11 @@ function Profile() {
     navigate('/orders');
   };
 
+  // Add function to navigate to wishlist
+  const handleNavigateToWishlist = () => {
+    navigate('/wishlist');
+  };
+
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     setAvatarFile(file);
@@ -267,6 +272,10 @@ function Profile() {
             </button>
             <button className="nav-btn" onClick={() => navigate('/cart')}>
               <i className="fas fa-shopping-cart"></i> <span className="btn-text">Cart</span>
+            </button>
+            {/* Add Wishlist Button */}
+            <button className="nav-btn" onClick={handleNavigateToWishlist}>
+              <i className="fas fa-heart"></i> <span className="btn-text">Wishlist</span>
             </button>
             <button
               className="nav-btn"

@@ -554,6 +554,63 @@ input:checked + .slider:before {
 
 
 
+/* Ensure product-card has position: relative */
+.product-card {
+  position: relative;
+  /* ... other existing styles ... */
+}
+
+/* Ensure image-container and product-image don't overlap the button */
+.image-container {
+  position: relative;
+  z-index: 1;
+}
+
+.product-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  z-index: 1;
+}
+
+/* Wishlist Button Styles */
+.wishlist-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  z-index: 10; /* Ensure the button is above other elements */
+}
+
+.wishlist-btn:hover {
+  color: #ff4d4d;
+}
+
+.wishlist-btn.filled {
+  color: #ff4d4d;
+}
+
+.wishlist-message {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+
+
+
+
 
 
 

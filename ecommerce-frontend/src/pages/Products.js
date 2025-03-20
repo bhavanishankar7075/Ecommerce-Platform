@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
-import { toast } from 'react-toastify'; // Add this import
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 import '../styles/Products.css';
 
 function ProductList() {
   const { products, loading, error: productsError } = useProducts();
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [filtered, setFiltered] = useState([]);
   const [sort, setSort] = useState(localStorage.getItem('sort') || '');
   const [searchQuery, setSearchQuery] = useState(localStorage.getItem('searchQuery') || '');
@@ -24,6 +27,8 @@ function ProductList() {
   const [showFilters, setShowFilters] = useState(false);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [categories, setCategories] = useState(['']);
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistMessages, setWishlistMessages] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -40,6 +45,25 @@ function ProductList() {
     'Premium Pets Collection Now Available!',
     'Exclusive Home Deals - Save Big!',
   ];
+
+  // Fetch the user's wishlist
+  useEffect(() => {
+    if (user && user._id) {
+      const fetchWishlist = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setWishlist(res.data);
+        } catch (err) {
+          console.error('Error fetching wishlist:', err);
+          toast.error('Failed to load wishlist.');
+        }
+      };
+      fetchWishlist();
+    }
+  }, [user]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -95,7 +119,7 @@ function ProductList() {
     if (sort === 'price-asc') {
       updatedProducts.sort((a, b) => Number(a.price) - Number(b.price));
     } else if (sort === 'price-desc') {
-      updatedProducts.sort((a, b) => Number(b.price) - Number(a.price));
+      updatedProducts.sort((a, b) => Number(b.price) - Number(b.price));
     } else if (sort === 'name-asc') {
       updatedProducts.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -143,13 +167,109 @@ function ProductList() {
 
   const handleAddToCart = (product) => {
     addToCart(product);
-    // Optional: Add a custom toast here if you want a different message
-   /*  toast.success(`${product.name} blasted into your cart!`, {
-      position: 'bottom-right', // Custom position
+    toast.success(`${product.name} blasted into your cart!`, {
+      position: 'bottom-right',
       autoClose: 2000,
       hideProgressBar: true,
       className: 'cosmic-toast',
-    }); */
+    });
+  };
+
+ /*  const handleAddToWishlist = async (productId) => {
+    if (!user) {
+      toast.error('Please log in to add to wishlist.');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5001/api/wishlist',
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setWishlist([...wishlist, res.data.item]);
+      setWishlistMessages((prev) => ({
+        ...prev,
+        [productId]: 'Added to wishlist!',
+      }));
+      toast.success('Added to wishlist!');
+      setTimeout(() => {
+        setWishlistMessages((prev) => ({
+          ...prev,
+          [productId]: '',
+        }));
+      }, 3000);
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to add to wishlist.';
+      toast.error(errorMessage);
+    }
+  };
+ */
+  
+  
+  const handleAddToWishlist = async (productId) => {
+    if (!user) {
+      toast.error('Please log in to add to wishlist.');
+      navigate('/login');
+      return;
+    }
+  
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5001/api/wishlist',
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setWishlist([...wishlist, res.data.item]);
+      setWishlistMessages((prev) => ({
+        ...prev,
+        [productId]: 'Added to wishlist!',
+      }));
+      toast.success('Added to wishlist!');
+      setTimeout(() => {
+        setWishlistMessages((prev) => ({
+          ...prev,
+          [productId]: '',
+        }));
+      }, 3000);
+    } catch (err) {
+      console.error('Error adding to wishlist:', err.response || err); // Log the full error response
+      const errorMessage = err.response?.data?.message || 'Failed to add to wishlist.';
+      toast.error(errorMessage);
+    }
+  };
+  
+  const handleRemoveFromWishlist = async (productId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const wishlistItem = wishlist.find((item) =>
+        item.productId && item.productId._id === productId
+      );
+      if (!wishlistItem) return;
+
+      await axios.delete(`http://localhost:5001/api/wishlist/${wishlistItem._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWishlist(wishlist.filter((item) => item._id !== wishlistItem._id));
+      setWishlistMessages((prev) => ({
+        ...prev,
+        [productId]: 'Removed from wishlist!',
+      }));
+      toast.success('Removed from wishlist!');
+      setTimeout(() => {
+        setWishlistMessages((prev) => ({
+          ...prev,
+          [productId]: '',
+        }));
+      }, 3000);
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
+      toast.error(err.response?.data?.message || 'Failed to remove from wishlist.');
+    }
   };
 
   if (loading) {
@@ -270,10 +390,29 @@ function ProductList() {
           {filtered.length > 0 ? (
             filtered.slice(0, visibleCount).map((product) => {
               const stock = product.stock || 0;
+              const isWishlisted = wishlist.some((item) =>
+                item.productId && item.productId._id === product._id
+              );
+
+              console.log(`Rendering wishlist button for product: ${product.name}, ID: ${product._id}`);
+
               return (
                 <div key={product._id} className="product-card">
                   <meta name="description" content={`${product.name} - ₹${product.price}`} />
                   {product.featured && <span className="badge featured-badge">Featured</span>}
+                  <button
+                    className={`wishlist-btn ${isWishlisted ? 'filled' : ''}`}
+                    onClick={() =>
+                      isWishlisted
+                        ? handleRemoveFromWishlist(product._id)
+                        : handleAddToWishlist(product._id)
+                    }
+                  >
+                    ♥
+                  </button>
+                  {wishlistMessages[product._id] && (
+                    <span className="wishlist-message">{wishlistMessages[product._id]}</span>
+                  )}
                   <div className="image-container">
                     <img
                       src={product.image}
@@ -282,7 +421,7 @@ function ProductList() {
                       loading="lazy"
                       onError={(e) => {
                         console.log(`Failed to load image for ${product.name}: ${product.image}`);
-                        e.target.style.display = 'none';
+                        e.target.src = '/default-product.jpg';
                       }}
                       onClick={() => handleImageClick(product._id)}
                     />
@@ -316,7 +455,6 @@ function ProductList() {
             <div className="no-products">No products found in this galaxy.</div>
           )}
         </div>
-
         {visibleCount < filtered.length && (
           <div className="load-more-section">
             <button className="btn-load-more" onClick={handleLoadMore}>

@@ -45,7 +45,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter); // Main orders route
 app.use('/api/users', userRoutes);
 app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
- app.use('/api/favorites', require('./routes/favorites'));
+ app.use('/api/wishlist', require('./routes/wishlist'));
   app.use('/api/reviews', reviewRoutes); 
 
  /*  app.use((req, res, next) => {

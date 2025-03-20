@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import OrderItem from './OrderItem';
+import { toast } from 'react-toastify';
 import '../styles/Orders.css';
 
 function Orders() {
@@ -18,18 +19,18 @@ function Orders() {
   const [filterYear, setFilterYear] = useState('All');
   const [filterDate, setFilterDate] = useState('');
   const [reviewData, setReviewData] = useState({});
-  const [favorites, setFavorites] = useState([]);
-  const [favoriteMessages, setFavoriteMessages] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(5);
   const [reviews, setReviews] = useState({});
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistMessages, setWishlistMessages] = useState({});
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
     } else if (user && user._id) {
       fetchOrders();
-      fetchFavorites();
+      fetchWishlist();
     }
   }, [user, authLoading, navigate]);
 
@@ -73,16 +74,17 @@ function Orders() {
     }
   };
 
-  const fetchFavorites = async () => {
+  const fetchWishlist = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/favorites/user/${user._id}`, {
+      const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setFavorites(res.data);
+      console.log('Fetched wishlist:', res.data);
+      setWishlist(res.data);
     } catch (err) {
-      console.error('Error fetching favorites:', err);
-      setError(err.response?.data?.message || 'Failed to fetch favorites.');
+      console.error('Error fetching wishlist:', err);
+      setError(err.response?.data?.message || 'Failed to fetch wishlist.');
     }
   };
 
@@ -92,7 +94,7 @@ function Orders() {
       const newReviews = {};
       for (const order of orders) {
         for (const item of order.items) {
-          const productId = item.productId; // Use item.productId directly
+          const productId = item.productId;
           if (!productId) {
             console.warn(`Missing productId for item in order ${order._id}:`, item);
             continue;
@@ -124,6 +126,94 @@ function Orders() {
     }
   };
 
+  /* const handleAddToWishlist = async (productId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5001/api/wishlist',
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setWishlist([...wishlist, res.data.item]);
+      setWishlistMessages((prev) => ({
+        ...prev,
+        [productId]: 'Added to wishlist!',
+      }));
+      toast.success('Added to wishlist!');
+      setTimeout(() => {
+        setWishlistMessages((prev) => ({
+          ...prev,
+          [productId]: '',
+        }));
+      }, 3000);
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to add to wishlist.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  }; */
+
+  const handleAddToWishlist = async (productId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5001/api/wishlist',
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('Added to wishlist response:', res.data); // Debug the response
+      setWishlist([...wishlist, res.data.item]);
+      setWishlistMessages((prev) => ({
+        ...prev,
+        [productId]: 'Added to wishlist!',
+      }));
+      toast.success('Added to wishlist!');
+      setTimeout(() => {
+        setWishlistMessages((prev) => ({
+          ...prev,
+          [productId]: '',
+        }));
+      }, 3000);
+    } catch (err) {
+      console.error('Error adding to wishlist:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to add to wishlist.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleRemoveFromWishlist = async (productId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const wishlistItem = wishlist.find((item) => item.productId?._id?.toString() === productId);
+      if (wishlistItem) {
+        await axios.delete(`http://localhost:5001/api/wishlist/${wishlistItem._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setWishlist(wishlist.filter((item) => item._id !== wishlistItem._id));
+        setWishlistMessages((prev) => ({
+          ...prev,
+          [productId]: 'Removed from wishlist!',
+        }));
+        toast.success('Removed from wishlist!');
+        setTimeout(() => {
+          setWishlistMessages((prev) => ({
+            ...prev,
+            [productId]: '',
+          }));
+        }, 3000);
+      } else {
+        console.warn('Wishlist item not found for product:', productId);
+      }
+    } catch (err) {
+      console.error('Error removing from wishlist:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to remove from wishlist.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  };
+
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = order.items.some((item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -151,7 +241,7 @@ function Orders() {
       console.log('Reordering order:', order);
       console.log('Order items:', order.items);
       const items = order.items.map(item => ({
-        productId: item.productId, // Use item.productId directly
+        productId: item.productId,
         quantity: item.quantity,
       }));
       console.log('Items to add to cart:', items);
@@ -279,59 +369,6 @@ function Orders() {
     }
   };
 
-  const handleFavoriteOrder = async (orderId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        'http://localhost:5001/api/favorites',
-        { orderId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setFavorites([...favorites, res.data.favorite]);
-      setFavoriteMessages((prev) => ({
-        ...prev,
-        [orderId]: 'Added to favorites!',
-      }));
-      setTimeout(() => {
-        setFavoriteMessages((prev) => ({
-          ...prev,
-          [orderId]: '',
-        }));
-      }, 3000);
-    } catch (err) {
-      console.error('Error favoriting order:', err);
-      setError(err.response?.data?.message || 'Failed to favorite order.');
-    }
-  };
-
-  const handleUnfavoriteOrder = async (orderId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const favorite = favorites.find(fav => fav.orderId?._id?.toString() === orderId);
-      if (favorite) {
-        await axios.delete(`http://localhost:5001/api/favorites/${favorite._id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setFavorites(favorites.filter(fav => fav._id !== favorite._id));
-        setFavoriteMessages((prev) => ({
-          ...prev,
-          [orderId]: 'Removed from favorites!',
-        }));
-        setTimeout(() => {
-          setFavoriteMessages((prev) => ({
-            ...prev,
-            [orderId]: '',
-          }));
-        }, 3000);
-      } else {
-        console.warn('Favorite not found for order:', orderId);
-      }
-    } catch (err) {
-      console.error('Error unfavoriting order:', err);
-      setError(err.response?.data?.message || 'Failed to unfavorite order.');
-    }
-  };
-
   const handleExportOrders = () => {
     const orderText = filteredOrders
       .map((order) => `Order #${order._id.slice(-6)} - ${new Date(order.createdAt).toLocaleDateString()} - ₹${order.total.toFixed(2)}`)
@@ -344,6 +381,7 @@ function Orders() {
     a.click();
     window.URL.revokeObjectURL(url);
     setError('Order history exported successfully!');
+    toast.success('Order history exported successfully!');
   };
 
   const handleProductClick = (productId) => {
@@ -424,32 +462,6 @@ function Orders() {
                   {new Date(order.createdAt).toLocaleDateString()}
                 </span>
                 <span className="order-total">₹{order.total.toFixed(2)}</span>
-                <div className="favorite-section">
-                  {favorites.some(fav => fav.orderId?._id?.toString() === order._id.toString()) ? (
-                    <button
-                      className="favorite-btn filled"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUnfavoriteOrder(order._id.toString());
-                      }}
-                    >
-                      ★
-                    </button>
-                  ) : (
-                    <button
-                      className="favorite-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFavoriteOrder(order._id.toString());
-                      }}
-                    >
-                      ★
-                    </button>
-                  )}
-                  {favoriteMessages[order._id] && (
-                    <span className="favorite-message">{favoriteMessages[order._id]}</span>
-                  )}
-                </div>
               </div>
               <div className={`order-details ${expandedOrder === order._id ? 'show' : ''}`}>
                 <div className="order-details-content">
@@ -496,6 +508,10 @@ function Orders() {
                         reviews={reviews}
                         handleReviewSubmit={handleReviewSubmit}
                         handleDeleteReview={handleDeleteReview}
+                        wishlist={wishlist}
+                        handleAddToWishlist={handleAddToWishlist}
+                        handleRemoveFromWishlist={handleRemoveFromWishlist}
+                        wishlistMessages={wishlistMessages}
                       />
                     ))}
                   </div>
