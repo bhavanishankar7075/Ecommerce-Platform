@@ -33,7 +33,7 @@ const { router: adminRouter } = require('./routes/admin');
 const productRoutes = require('./routes/products');
 const { router: orderRouter } = require('./routes/orders'); // Ensure orders router is correctly destructured
 const userRoutes = require('./routes/users');
-
+const reviewRoutes = require('./routes/reviews');
 // Note: Removing or commenting out checkoutRoutes for now since it might be causing conflicts
 // const checkoutRoutes = require('./routes/checkout');
 
@@ -45,6 +45,21 @@ app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter); // Main orders route
 app.use('/api/users', userRoutes);
 app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
+ app.use('/api/favorites', require('./routes/favorites'));
+  app.use('/api/reviews', reviewRoutes); 
+
+ /*  app.use((req, res, next) => {
+    const oldJson = res.json;
+    res.json = function (data) {
+      // Skip wrapping for GET /api/reviews/product/:productId
+      if (req.method === 'GET' && req.path.match(/\/api\/reviews\/product\/[^/]+$/)) {
+        return oldJson.call(this, data);
+      }
+      return oldJson.call(this, { message: 'Success', data });
+    };
+    next();
+  }); */
+ 
 
 // Map /api/checkout to /api/orders/create-session for Stripe session creation
 app.use('/api/checkout', (req, res, next) => {

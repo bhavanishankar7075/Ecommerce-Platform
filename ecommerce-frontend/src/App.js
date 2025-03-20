@@ -1,6 +1,6 @@
 // ecommerce-frontend/src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes,} from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProductProvider } from './context/ProductContext';
 import { CartProvider } from './context/CartContext';
@@ -18,6 +18,7 @@ import Success from './pages/Success'; // New component
 import Failure from './pages/Failure'; // New component
 import { ToastContainer } from 'react-toastify'; // Import ToastContainer
 import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
+import Favorites from './pages/Favorites';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
               <Route path="/orders" element={<Orders />} />
               <Route path="/success" element={<Success />} />
               <Route path="/failure" element={<Failure />} />
+              <Route path="/favorites" element={<Favorites />} />
             </Routes>
           </CartProvider>
         </ProductProvider>

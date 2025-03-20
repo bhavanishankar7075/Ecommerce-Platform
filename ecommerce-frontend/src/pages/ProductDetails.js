@@ -1,4 +1,3 @@
-// ecommerce-frontend/src/pages/ProductDetails.js
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
@@ -8,6 +7,7 @@ import '../styles/ProductDetails.css';
 
 function ProductDetails() {
   const { id } = useParams();
+  console.log('Product ID:', id);
   const { products, loading, error: productsError } = useProducts();
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -20,42 +20,147 @@ function ProductDetails() {
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState('');
 
+  console.log('Products array:', products);
   const product = products.find((p) => p._id === id);
+  console.log('Selected product:', product);
+
+  const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
   useEffect(() => {
     if (product) {
       const defaultImage = product.images?.[0] || product.image || '';
       setCurrentImage(defaultImage);
       setStockCount(product.stock || 0);
-      fetchReviews();
+      if (isValidObjectId(id)) {
+        fetchReviews();
+      } else {
+        setReviewsError('Invalid product ID. Unable to load reviews.');
+        setReviews([]);
+        setAverageRating(0);
+        setReviewsLoading(false);
+      }
     }
   }, [product]);
 
   const fetchReviews = async () => {
     try {
       setReviewsLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/reviews/product/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      setReviewsError('');
+
+      const res = await axios.get(`http://localhost:5001/api/reviews/product/${id}`);
+
+      if (!Array.isArray(res.data)) {
+        console.error('Expected an array of reviews, but received:', JSON.stringify(res.data, null, 2));
+        console.error('Response status:', res.status);
+        setReviews([]);
+        setAverageRating(0);
+        setReviewsLoading(false);
+        setReviewsError(res.data.message || 'Failed to load reviews. Please try again.');
+        return;
+      }
+
       setReviews(res.data);
       calculateAverageRating(res.data);
       setReviewsLoading(false);
     } catch (err) {
       console.error('Error fetching reviews:', err);
-      setReviewsError('Failed to load reviews');
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        setReviewsError(err.response.data.message || 'Failed to load reviews. Please try again later.');
+      } else {
+        setReviewsError('Failed to load reviews. Please try again later.');
+      }
+      setReviews([]);
+      setAverageRating(0);
       setReviewsLoading(false);
     }
   };
 
   const calculateAverageRating = (reviews) => {
-    if (reviews.length === 0) {
+    if (!Array.isArray(reviews) || reviews.length === 0) {
       setAverageRating(0);
       return;
     }
+
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
     const avg = totalRating / reviews.length;
     setAverageRating(avg.toFixed(1));
+  };
+
+  /* const handleAddToCart = () => {
+    if (stockCount > 0) {
+      if (!product || !product._id || !isValidObjectId(product._id)) {
+        console.error('Invalid product or product ID:', product);
+        setReviewsError('Cannot add to cart: Invalid product.');
+        return;
+      }
+      console.log('Product being added to cart:', product);
+      addToCart(product)
+        .then(() => {
+          setStockCount((prev) => prev - 1);
+        })
+        .catch((error) => {
+          console.error('Failed to add to cart:', error);
+          setReviewsError(error.message || 'Failed to add to cart. Please try again.');
+        });
+    }
+  }; */
+
+  const handleAddToCart = () => {
+    if (stockCount > 0) {
+      if (!product || !product._id || !isValidObjectId(product._id)) {
+        console.error('Invalid product or product ID:', product);
+        setReviewsError('Cannot add to cart: Invalid product.');
+        return;
+      }
+      console.log('Product being added to cart:', product);
+      addToCart(product)
+        .then(() => {
+          setStockCount((prev) => prev - 1);
+        })
+        .catch((error) => {
+          console.error('Failed to add to cart:', error);
+          setReviewsError(error.message || 'Failed to add to cart. Please try again.');
+        });
+    }
+  };
+
+
+
+  const handleBuyNow = () => {
+    if (stockCount > 0) {
+      if (!product || !product._id || !isValidObjectId(product._id)) {
+        console.error('Invalid product or product ID:', product);
+        setReviewsError('Cannot proceed to checkout: Invalid product.');
+        return;
+      }
+      addToCart(product)
+        .then(() => {
+          setStockCount((prev) => prev - 1);
+          navigate('/checkout');
+        })
+        .catch((error) => {
+          console.error('Failed to add to cart:', error);
+          setReviewsError(error.message || 'Failed to add to cart. Please try again.');
+        });
+    }
+  };
+
+  const handleThumbnailClick = (img) => {
+    setCurrentImage(img);
+  };
+
+  const handleMouseMove = (e) => {
+    const { left, top, width, height } = e.target.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientX - top) / height) * 100;
+    setZoomPosition({ x, y });
+    setIsZoomVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsZoomVisible(false);
   };
 
   if (loading) {
@@ -95,37 +200,6 @@ function ProductDetails() {
   const imageList = product.images && Array.isArray(product.images) && product.images.length > 0
     ? product.images
     : [product.image || 'https://placehold.co/400?text=No+Image'];
-
-  const handleAddToCart = () => {
-    if (stockCount > 0) {
-      addToCart(product);
-      setStockCount((prev) => prev - 1);
-    }
-  };
-
-  const handleBuyNow = () => {
-    if (stockCount > 0) {
-      addToCart(product);
-      setStockCount((prev) => prev - 1);
-      navigate('/checkout');
-    }
-  };
-
-  const handleThumbnailClick = (img) => {
-    setCurrentImage(img);
-  };
-
-  const handleMouseMove = (e) => {
-    const { left, top, width, height } = e.target.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-    setZoomPosition({ x, y });
-    setIsZoomVisible(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsZoomVisible(false);
-  };
 
   const relatedProducts = products
     .filter((p) => p.category === product.category && p._id !== product._id)
@@ -220,22 +294,26 @@ function ProductDetails() {
         <div className="reviews-section">
           <h2>Customer Reviews</h2>
           {reviewsLoading ? (
-            <p>Loading reviews...</p>
+            <div className="cosmic-loading">
+              <div className="spinner-orbit"></div>
+              <p>Loading Reviews...</p>
+            </div>
           ) : reviewsError ? (
             <p className="error-text">{reviewsError}</p>
           ) : reviews.length === 0 ? (
-            <p>No reviews yet for this product.</p>
+            <p>No reviews yet for this product. Be the first to share your thoughts!</p>
           ) : (
             <div className="reviews-list">
               {reviews.map((review) => (
                 <div key={review._id} className="review-item">
                   <div className="review-header">
+                    <span className="reviewer-name">{review.userId?.name || 'Anonymous'}</span>
                     <span className="review-rating">Rating: {review.rating} / 5</span>
                     <span className="review-date">
                       {new Date(review.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="review-comment">{review.review}</p>
+                  <p className="review-comment">{review.comment || 'No comment provided.'}</p>
                 </div>
               ))}
             </div>

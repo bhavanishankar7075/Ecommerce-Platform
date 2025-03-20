@@ -1,4 +1,669 @@
-// ecommerce-frontend/src/context/CartContext.js
+import { createContext, useState, useContext, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+
+const CartContext = createContext();
+
+export function CartProvider({ children }) {
+  const { user, logout } = useAuth();
+  const [cart, setCart] = useState([]);
+  const [coupon, setCoupon] = useState(null);
+
+  useEffect(() => {
+    if (user && user._id) {
+      fetchCart();
+    } else {
+      setCart([]);
+    }
+  }, [user]);
+
+  const fetchCart = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCart([]);
+        return;
+      }
+
+      const res = await axios.get('http://localhost:5001/api/cart', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log('Fetched cart response:', res.data);
+
+      const cartItems = res.data.cart?.items || [];
+      // Prepend base URL to image field
+      const processedCartItems = cartItems.map(item => ({
+        ...item,
+        productId: {
+          ...item.productId,
+          image: item.productId?.image && typeof item.productId.image === 'string'
+            ? `http://localhost:5001${item.productId.image}`
+            : 'https://placehold.co/50?text=No+Image',
+        },
+      }));
+      setCart(processedCartItems);
+    } catch (err) {
+      console.error('Error fetching cart:', err);
+      setCart([]);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error('Failed to load cart.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const addToCart = async (product, isBulk = false) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Please log in to add items to your cart.');
+      }
+
+      let res;
+      if (isBulk) {
+        console.log('Adding bulk items to cart:', product);
+        const items = product.map((item) => ({
+          productId: item.productId || item._id,
+          quantity: item.quantity || 1,
+        }));
+        console.log('Bulk items to add:', items);
+
+        for (const item of items) {
+          res = await axios.post(
+            'http://localhost:5001/api/cart/add',
+            { productId: item.productId, quantity: item.quantity },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        }
+      } else {
+        console.log('Adding single item to cart:', product);
+        const payload = { productId: product._id, quantity: 1 };
+        res = await axios.post('http://localhost:5001/api/cart/add', payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Add to cart response:', res.data);
+      }
+
+      const cartItems = res.data.cart?.items || [];
+      // Prepend base URL to image field
+      const processedCartItems = cartItems.map(item => ({
+        ...item,
+        productId: {
+          ...item.productId,
+          image: item.productId?.image && typeof item.productId.image === 'string'
+            ? `http://localhost:5001${item.productId.image}`
+            : 'https://placehold.co/50?text=No+Image',
+        },
+      }));
+      setCart(processedCartItems);
+
+      toast.success(isBulk ? 'Items added to cart!' : `${product.name} added to cart!`, {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else if (err.response?.status === 404 && !err.response?.data?.message) {
+        toast.error('Cart endpoint not found. Please check the backend setup.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to add to cart.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+      throw err;
+    }
+  };
+
+  const removeFromCart = async (itemId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Please log in to remove items from your cart.');
+      }
+
+      console.log('Removing item with ID:', itemId);
+      const res = await axios.delete(`http://localhost:5001/api/cart/${itemId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const cartItems = res.data.cart?.items || [];
+      // Prepend base URL to image field
+      const processedCartItems = cartItems.map(item => ({
+        ...item,
+        productId: {
+          ...item.productId,
+          image: item.productId?.image && typeof item.productId.image === 'string'
+            ? `http://localhost:5001${item.productId.image}`
+            : 'https://placehold.co/50?text=No+Image',
+        },
+      }));
+      setCart(processedCartItems);
+
+      toast.info('Item removed from cart!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error removing from cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to remove item.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+      throw err;
+    }
+  };
+
+  const updateQuantity = async (itemId, quantity) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Please log in to update your cart.');
+      }
+
+      console.log('Updating quantity for item ID:', itemId, 'to:', quantity);
+      const res = await axios.put(
+        `http://localhost:5001/api/cart/${itemId}`,
+        { quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const cartItems = res.data.cart?.items || [];
+      // Prepend base URL to image field
+      const processedCartItems = cartItems.map(item => ({
+        ...item,
+        productId: {
+          ...item.productId,
+          image: item.productId?.image && typeof item.productId.image === 'string'
+            ? `http://localhost:5001${item.productId.image}`
+            : 'https://placehold.co/50?text=No+Image',
+        },
+      }));
+      setCart(processedCartItems);
+
+      toast.success('Quantity updated!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error updating quantity:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to update quantity.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+      throw err;
+    }
+  };
+
+  const clearCart = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCart([]);
+        setCoupon(null);
+        toast.info('Cart cleared!', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+        return;
+      }
+
+      const res = await axios.delete('http://localhost:5001/api/cart', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart(res.data.cart?.items || []);
+      setCoupon(null);
+      toast.info('Cart cleared!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error clearing cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to clear cart.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const applyCoupon = (couponCode) => {
+    const validCoupons = {
+      SAVE10: 10,
+      SAVE20: 20,
+    };
+
+    const discount = validCoupons[couponCode];
+    if (discount) {
+      setCoupon({ code: couponCode, discount });
+      toast.success(`Coupon "${couponCode}" applied! ${discount}% off`, {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } else {
+      setCoupon(null);
+      toast.error('Invalid coupon code!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const calculateSubtotal = () => {
+    if (!Array.isArray(cart)) return 0;
+    return cart.reduce((sum, item) => sum + Number(item.productId?.price || 0) * (item.quantity || 0), 0);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    if (coupon) {
+      const discountAmount = subtotal * (coupon.discount / 100);
+      return subtotal - discountAmount;
+    }
+    return subtotal;
+  };
+
+  return (
+    <CartContext.Provider
+      value={{
+        cart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        applyCoupon,
+        coupon,
+        calculateSubtotal,
+        calculateTotal,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export const useCart = () => useContext(CartContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* import { createContext, useState, useContext, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+
+const CartContext = createContext();
+
+export function CartProvider({ children }) {
+  const { user, logout } = useAuth();
+  const [cart, setCart] = useState([]);
+  const [coupon, setCoupon] = useState(null);
+
+  useEffect(() => {
+    if (user && user._id) {
+      fetchCart();
+    }
+  }, [user]);
+
+  const fetchCart = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:5001/api/cart', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('Fetched cart:', res.data);
+      setCart(res.data || []);
+    } catch (err) {
+      console.error('Error fetching cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error('Failed to load cart.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const addToCart = async (product, isBulk = false) => {
+    try {
+      const token = localStorage.getItem('token');
+      let res;
+
+      if (isBulk) {
+        console.log('Adding bulk items to cart:', product);
+        const items = product.map(item => ({
+          productId: item.productId || item._id,
+          quantity: item.quantity || 1,
+        }));
+        console.log('Items to send to /api/cart/add:', items);
+        res = await axios.post(
+          'http://localhost:5001/api/cart/add',
+          { items },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log('Response from /api/cart/add:', res.data);
+      } else {
+        console.log('Adding single item to cart:', product);
+        res = await axios.post(
+          'http://localhost:5001/api/cart',
+          { productId: product._id, quantity: 1 },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log('Response from /api/cart:', res.data);
+      }
+
+      setCart(res.data);
+      toast.success(`${isBulk ? 'Items' : product.name} added to cart!`, {
+        position: 'top-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      await fetchCart(); // Refresh the cart after adding items
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to add to cart.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+      throw err; // Re-throw the error to be caught by the caller (e.g., handleReorder)
+    }
+  };
+
+  const removeFromCart = async (id) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`http://localhost:5001/api/cart/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart(res.data);
+      toast.info('Item removed from cart!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error removing from cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to remove item.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const updateQuantity = async (id, quantity) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.put(
+        `http://localhost:5001/api/cart/${id}`,
+        { quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCart(res.data);
+    } catch (err) {
+      console.error('Error updating quantity:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to update quantity.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const clearCart = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete('http://localhost:5001/api/cart', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart(res.data);
+      setCoupon(null);
+      toast.info('Cart cleared!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error('Error clearing cart:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        toast.error('Session expired. Please log in again.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to clear cart.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      }
+    }
+  };
+
+  const applyCoupon = (couponCode) => {
+    const validCoupons = {
+      'SAVE10': 10,
+      'SAVE20': 20,
+    };
+
+    const discount = validCoupons[couponCode];
+    if (discount) {
+      setCoupon({ code: couponCode, discount });
+      toast.success(`Coupon "${couponCode}" applied! ${discount}% off`, {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    } else {
+      setCoupon(null);
+      toast.error('Invalid coupon code!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const calculateSubtotal = () => {
+    return cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    if (coupon) {
+      const discountAmount = subtotal * (coupon.discount / 100);
+      return subtotal - discountAmount;
+    }
+    return subtotal;
+  };
+
+  return (
+    <CartContext.Provider
+      value={{
+        cart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        applyCoupon,
+        coupon,
+        calculateSubtotal,
+        calculateTotal,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export const useCart = () => useContext(CartContext);
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-frontend/src/context/CartContext.js
 import { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
@@ -128,6 +793,7 @@ export function CartProvider({ children }) {
 }
 
 export const useCart = () => useContext(CartContext);
+ */
 
 
 
@@ -188,148 +854,3 @@ export const useCart = () => useContext(CartContext);
 
 
 
-
-/* // ecommerce-frontend/src/context/CartContext.js
-import { createContext, useState, useContext, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import api from '../utils/api';
-import { useAuth } from './AuthContext';
-
-const CartContext = createContext();
-
-export function CartProvider({ children }) {
-  const [cart, setCart] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
-
-  useEffect(() => {
-    const fetchCart = async () => {
-      setLoading(true);
-      if (!token) {
-        setCart([]);
-        setLoading(false);
-        return;
-      }
-      try {
-        const res = await api.get('/cart');
-        const cartData = Array.isArray(res.data) ? res.data : [];
-        setCart(cartData.map(item => ({
-          ...item,
-          quantity: Number(item.quantity) || 1
-        })));
-      } catch (err) {
-        console.error('Fetch Cart Error:', err.response?.data);
-        setCart([]);
-        toast.error('Failed to load cart', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCart();
-  }, [token]);
-
-  const addToCart = async (product) => {
-    if (!token) {
-      toast.error('Please log in to add items to cart', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-      return;
-    }
-    try {
-      const normalizedProduct = { ...product, price: Number(product.price) };
-      const res = await api.post('/cart', {
-        productId: normalizedProduct.id,
-        quantity: 1,
-      });
-      const cartData = Array.isArray(res.data) ? res.data : [];
-      setCart(cartData.map(item => ({
-        ...item,
-        quantity: Number(item.quantity) || 1
-      })));
-      toast.success(`${product.name} added to cart!`, {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    } catch (err) {
-      console.error('Add to Cart Error:', err.response?.data);
-      toast.error('Failed to add item to cart', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-    }
-  };
-
-  const removeFromCart = async (id) => {
-    if (!token) return;
-    try {
-      const res = await api.delete(`/cart/${id}`);
-      const cartData = Array.isArray(res.data) ? res.data : [];
-      setCart(cartData.map(item => ({
-        ...item,
-        quantity: Number(item.quantity) || 1
-      })));
-    } catch (err) {
-      console.error('Remove from Cart Error:', err.response?.data);
-      toast.error('Failed to remove item from cart', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-    }
-  };
-
-  const updateQuantity = async (id, quantity) => {
-    if (!token) return;
-    try {
-      const res = await api.put(`/cart/${id}`, { quantity: Math.max(1, quantity) });
-      const cartData = Array.isArray(res.data) ? res.data : [];
-      setCart(cartData.map(item => ({
-        ...item,
-        quantity: Number(item.quantity) || 1
-      })));
-    } catch (err) {
-      console.error('Update Quantity Error:', err.response?.data);
-      toast.error('Failed to update quantity', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-    }
-  };
-
-  const clearCart = async () => {
-    if (!token) return;
-    try {
-      const res = await api.delete('/cart');
-      const cartData = Array.isArray(res.data) ? res.data : [];
-      setCart(cartData.map(item => ({
-        ...item,
-        quantity: Number(item.quantity) || 1
-      })));
-      toast.info('Cart cleared!', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-    } catch (err) {
-      console.error('Clear Cart Error:', err.response?.data);
-      toast.error('Failed to clear cart', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-    }
-  };
-
-  return (
-    <CartContext.Provider value={{ cart, loading, addToCart, removeFromCart, updateQuantity, clearCart }}>
-      {children}
-    </CartContext.Provider>
-  );
-}
-
-export const useCart = () => useContext(CartContext); */

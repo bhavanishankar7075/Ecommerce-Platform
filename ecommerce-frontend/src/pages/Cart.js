@@ -1,4 +1,384 @@
-// ecommerce-frontend/src/pages/Cart.js
+import { useState, useEffect } from 'react';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import CartItem from '../pages/CartItem';
+import '../styles/Cart.css';
+
+function Cart() {
+  const { user, loading: authLoading } = useAuth();
+  const { cart, removeFromCart, updateQuantity, clearCart, applyCoupon, coupon, calculateSubtotal, calculateTotal } = useCart();
+  const navigate = useNavigate();
+  const [couponCode, setCouponCode] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    let timer;
+    if (cart.length === 0 && !authLoading) {
+      timer = setTimeout(() => navigate('/products'), 5000);
+    }
+    return () => clearTimeout(timer); // Cleanup to prevent navigation if user interacts
+  }, [cart, navigate, authLoading]);
+
+  const deliveryFee = 5.00;
+  const subtotal = calculateSubtotal();
+  const finalTotal = calculateTotal() + deliveryFee;
+
+  const handleApplyCoupon = () => {
+    try {
+      applyCoupon(couponCode);
+      setCouponCode('');
+    } catch (err) {
+      toast.error('Failed to apply coupon.', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleClearCart = async () => {
+    try {
+      await clearCart();
+    } catch (err) {
+      toast.error('Failed to clear cart.', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleCheckout = () => {
+    navigate('/checkout', { state: { subtotal, discount: coupon ? coupon.discount / 100 : 0, total: finalTotal } });
+  };
+
+  if (authLoading) {
+    return (
+      <div className="cart-universe">
+        <h1 className="cart-title">Cosmic Cart Orbit</h1>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="cart-universe">
+      <h1 className="cart-title">Cosmic Cart Orbit</h1>
+      {cart.length > 0 ? (
+        <div className="cart-container">
+          <section className="cart-items">
+            {cart.map((item) => (
+              <CartItem
+                key={item._id} // Use item._id as the key
+                item={item}
+                removeFromCart={removeFromCart}
+                updateQuantity={updateQuantity}
+              />
+            ))}
+          </section>
+
+          <aside className="cart-summary">
+            <div className="coupon-section">
+              <input
+                type="text"
+                placeholder="Enter Cosmic Coupon"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="coupon-input"
+              />
+              <button onClick={handleApplyCoupon} className="apply-btn">Apply</button>
+              {coupon && <p className="coupon-success">{coupon.discount}% Off Applied!</p>}
+            </div>
+
+            <div className="total-section">
+              <div className="total-line">
+                <span>Subtotal</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              {coupon && (
+                <div className="total-line discount-line">
+                  <span>Discount ({coupon.discount}%)</span>
+                  <span>-₹{(subtotal * (coupon.discount / 100)).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="total-line">
+                <span>Delivery Fee</span>
+                <span>₹{deliveryFee.toFixed(2)}</span>
+              </div>
+              <div className="total-line final-total">
+                <span>Total</span>
+                <span>₹{finalTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="action-buttons">
+              <button onClick={handleClearCart} className="clear-btn">Clear Orbit</button>
+              <button onClick={handleCheckout} className="checkout-btn">Launch Checkout</button>
+            </div>
+          </aside>
+        </div>
+      ) : (
+        <div className="empty-cart">
+          <div className="void-spinner">
+            <img
+              src="https://img.freepik.com/premium-vector/shopping-ecommerce-graphic-design-with-icons_24911-20665.jpg"
+              alt="Empty Cart"
+              className="void-image"
+              onError={(e) => {
+                e.target.src = 'https://placehold.co/150x150';
+                e.target.style.display = 'block';
+              }}
+            />
+          </div>
+          <p>Your cosmic cart is a void! Exploring in 5 seconds...</p>
+          <button onClick={() => navigate('/products')} className="explore-btn">Explore Now</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Cart;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* import { useState, useEffect } from 'react';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import CartItem from '../pages/CartItem';
+import '../styles/Cart.css';
+
+function Cart() {
+  const { user, loading: authLoading } = useAuth();
+  const { cart, removeFromCart, updateQuantity, clearCart, applyCoupon, coupon, calculateSubtotal, calculateTotal } = useCart();
+  const navigate = useNavigate();
+  const [couponCode, setCouponCode] = useState('');
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login');
+    }
+  }, [user, authLoading, navigate]); 
+
+  useEffect(() => {
+    if (cart.length === 0 && !authLoading) {
+      setTimeout(() => navigate('/products'), 5000);
+    }
+  }, [cart, navigate, authLoading]);
+
+  const deliveryFee = 5.00;
+  const subtotal = calculateSubtotal();
+  const finalTotal = calculateTotal() + deliveryFee;
+
+  const handleApplyCoupon = () => {
+    applyCoupon(couponCode);
+    setCouponCode('');
+  };
+
+  const handleCheckout = () => {
+    navigate('/checkout', { state: { subtotal, discount: coupon ? coupon.discount / 100 : 0, total: finalTotal } });
+  };
+
+  if (authLoading) {
+    return (
+      <div className="cart-universe">
+        <h1 className="cart-title">Cosmic Cart Orbit</h1>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="cart-universe">
+      <h1 className="cart-title">Cosmic Cart Orbit</h1>
+      {cart.length > 0 ? (
+        <div className="cart-container">
+          <section className="cart-items">
+            {cart.map((item) => (
+              <CartItem
+                key={item.productId}
+                item={item}
+                removeFromCart={removeFromCart}
+                updateQuantity={updateQuantity}
+              />
+            ))}
+          </section>
+
+          <aside className="cart-summary">
+            <div className="coupon-section">
+              <input
+                type="text"
+                placeholder="Enter Cosmic Coupon"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                className="coupon-input"
+              />
+              <button onClick={handleApplyCoupon} className="apply-btn">Apply</button>
+              {coupon && <p className="coupon-success">{coupon.discount}% Off Applied!</p>}
+            </div>
+
+            <div className="total-section">
+              <div className="total-line">
+                <span>Subtotal</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              {coupon && (
+                <div className="total-line discount-line">
+                  <span>Discount ({coupon.discount}%)</span>
+                  <span>-₹{(subtotal * (coupon.discount / 100)).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="total-line">
+                <span>Delivery Fee</span>
+                <span>₹{deliveryFee.toFixed(2)}</span>
+              </div>
+              <div className="total-line final-total">
+                <span>Total</span>
+                <span>₹{finalTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="action-buttons">
+              <button onClick={clearCart} className="clear-btn">Clear Orbit</button>
+              <button onClick={handleCheckout} className="checkout-btn">Launch Checkout</button>
+            </div>
+          </aside>
+        </div>
+      ) : (
+        <div className="empty-cart">
+          <div className="void-spinner">
+            <img
+              src="https://img.freepik.com/premium-vector/shopping-ecommerce-graphic-design-with-icons_24911-20665.jpg"
+              alt="Empty Cart"
+              className="void-image"
+              onError={(e) => {
+                e.target.src = 'https://placehold.co/150x150'; // Fallback for empty cart image
+                e.target.style.display = 'block';
+              }}
+            />
+          </div>
+          <p>Your cosmic cart is a void! Exploring in 5 seconds...</p>
+          <button onClick={() => navigate('/products')} className="explore-btn">Explore Now</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Cart; */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-frontend/src/pages/Cart.js
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
@@ -130,4 +510,4 @@ function Cart() {
   );
 }
 
-export default Cart;
+export default Cart; */

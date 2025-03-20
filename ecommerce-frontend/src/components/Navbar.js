@@ -11,7 +11,9 @@ function Navigation() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isMedium, setIsMedium] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
 
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+/*   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+ */
+  const cartCount = Array.isArray(cart) ? cart.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0;
 
   useEffect(() => {
     const handleResize = () => {
