@@ -41,7 +41,7 @@ function Login() {
   };
 
   return (
-    <div className="login-wrapper">
+    <div className="login-wrapper bg-primary">
       <div className="galaxy-portal">
         <h1 className="login-title">Enter the Cosmos</h1>
 
@@ -59,8 +59,8 @@ function Login() {
           ))}
         </div>
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          <div className="input-orb">
+        <form className="login-form bg-black" onSubmit={handleSubmit}>
+          <div className="input-orb ">
             <label htmlFor="email" className="orb-label">Email</label>
             <input
               type="email"

@@ -390,8 +390,8 @@ function Orders() {
 
   if (authLoading || loading) {
     return (
-      <div className="orders-container">
-        <h1 className="orders-title">Your Orders</h1>
+      <div className="orders-container ">
+        <h1 className="orders-title ">Your Orders</h1>
         <div className="orders-timeline">
           {[...Array(3)].map((_, index) => (
             <div key={index} className="order-card skeleton">
@@ -411,7 +411,7 @@ function Orders() {
   if (!user) return null;
 
   return (
-    <div className="orders-container">
+    <div className="orders-container my-5 py-5">
       <h1 className="orders-title">Your Orders</h1>
       {error && <p className="error-message">{error}</p>}
       <div className="orders-controls">

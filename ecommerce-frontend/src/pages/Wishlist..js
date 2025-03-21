@@ -117,7 +117,7 @@ function Wishlist() {
   if (!user) return null;
 
   return (
-    <div className="wishlist-container">
+    <div className="wishlist-container my-5 py-5">
       <ToastContainer position="top-right" autoClose={3000} />
       <h1 className="wishlist-title">Your Wishlist</h1>
       {error && <p className="error-message">{error}</p>}

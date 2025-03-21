@@ -206,11 +206,11 @@ function ProductDetails() {
     .slice(0, 3);
 
   return (
-    <div className="product-details-universe">
+    <div className="product-details-universe my-5 py-5  ">
       <div className="product-container">
         <div className="product-galaxy">
           {/* Image Section */}
-          <div className="image-orbit">
+          <div className="image-orbit d-flex justify-content-center align-items-center flex-row">
             <div className="thumbnail-constellation">
               {imageList.map((img, index) => (
                 <div

@@ -69,7 +69,7 @@ function Cart() {
   if (!user) return null;
 
   return (
-    <div className="cart-universe">
+    <div className="cart-universe my-5 py-5">
       <h1 className="cart-title">Cosmic Cart Orbit</h1>
       {cart.length > 0 ? (
         <div className="cart-container">

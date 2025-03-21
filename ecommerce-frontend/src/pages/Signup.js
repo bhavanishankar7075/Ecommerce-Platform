@@ -69,7 +69,7 @@ function Signup() {
   const passwordsMatch = password && confirmPassword && password === confirmPassword;
 
   return (
-    <div className="signup-wrapper">
+    <div className="signup-wrapper bg-black">
       <div className="stellar-genesis">
         <h1 className="signup-title">Forge Your Star</h1>
         <div className="nebula-core">
@@ -86,7 +86,7 @@ function Signup() {
             ></span>
           ))}
         </div>
-        <form className="signup-form" onSubmit={handleSubmit}>
+        <form className="signup-form bg-success" onSubmit={handleSubmit}>
           <div className="input-star">
             <label htmlFor="username" className="star-label">Username</label>
             <input
