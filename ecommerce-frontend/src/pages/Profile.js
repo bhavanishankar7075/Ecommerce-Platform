@@ -30,6 +30,7 @@ function Profile() {
   const [darkMode, setDarkMode] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [filterStatus, setFilterStatus] = useState('All');
+  const [wishlist, setWishlist] = useState([]);
 
   // Responsive handling
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -63,6 +64,27 @@ function Profile() {
       setLoading(false);
     }
   }, [user, authLoading, navigate, isLoggingOut]);
+
+
+
+  // Fetch wishlist on mount
+  useEffect(() => {
+    if (user && user._id) {
+      const fetchWishlist = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setWishlist(res.data || []);
+        } catch (err) {
+          console.error('Error fetching wishlist:', err);
+          setError(err.response?.data?.message || 'Failed to load wishlist');
+        }
+      };
+      fetchWishlist();
+    }
+  }, [user]);
 
   const fetchOrders = async () => {
     try {
@@ -274,9 +296,18 @@ function Profile() {
               <i className="fas fa-shopping-cart"></i> <span className="btn-text">Cart</span>
             </button>
             {/* Add Wishlist Button */}
+            {/* <button className="nav-btn" onClick={handleNavigateToWishlist}>
+              <i className="fas fa-heart"></i> <span className="btn-text">Wishlist</span>
+            </button> */}
+
             <button className="nav-btn" onClick={handleNavigateToWishlist}>
               <i className="fas fa-heart"></i> <span className="btn-text">Wishlist</span>
+              {wishlist.length > 0 && (
+                <span className="notification-badge">{wishlist.length}</span>
+              )}
             </button>
+
+
             <button
               className="nav-btn"
               onClick={() => setShowPasswordForm(!showPasswordForm)}
