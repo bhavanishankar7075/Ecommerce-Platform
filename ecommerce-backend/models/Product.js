@@ -1,4 +1,72 @@
-// ecommerce-backend/models/Product.js
+
+const mongoose = require('mongoose');
+
+// models/Product.js (hypothetical)
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  stock: { type: Number, required: true },
+  category: { type: String, required: true },
+  description: { type: String, required: true },
+  offer: { type: String, default: '' },
+  sizes: { type: [String], default: [] },
+  isActive: { type: Boolean, default: true },
+  featured: { type: Boolean, default: false },
+  brand: { type: String },
+  weight: { type: Number },
+  model: { type: String },
+  image: { type: String, required: true }, // This makes the image field mandatory
+  images: { type: [String], default: [] },
+},{ timestamps: true });
+
+
+
+
+module.exports = mongoose.model('Product', productSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-backend/models/Product.js
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
@@ -15,4 +83,4 @@ const productSchema = new mongoose.Schema({
   model: { type: String, default: '' }, // New field
 }, { timestamps: true });
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model('Product', productSchema); */

@@ -1,4 +1,52 @@
-const express = require('express');
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -58,8 +106,8 @@ app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
       return oldJson.call(this, { message: 'Success', data });
     };
     next();
-  }); */
- 
+  }); 
+ */
 
 // Map /api/checkout to /api/orders/create-session for Stripe session creation
 app.use('/api/checkout', (req, res, next) => {
@@ -74,7 +122,7 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
 
 
 
