@@ -252,6 +252,47 @@ body.dark .low-stock {
   font-size: 0.8em;
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+body.dark .pagination button {
+  background: #333;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.pagination button:disabled {
+  background: #f1f1f1;
+  cursor: not-allowed;
+}
+
+body.dark .pagination button:disabled {
+  background: #444;
+}
+
+.pagination span {
+  font-size: 1em;
+  color: #555;
+}
+
+body.dark .pagination span {
+  color: #e0e0e0;
+}
+
 /* Activity Log */
 .activity-log {
   background: var(--card-bg-light);
