@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+  import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
 const ProductContext = createContext();
@@ -124,7 +124,7 @@ export function ProductProvider({ children }) {
   return <ProductContext.Provider value={value}>{children}</ProductContext.Provider>;
 }
 
-export const useProducts = () => useContext(ProductContext);
+export const useProducts = () => useContext(ProductContext); 
 
 
 

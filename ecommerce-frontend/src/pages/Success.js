@@ -1,9 +1,8 @@
-
-
+// Success.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import '../styles/Success.css'; // Create this CSS file
+import '../styles/Success.css';
 
 function Success() {
   const navigate = useNavigate();
@@ -27,7 +26,6 @@ function Success() {
           return;
         }
 
-        // Fetch order details from backend using session ID
         const response = await axios.get(`http://localhost:5001/api/orders/session/${sessionId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -46,6 +44,10 @@ function Success() {
     navigate('/products');
   };
 
+  const handleViewOrders = () => {
+    navigate('/orders');
+  };
+
   return (
     <div className="success-wrapper">
       <div className="success-container">
@@ -54,35 +56,88 @@ function Success() {
           <p className="error-message">{error}</p>
         ) : orderDetails ? (
           <>
-            <p className="success-message">Thank you for your purchase! Your order has been successfully placed.</p>
+            <p className="success-message">
+              Thank you for your purchase! Your order has been successfully placed.
+              {orderDetails.status === 'Processing' &&
+                ' It is currently being processed and will be shipped soon.'}
+              {orderDetails.status === 'Shipped' && ' It has been shipped and is on its way to you!'}
+              {orderDetails.status === 'Delivered' && ' It has been delivered to your address.'}
+            </p>
             <div className="order-details">
               <h3>Order ID: {orderDetails.orderId}</h3>
               <h4>Items:</h4>
               <ul>
                 {orderDetails.items.map((item, index) => (
                   <li key={index}>
+                    {item.image && (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        style={{ width: '50px', height: '50px', marginRight: '10px' }}
+                      />
+                    )}
                     {item.name} - Quantity: {item.quantity} - ₹{(item.price * item.quantity).toFixed(2)}
                   </li>
                 ))}
               </ul>
-              <p><strong>Shipping Address:</strong> {orderDetails.shippingAddress.fullName}, {orderDetails.shippingAddress.address}, {orderDetails.shippingAddress.city}, {orderDetails.shippingAddress.postalCode}, {orderDetails.shippingAddress.country}</p>
-              <p><strong>Phone:</strong> {orderDetails.shippingAddress.phoneNumber}</p>
+              <div className="shipping-address">
+                <h4>Shipping Address:</h4>
+                {orderDetails.shippingAddress ? (
+                  <ul className="address-details">
+                    {orderDetails.shippingAddress.fullName && (
+                      <li><strong>Name:</strong> {orderDetails.shippingAddress.fullName}</li>
+                    )}
+                    {orderDetails.shippingAddress.address && (
+                      <li><strong>Address:</strong> {orderDetails.shippingAddress.address}</li>
+                    )}
+                    {orderDetails.shippingAddress.city && (
+                      <li><strong>City:</strong> {orderDetails.shippingAddress.city}</li>
+                    )}
+                    {orderDetails.shippingAddress.postalCode && (
+                      <li><strong>Postal Code:</strong> {orderDetails.shippingAddress.postalCode}</li>
+                    )}
+                    {orderDetails.shippingAddress.country && (
+                      <li><strong>Country:</strong> {orderDetails.shippingAddress.country}</li>
+                    )}
+                    {orderDetails.shippingAddress.phoneNumber && (
+                      <li><strong>Phone:</strong> {orderDetails.shippingAddress.phoneNumber}</li>
+                    )}
+                    {!orderDetails.shippingAddress.fullName &&
+                     !orderDetails.shippingAddress.address &&
+                     !orderDetails.shippingAddress.city &&
+                     !orderDetails.shippingAddress.postalCode &&
+                     !orderDetails.shippingAddress.country &&
+                     !orderDetails.shippingAddress.phoneNumber && (
+                      <li>Not specified</li>
+                    )}
+                  </ul>
+                ) : (
+                  <p>Not specified</p>
+                )}
+              </div>
               <p><strong>Total:</strong> ₹{orderDetails.total.toFixed(2)}</p>
               <p><strong>Payment Method:</strong> {orderDetails.payment}</p>
+              <p><strong>Status:</strong> {orderDetails.status}</p>
+              <p><strong>Order Date:</strong> {new Date(orderDetails.createdAt).toLocaleDateString()}</p>
+            </div>
+            <div className="success-buttons">
+              <button className="return-btn" onClick={handleReturn}>
+                Back to Products
+              </button>
+              <button className="view-orders-btn" onClick={handleViewOrders}>
+                View My Orders
+              </button>
             </div>
           </>
         ) : (
           <p>Loading order details...</p>
         )}
-        <button className="return-btn" onClick={handleReturn}>
-          Back to Products
-        </button>
       </div>
     </div>
   );
 }
 
-export default Success; 
+export default Success;
 
 
 

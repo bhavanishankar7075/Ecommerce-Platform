@@ -17,6 +17,7 @@ const productSchema = new mongoose.Schema({
   model: { type: String },
   image: { type: String, required: true }, // This makes the image field mandatory
   images: { type: [String], default: [] },
+  createdAt: { type: Date, default: Date.now }
 },{ timestamps: true });
 
 
