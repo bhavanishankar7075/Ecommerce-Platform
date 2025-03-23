@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,28 +28,59 @@ function Checkout() {
     expiry: '',
     cvv: '',
   });
+  const [saveAddress, setSaveAddress] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('new');
   const [showNewPaymentForm, setShowNewPaymentForm] = useState(false);
+  const [addressOption, setAddressOption] = useState('new'); // 'saved' or 'new'
+  const [savedAddress, setSavedAddress] = useState(null);
 
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:5001/api/users/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSavedAddress(res.data.shippingAddress || null);
+        if (res.data.shippingAddress && addressOption === 'saved') {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: res.data.shippingAddress.fullName || '',
+            address: res.data.shippingAddress.address || '',
+            city: res.data.shippingAddress.city || '',
+            postalCode: res.data.shippingAddress.postalCode || '',
+            country: res.data.shippingAddress.country || '',
+            phoneNumber: res.data.shippingAddress.phoneNumber || '',
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+        setError('Failed to load saved address. Please enter your address manually.');
+      }
+    };
+
     const savedData = JSON.parse(localStorage.getItem('checkoutForm')) || {};
     setFormData((prev) => ({ ...prev, ...savedData }));
-  }, []);
+
+    if (user) {
+      fetchUserProfile();
+      fetchPaymentMethods();
+    }
+  }, [user, addressOption]);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
-    } else if (cart.length === 0) {
-      setError('Your cart is empty. Redirecting to products...');
+    } else if (cart.length === 0 && !isSubmitted) {
       setTimeout(() => navigate('/products'), 3000);
     } else if (user) {
       fetchPaymentMethods();
     }
-  }, [cart, user, authLoading, navigate]);
+  }, [cart, user, authLoading, navigate, isSubmitted]);
 
   useEffect(() => {
     localStorage.setItem('checkoutForm', JSON.stringify(formData));
@@ -84,6 +116,31 @@ function Checkout() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddressOptionChange = (option) => {
+    setAddressOption(option);
+    if (option === 'saved' && savedAddress) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: savedAddress.fullName || '',
+        address: savedAddress.address || '',
+        city: savedAddress.city || '',
+        postalCode: savedAddress.postalCode || '',
+        country: savedAddress.country || '',
+        phoneNumber: savedAddress.phoneNumber || '',
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        country: '',
+        phoneNumber: '',
+      }));
+    }
   };
 
   const handleQuantityChange = (item, newQuantity) => {
@@ -144,8 +201,10 @@ function Checkout() {
       return;
     }
 
+    console.log('Cart data before validation:', cart);
     for (const item of cart) {
       if (!item._id || !item.productId?._id || !item.productId?.name || !item.quantity || !item.productId?.price || !item.productId?.image) {
+        console.error('Invalid cart item:', item);
         setError(`Invalid cart item: Missing required fields (id, name, quantity, price, image)`);
         return;
       }
@@ -167,7 +226,6 @@ function Checkout() {
     try {
       setIsSubmitted(true);
 
-      // Prepare the items for the order
       const items = cart.map(item => ({
         productId: item.productId._id,
         name: item.productId.name,
@@ -176,12 +234,18 @@ function Checkout() {
         image: item.productId.image || '',
       }));
 
-      // Step 1: Create a session (for both COD and Stripe)
+      console.log('Creating session for order...');
       const sessionResponse = await axios.post(
         'http://localhost:5001/api/orders/create-session',
         {
           userId: user._id,
-          items,
+          items: cart.map(item => ({
+            productId: item.productId._id,
+            name: item.productId.name,
+            price: Math.round(Number(item.productId.price) * 100),
+            quantity: item.quantity,
+            image: item.productId.image || '',
+          })),
           shippingAddress: {
             fullName: formData.fullName.trim(),
             address: formData.address.trim(),
@@ -190,7 +254,7 @@ function Checkout() {
             country: formData.country.trim(),
             phoneNumber: formData.phoneNumber.trim(),
           },
-          total,
+          total: Math.round(total * 100),
           paymentMethod: selectedPaymentMethod === 'cod' ? 'cod' : 'stripe',
           cardDetails: selectedPaymentMethod === 'new'
             ? {
@@ -209,7 +273,6 @@ function Checkout() {
       console.log('Session ID received:', sessionId);
 
       if (selectedPaymentMethod === 'cod') {
-        // Step 2: For COD, create the order using POST /
         const orderData = {
           userId: user._id,
           items,
@@ -223,67 +286,53 @@ function Checkout() {
           },
           payment: 'Cash on Delivery',
           total,
-          sessionId, // Include the sessionId
+          sessionId,
         };
 
-        console.log('COD order data:', orderData);
-
+        console.log('Placing COD order:', orderData);
         const response = await axios.post('http://localhost:5001/api/orders', orderData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('COD Order response:', response.data);
 
-        setTimeout(() => {
-          clearCart();
-          localStorage.removeItem('checkoutForm');
-          alert('Order placed successfully! Order ID: ' + response.data.orderId);
-          navigate(`/success?session_id=${sessionId}`); // Navigate to success page
-        }, 2000);
+        if (saveAddress) {
+          try {
+            console.log('Saving shipping address...');
+            await axios.put(
+              'http://localhost:5001/api/users/profile/shipping-address',
+              {
+                fullName: formData.fullName.trim(),
+                address: formData.address.trim(),
+                city: formData.city.trim(),
+                postalCode: formData.postalCode.trim(),
+                country: formData.country.trim(),
+                phoneNumber: formData.phoneNumber.trim(),
+              },
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            console.log('Shipping address saved successfully');
+          } catch (addressError) {
+            console.error('Error saving shipping address:', addressError);
+            setError('Failed to save shipping address. Please try again later.');
+          }
+        }
+
+        console.log('Clearing cart and navigating to success...');
+        localStorage.removeItem('checkoutForm');
+        clearCart();
+        navigate(`/success?session_id=${sessionId}`, { replace: true });
       } else {
-        // For Stripe payments
+        console.log('Redirecting to Stripe checkout...');
         const stripe = await stripePromise;
 
-        const orderData = {
-          userId: user._id,
-          items: cart.map(item => ({
-            productId: item.productId._id,
-            name: item.productId.name,
-            price: Math.round(Number(item.productId.price) * 100),
-            quantity: item.quantity,
-            image: item.productId.image || '',
-          })),
-          shippingAddress: {
-            fullName: formData.fullName,
-            address: formData.address.trim(),
-            city: formData.city.trim(),
-            postalCode: formData.postalCode.trim(),
-            country: formData.country.trim(),
-            phoneNumber: formData.phoneNumber.trim(),
-          },
-          total: Math.round(total * 100),
-          paymentMethod: selectedPaymentMethod === 'new' ? 'stripe' : 'saved',
-          cardDetails: selectedPaymentMethod === 'new'
-            ? {
-                cardNumber: formData.cardNumber,
-                expiry: formData.expiry,
-                cvv: formData.cvv,
-              }
-            : paymentMethods.find(method => method._id === selectedPaymentMethod),
-        };
-
-        console.log('Stripe order data:', orderData);
-
-        const response = await axios.post('http://localhost:5001/api/orders/create-session', orderData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        console.log('Stripe session response:', response.data);
-
-        const { sessionId } = response.data;
         const result = await stripe.redirectToCheckout({ sessionId });
 
         if (result.error) {
           console.error('Stripe redirect error:', result.error.message);
+          setError(result.error.message || 'Failed to redirect to Stripe checkout');
+          setIsSubmitted(false);
           navigate('/failure');
         }
       }
@@ -292,8 +341,12 @@ function Checkout() {
       if (err.response) {
         console.log('Error response data:', err.response.data);
         setError(err.response.data.message || 'Failed to place order');
+      } else if (err.request) {
+        console.log('No response received:', err.request);
+        setError('No response from server. Please check your network connection.');
       } else {
-        setError('An unexpected error occurred');
+        console.log('Error setting up request:', err.message);
+        setError('An unexpected error occurred: ' + err.message);
       }
       setIsSubmitted(false);
       navigate('/failure');
@@ -301,7 +354,16 @@ function Checkout() {
   };
 
   if (authLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="checkout-wrapper py-5">
+        <div className="orbital-container">
+          <div className="loading-spinner">
+            <div className="spinner-orbit"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!user) return null;
@@ -342,9 +404,40 @@ function Checkout() {
 
         <form className="checkout-form" onSubmit={handleSubmit}>
           <h3 className="form-section">Shipping Nebula</h3>
+          {savedAddress && Object.values(savedAddress).some(val => val) && (
+            <div className="saved-address-section">
+              <h4>Saved Address:</h4>
+              <ul>
+                {savedAddress.fullName && <li><strong>Full Name:</strong> {savedAddress.fullName}</li>}
+                {savedAddress.address && <li><strong>Address:</strong> {savedAddress.address}</li>}
+                {savedAddress.city && <li><strong>City:</strong> {savedAddress.city}</li>}
+                {savedAddress.postalCode && <li><strong>Postal Code:</strong> {savedAddress.postalCode}</li>}
+                {savedAddress.country && <li><strong>Country:</strong> {savedAddress.country}</li>}
+                {savedAddress.phoneNumber && <li><strong>Phone:</strong> {savedAddress.phoneNumber}</li>}
+              </ul>
+              <div className="address-options">
+                <button
+                  type="button"
+                  className={`address-option-btn ${addressOption === 'saved' ? 'active' : ''}`}
+                  onClick={() => handleAddressOptionChange('saved')}
+                >
+                  Use Saved Address
+                </button>
+                <button
+                  type="button"
+                  className={`address-option-btn ${addressOption === 'new' ? 'active' : ''}`}
+                  onClick={() => handleAddressOptionChange('new')}
+                >
+                  Add New Address
+                </button>
+              </div>
+            </div>
+          )}
           <div className="input-orbit">
+            <label htmlFor="fullName">Full Name</label>
             <input
               type="text"
+              id="fullName"
               name="fullName"
               value={formData.fullName}
               onChange={handleInputChange}
@@ -354,8 +447,10 @@ function Checkout() {
             />
           </div>
           <div className="input-orbit">
+            <label htmlFor="address">Address</label>
             <input
               type="text"
+              id="address"
               name="address"
               value={formData.address}
               onChange={handleInputChange}
@@ -365,8 +460,10 @@ function Checkout() {
             />
           </div>
           <div className="input-orbit">
+            <label htmlFor="city">City</label>
             <input
               type="text"
+              id="city"
               name="city"
               value={formData.city}
               onChange={handleInputChange}
@@ -376,8 +473,10 @@ function Checkout() {
             />
           </div>
           <div className="input-orbit">
+            <label htmlFor="postalCode">Postal Code</label>
             <input
               type="text"
+              id="postalCode"
               name="postalCode"
               value={formData.postalCode}
               onChange={handleInputChange}
@@ -387,8 +486,10 @@ function Checkout() {
             />
           </div>
           <div className="input-orbit">
+            <label htmlFor="country">Country</label>
             <input
               type="text"
+              id="country"
               name="country"
               value={formData.country}
               onChange={handleInputChange}
@@ -398,8 +499,10 @@ function Checkout() {
             />
           </div>
           <div className="input-orbit">
+            <label htmlFor="phoneNumber">Phone Number</label>
             <input
               type="text"
+              id="phoneNumber"
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleInputChange}
@@ -408,10 +511,20 @@ function Checkout() {
               className="form-input"
             />
           </div>
+          <div className="input-orbit">
+            <label>
+              <input
+                type="checkbox"
+                checked={saveAddress}
+                onChange={(e) => setSaveAddress(e.target.checked)}
+              />
+              Save this address for future orders
+            </label>
+          </div>
 
           <h3 className="form-section">Payment Galaxy</h3>
           <div className="input-orbit">
-            <label htmlFor="paymentMethod">Payment Method:</label>
+            <label htmlFor="paymentMethod">Payment Method</label>
             <select
               id="paymentMethod"
               value={selectedPaymentMethod}
@@ -432,8 +545,10 @@ function Checkout() {
           {showNewPaymentForm && (
             <>
               <div className="input-orbit">
+                <label htmlFor="cardNumber">Card Number</label>
                 <input
                   type="text"
+                  id="cardNumber"
                   name="cardNumber"
                   value={formData.cardNumber}
                   onChange={handleInputChange}
@@ -443,41 +558,53 @@ function Checkout() {
                 />
               </div>
               <div className="input-orbit dual-orbit">
-                <input
-                  type="text"
-                  name="expiry"
-                  value={formData.expiry}
-                  onChange={handleInputChange}
-                  placeholder="Expiry (MM/YY)"
-                  required
-                  className="form-input half"
-                />
-                <input
-                  type="text"
-                  name="cvv"
-                  value={formData.cvv}
-                  onChange={handleInputChange}
-                  placeholder="CVV (3 digits)"
-                  required
-                  className="form-input half"
-                />
+                <div className="input-orbit half">
+                  <label htmlFor="expiry">Expiry</label>
+                  <input
+                    type="text"
+                    id="expiry"
+                    name="expiry"
+                    value={formData.expiry}
+                    onChange={handleInputChange}
+                    placeholder="Expiry (MM/YY)"
+                    required
+                    className="form-input half"
+                  />
+                </div>
+                <div className="input-orbit half">
+                  <label htmlFor="cvv">CVV</label>
+                  <input
+                    type="text"
+                    id="cvv"
+                    name="cvv"
+                    value={formData.cvv}
+                    onChange={handleInputChange}
+                    placeholder="CVV (3 digits)"
+                    required
+                    className="form-input half"
+                  />
+                </div>
               </div>
             </>
           )}
 
           <div className="total-pod">
-            <strong>Subtotal: ₹{subtotal.toFixed(2)}</strong>
+            <p><strong>Subtotal:</strong> ₹{subtotal.toFixed(2)}</p>
             {passedDiscount > 0 && (
-              <p>Discount ({(passedDiscount * 100).toFixed(0)}%): -₹{(subtotal * passedDiscount).toFixed(2)}</p>
+              <p><strong>Discount ({(passedDiscount * 100).toFixed(0)}%):</strong> -₹{(subtotal * passedDiscount).toFixed(2)}</p>
             )}
-            <br />
-            <strong>Delivery Fee: ₹{deliveryFee.toFixed(2)}</strong>
-            <br />
-            <strong>Total: ₹{total.toFixed(2)}</strong>
+            <p><strong>Delivery Fee:</strong> ₹{deliveryFee.toFixed(2)}</p>
+            <p><strong>Total:</strong> ₹{total.toFixed(2)}</p>
           </div>
           {error && <p className="error-message">{error}</p>}
           <button type="submit" className="submit-btn" disabled={cart.length === 0 || isSubmitted}>
-            {isSubmitted ? 'Launching...' : 'Launch Order'}
+            {isSubmitted ? (
+              <span>
+                Launching... <span className="spinner-orbit small"></span>
+              </span>
+            ) : (
+              'Launch Order'
+            )}
           </button>
         </form>
 
@@ -488,7 +615,6 @@ function Checkout() {
 }
 
 export default Checkout;
-
 
 
 

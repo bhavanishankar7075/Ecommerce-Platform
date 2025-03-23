@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/auth');
@@ -6,8 +7,6 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 
-
-
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
@@ -15,30 +14,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-
 // Helper function to format user response
 const formatUserResponse = (user) => ({
   id: user._id,
   username: user.username,
   email: user.email,
-  address: user.address || '', // Include address, default to empty string
-  avatar: user.avatar || '', 
+  address: user.address || '', // Legacy address field
+  avatar: user.avatar || '',
   isAdmin: user.isAdmin,
   paymentMethods: user.paymentMethods || [],
+  shippingAddress: user.shippingAddress || {}, // Added shippingAddress
 });
-
-// Get user profile
-/* router.get('/profile', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(formatUserResponse(user));
-  } catch (error) {
-    console.error('Get Profile Error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-}); */
-
 
 // Get user profile
 router.get('/profile', authMiddleware, async (req, res) => {
@@ -52,44 +38,16 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
-
-
-
-// Update user profile
-/* router.put('/profile', authMiddleware, async (req, res) => {
-  try {
-    const { username } = req.body;
-    if (!username || !username.trim()) {
-      return res.status(400).json({ message: 'Username is required' });
-    }
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { username },
-      { new: true, runValidators: true }
-    ).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ message: 'Profile updated', user: formatUserResponse(user) });
-  } catch (error) {
-    console.error('Update Profile Error:', error);
-    if (error.code === 11000) {
-      return res.status(400).json({ message: 'Username already exists' });
-    }
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-}); */
-
-
-
 // Update user profile
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
-    const { username, address } = req.body; // Add address to update
+    const { username, address } = req.body;
     if (!username || !username.trim()) {
       return res.status(400).json({ message: 'Username is required' });
     }
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { username, address }, // Update both fields
+      { username, address },
       { new: true, runValidators: true }
     ).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -102,26 +60,39 @@ router.put('/profile', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
- 
 
-// Upload avatar
-/* router.post('/profile/avatar', authMiddleware, upload.single('avatar'), async (req, res) => {
+// New route to save shipping address
+router.put('/profile/shipping-address', authMiddleware, async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const { fullName, address, city, postalCode, country, phoneNumber } = req.body;
+
+    // Validate required fields (at least address should be provided)
+    if (!address) {
+      return res.status(400).json({ message: 'Address is required' });
+    }
 
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-    user.avatar = `/uploads/${req.file.filename}`; // Store relative path with /uploads prefix
+    // Update the user's shipping address
+    user.shippingAddress = {
+      fullName: fullName?.trim(),
+      address: address.trim(),
+      city: city?.trim(),
+      postalCode: postalCode?.trim(),
+      country: country?.trim(),
+      phoneNumber: phoneNumber?.trim(),
+    };
+
     await user.save();
-
-    res.json({ user });
+    res.json({ message: 'Shipping address updated successfully', shippingAddress: user.shippingAddress });
   } catch (error) {
-    console.error('Avatar upload error:', error);
-    res.status(500).json({ message: 'Failed to upload avatar', error: error.message });
+    console.error('Error updating shipping address:', error);
+    res.status(500).json({ message: 'Failed to update shipping address', error: error.message });
   }
-}); */
-
+});
 
 // Upload avatar
 router.post('/profile/avatar', authMiddleware, upload.single('avatar'), async (req, res) => {
@@ -135,30 +106,12 @@ router.post('/profile/avatar', authMiddleware, upload.single('avatar'), async (r
     user.avatar = avatarPath; // Store relative path
     await user.save();
 
-    res.json({ user: formatUserResponse(user) }); // Return formatted response
+    res.json({ user: formatUserResponse(user) });
   } catch (error) {
     console.error('Avatar upload error:', error);
     res.status(500).json({ message: 'Failed to upload avatar', error: error.message });
   }
 });
-
-
-
-
-// Get all addresses (not supported by User model, removing unless needed)
-/* router.get('/profile/addresses', authMiddleware, async (req, res) => {
-  return res.status(400).json({ message: 'Addresses not supported in User model' });
-});
-
-// Add new address (not supported by User model, removing unless needed)
-router.post('/profile/addresses', authMiddleware, async (req, res) => {
-  return res.status(400).json({ message: 'Addresses not supported in User model' });
-});
-
-// Delete address (not supported by User model, removing unless needed)
-router.delete('/profile/addresses/:addressId', authMiddleware, async (req, res) => {
-  return res.status(400).json({ message: 'Addresses not supported in User model' });
-}); */
 
 // Get all payment methods
 router.get('/profile/payment-methods', authMiddleware, async (req, res) => {
@@ -250,7 +203,6 @@ router.put('/profile/password', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-
 
 
 

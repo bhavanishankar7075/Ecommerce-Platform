@@ -295,7 +295,7 @@ router.get('/session/:sessionId', authMiddleware, async (req, res) => {
       // For COD, we don't need to check payment status since there's no Stripe session
       // Optionally update the status to 'Processing' if it's still 'Pending'
       if (order.status === 'Pending') {
-        order.status = 'Processing';
+        order.status = 'Pending';
         await order.save();
       }
 
@@ -352,14 +352,14 @@ router.get('/session/:sessionId', authMiddleware, async (req, res) => {
         payment,
         total: Number(total),
         stripeSessionId: sessionId,
-        status: 'Processing',
+        status: 'Pending',
       });
 
       await order.save();
       await order.populate('items.productId', 'name price image');
     } else {
       if (order.status === 'Pending') {
-        order.status = 'Processing';
+        order.status = 'Pending';
         await order.save();
       }
     }

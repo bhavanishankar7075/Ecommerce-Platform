@@ -1,4 +1,3 @@
-// Success.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -44,7 +43,7 @@ function Success() {
     navigate('/products');
   };
 
-  const handleViewOrders = () => {
+  const handleOrders = () => {
     navigate('/orders');
   };
 
@@ -56,14 +55,8 @@ function Success() {
           <p className="error-message">{error}</p>
         ) : orderDetails ? (
           <>
-            <p className="success-message">
-              Thank you for your purchase! Your order has been successfully placed.
-              {orderDetails.status === 'Processing' &&
-                ' It is currently being processed and will be shipped soon.'}
-              {orderDetails.status === 'Shipped' && ' It has been shipped and is on its way to you!'}
-              {orderDetails.status === 'Delivered' && ' It has been delivered to your address.'}
-            </p>
-            <div className="order-details">
+            <p className="success-message">Thank you for your purchase! Your order has been successfully placed.</p>
+            <div className="order-details pb-5">
               <h3>Order ID: {orderDetails.orderId}</h3>
               <h4>Items:</h4>
               <ul>
@@ -80,58 +73,27 @@ function Success() {
                   </li>
                 ))}
               </ul>
-              <div className="shipping-address">
-                <h4>Shipping Address:</h4>
-                {orderDetails.shippingAddress ? (
-                  <ul className="address-details">
-                    {orderDetails.shippingAddress.fullName && (
-                      <li><strong>Name:</strong> {orderDetails.shippingAddress.fullName}</li>
-                    )}
-                    {orderDetails.shippingAddress.address && (
-                      <li><strong>Address:</strong> {orderDetails.shippingAddress.address}</li>
-                    )}
-                    {orderDetails.shippingAddress.city && (
-                      <li><strong>City:</strong> {orderDetails.shippingAddress.city}</li>
-                    )}
-                    {orderDetails.shippingAddress.postalCode && (
-                      <li><strong>Postal Code:</strong> {orderDetails.shippingAddress.postalCode}</li>
-                    )}
-                    {orderDetails.shippingAddress.country && (
-                      <li><strong>Country:</strong> {orderDetails.shippingAddress.country}</li>
-                    )}
-                    {orderDetails.shippingAddress.phoneNumber && (
-                      <li><strong>Phone:</strong> {orderDetails.shippingAddress.phoneNumber}</li>
-                    )}
-                    {!orderDetails.shippingAddress.fullName &&
-                     !orderDetails.shippingAddress.address &&
-                     !orderDetails.shippingAddress.city &&
-                     !orderDetails.shippingAddress.postalCode &&
-                     !orderDetails.shippingAddress.country &&
-                     !orderDetails.shippingAddress.phoneNumber && (
-                      <li>Not specified</li>
-                    )}
-                  </ul>
-                ) : (
-                  <p>Not specified</p>
-                )}
-              </div>
+              <p>
+                <strong>Shipping Address:</strong> {orderDetails.shippingAddress.fullName},{' '}
+                {orderDetails.shippingAddress.address}, {orderDetails.shippingAddress.city},{' '}
+                {orderDetails.shippingAddress.postalCode}, {orderDetails.shippingAddress.country}
+              </p>
+              <p><strong>Phone:</strong> {orderDetails.shippingAddress.phoneNumber}</p>
               <p><strong>Total:</strong> ₹{orderDetails.total.toFixed(2)}</p>
               <p><strong>Payment Method:</strong> {orderDetails.payment}</p>
               <p><strong>Status:</strong> {orderDetails.status}</p>
               <p><strong>Order Date:</strong> {new Date(orderDetails.createdAt).toLocaleDateString()}</p>
             </div>
-            <div className="success-buttons">
-              <button className="return-btn" onClick={handleReturn}>
-                Back to Products
-              </button>
-              <button className="view-orders-btn" onClick={handleViewOrders}>
-                View My Orders
-              </button>
-            </div>
           </>
         ) : (
           <p>Loading order details...</p>
         )}
+        <button className="return-btn" onClick={handleReturn}>
+          Back to Products
+        </button>
+        <button className="return-btn" onClick={handleOrders}>
+          Orders
+        </button>
       </div>
     </div>
   );

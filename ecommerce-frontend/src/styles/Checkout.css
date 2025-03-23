@@ -1,19 +1,29 @@
+/* Checkout.css */
+
+/* Base Styles */
 .checkout-wrapper {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a0b2e, #2e1b4e);
+  background: linear-gradient(135deg, #0f1c2e, #2a4066); /* Matches Profile page background */
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   position: relative;
+  padding: 20px;
+  color: #e0e7ff;
+  font-family: 'Arial', sans-serif;
 }
 
 .orbital-container {
   position: relative;
   width: 800px;
+  max-width: 100%;
   padding: 40px;
-  color: #fff;
+  color: #e0e7ff;
   text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .checkout-title {
@@ -21,8 +31,9 @@
   margin-bottom: 20px;
   text-transform: uppercase;
   letter-spacing: 3px;
-  color: #00d4ff;
-  text-shadow: 0 0 10px #00d4ff;
+  color: #bbdefb; /* Matches Profile page title color */
+  text-shadow: 0 0 10px #bbdefb;
+  animation: pulse 2s infinite;
 }
 
 /* Progress Ring */
@@ -31,30 +42,36 @@
   top: 20px;
   right: 20px;
 }
+
+.progress-circle {
+  width: 120px;
+  height: 120px;
+}
+
 .progress-circle-bg {
   fill: none;
   stroke: #3a2b5e;
   stroke-width: 10;
 }
+
 .progress-circle-fill {
   fill: none;
-  stroke: #00d4ff;
+  stroke: #bbdefb; /* Matches Profile page glow color */
   stroke-dasharray: 314;
   stroke-linecap: round;
   transform: rotate(-90deg);
   transform-origin: 50% 50%;
   transition: stroke-dashoffset 0.5s ease;
 }
+
 .progress-text {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 1.2rem;
-  color: #00d4ff;
+  color: #bbdefb;
 }
-
-/* ... (Keep all other existing styles unchanged) */
 
 /* Cart Orbit */
 .cart-orbit {
@@ -63,40 +80,51 @@
   justify-content: center;
   margin: 20px 0;
 }
+
 .cart-planet {
   position: relative;
   width: 150px;
   margin: 15px;
   animation: orbit 10s infinite linear;
 }
+
 .planet-img {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #00d4ff;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+  border: 2px solid #bbdefb;
+  box-shadow: 0 0 15px rgba(187, 222, 251, 0.5);
 }
+
 .planet-info {
   margin-top: 10px;
   background: rgba(255, 255, 255, 0.1);
   padding: 10px;
   border-radius: 10px;
+  color: #e0e7ff;
 }
+
+.planet-info p {
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+
 .quantity-controls {
   display: flex;
-  align-items: center; /* Vertically center the buttons and quantity */
-  justify-content: center; /* Horizontally center the group */
-  gap: 8px; /* Consistent spacing between elements */
-  margin-top: 8px; /* Space above the controls */
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
 }
+
 .quantity-controls button {
-  background: #00d4ff;
+  background: #bbdefb;
   border: none;
-  color: #fff;
-  width: 24px; /* Fixed width for uniformity */
-  height: 24px; /* Fixed height for uniformity */
-  border-radius: 50%; /* Circular buttons */
+  color: #0f1c2e;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   font-size: 1rem;
   cursor: pointer;
   display: flex;
@@ -104,25 +132,21 @@
   justify-content: center;
   transition: all 0.3s ease;
 }
+
 .quantity-controls button:hover {
-  background: #ff4081; /* Hover effect for contrast */
-  box-shadow: 0 0 10px #ff4081;
+  background: #90caf9;
+  box-shadow: 0 0 10px #90caf9;
 }
+
 .quantity-controls span {
   font-size: 1rem;
-  color: #fff;
-  min-width: 20px; /* Prevent shifting when quantity changes */
+  color: #e0e7ff;
+  min-width: 20px;
   text-align: center;
 }
 
-/* ... (Rest of the CSS remains unchanged) */
-
-
-
-
-
 .empty-cart {
-  color: #ff4081;
+  color: #f44336;
   font-size: 1.2rem;
 }
 
@@ -131,58 +155,185 @@
   background: rgba(255, 255, 255, 0.05);
   padding: 30px;
   border-radius: 20px;
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+  box-shadow: 0 0 30px rgba(187, 222, 251, 0.2);
 }
+
 .form-section {
   font-size: 1.5rem;
   margin: 20px 0 10px;
-  color: #00d4ff;
+  color: #bbdefb;
+  text-shadow: 0 0 5px #bbdefb;
 }
+
 .input-orbit {
   margin: 15px 0;
   position: relative;
 }
+
+.input-orbit label {
+  display: block;
+  font-size: 0.9rem;
+  color: #e0e7ff;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.input-orbit input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
 .form-input {
   width: 100%;
   padding: 12px;
   background: rgba(255, 255, 255, 0.1);
-  border: 2px solid #00d4ff;
+  border: 2px solid #bbdefb;
   border-radius: 25px;
-  color: #fff;
+  color: #e0e7ff;
   transition: all 0.3s ease;
+  font-size: 1rem;
 }
+
 .form-input:focus {
-  box-shadow: 0 0 15px #00d4ff;
+  box-shadow: 0 0 15px #bbdefb;
   outline: none;
+  border-color: #90caf9;
 }
+
+.form-input::placeholder {
+  color: #90caf9;
+}
+
 .dual-orbit {
   display: flex;
   gap: 10px;
 }
+
 .form-input.half {
   width: 50%;
 }
-.total-pod {
-  margin: 20px 0;
-  font-size: 1.5rem;
-  color: #ff4081;
+
+.input-orbit.half {
+  width: 50%;
 }
-.submit-btn {
-  background: #00d4ff;
-  border: none;
-  padding: 15px 30px;
-  border-radius: 25px;
-  color: #fff;
+
+/* Saved Address Section */
+.saved-address-section {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.saved-address-section h4 {
   font-size: 1.2rem;
+  color: #bbdefb;
+  margin-bottom: 10px;
+}
+
+.saved-address-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.saved-address-section li {
+  font-size: 0.9rem;
+  color: #e0e7ff;
+  margin-bottom: 5px;
+}
+
+.saved-address-section li strong {
+  color: #bbdefb;
+  margin-right: 5px;
+}
+
+.address-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.address-option-btn {
+  padding: 8px 15px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 5px;
+  color: #e0e7ff;
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
+.address-option-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.address-option-btn.active {
+  background: #bbdefb;
+  color: #0f1c2e;
+}
+
+/* Total Pod */
+.total-pod {
+  margin: 20px 0;
+  font-size: 1.2rem;
+  color: #e0e7ff;
+}
+
+.total-pod p {
+  margin: 5px 0;
+}
+
+.total-pod strong {
+  color: #bbdefb;
+}
+
+/* Error Message */
+.error-message {
+  color: #f44336;
+  font-size: 1rem;
+  margin: 10px 0;
+}
+
+/* Submit Button */
+.submit-btn {
+  background: #bbdefb;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  color: #0f1c2e;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
 .submit-btn:disabled {
   background: #3a2b5e;
   cursor: not-allowed;
 }
+
 .submit-btn:hover:not(:disabled) {
-  box-shadow: 0 0 20px #00d4ff;
+  background: #90caf9;
+  box-shadow: 0 0 20px #90caf9;
+}
+
+.submit-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.submit-btn:hover::after {
+  width: 200%;
+  height: 200%;
 }
 
 /* Particle Burst Animation */
@@ -192,18 +343,126 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.5), transparent);
+  background: radial-gradient(circle, rgba(187, 222, 251, 0.5), transparent);
   animation: burst 2s forwards;
 }
+
+/* Loading Spinner */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.spinner-orbit {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #bbdefb;
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-orbit.small {
+  width: 20px;
+  height: 20px;
+  border-width: 3px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+/* Animations */
 @keyframes burst {
   0% { opacity: 0; transform: scale(0); }
   50% { opacity: 1; transform: scale(1.5); }
   100% { opacity: 0; transform: scale(2); }
 }
 
-/* Orbit Animation */
 @keyframes orbit {
   0% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .orbital-container {
+    padding: 20px;
+  }
+
+  .checkout-title {
+    font-size: 2rem;
+  }
+
+  .progress-ring {
+    top: 10px;
+    right: 10px;
+  }
+
+  .progress-circle {
+    width: 80px;
+    height: 80px;
+  }
+
+  .progress-circle-bg,
+  .progress-circle-fill {
+    cx: 40;
+    cy: 40;
+    r: 30;
+  }
+
+  .progress-text {
+    font-size: 0.9rem;
+  }
+
+  .cart-planet {
+    width: 120px;
+    margin: 10px;
+  }
+
+  .planet-img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .checkout-form {
+    padding: 20px;
+  }
+
+  .form-section {
+    font-size: 1.2rem;
+  }
+
+  .form-input {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .dual-orbit {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .form-input.half,
+  .input-orbit.half {
+    width: 100%;
+  }
+
+  .submit-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
 }

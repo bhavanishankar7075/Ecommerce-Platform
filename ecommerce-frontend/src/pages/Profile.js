@@ -1,17 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext'; // Import useCart
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Profile.css';
 
 function Profile() {
   const { user, logout, loading: authLoading, updateUser } = useAuth();
+  const { cart } = useCart(); // Get cart from CartContext
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState({
     username: '',
     email: '',
     address: '',
     avatar: '/default-avatar.jpg',
+    shippingAddress: {
+      fullName: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      country: '',
+      phoneNumber: '',
+    },
   });
   const [orders, setOrders] = useState([]);
   const [passwordData, setPasswordData] = useState({
@@ -22,15 +32,26 @@ function Profile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showFullOrders, setShowFullOrders] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
-  const [filterStatus, setFilterStatus] = useState('All');
   const [wishlist, setWishlist] = useState([]);
+  const [shippingAddressForm, setShippingAddressForm] = useState({
+    fullName: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    country: '',
+    phoneNumber: '',
+  });
+  const [showSavedAddress, setShowSavedAddress] = useState(false);
+  const [activeSection, setActiveSection] = useState(null);
+
+  // Calculate cart count (total number of items in the cart)
+  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   // Responsive handling
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -40,7 +61,7 @@ function Profile() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sync profile data and fetch orders
+  // Sync profile data with user data
   useEffect(() => {
     if (authLoading) {
       setLoading(true);
@@ -53,19 +74,27 @@ function Profile() {
     }
 
     if (user && user._id) {
-      setProfileData({
+      const newProfileData = {
         username: user.username || '',
         email: user.email || '',
         address: user.address || '',
         avatar: user.avatar || '/default-avatar.jpg',
-      });
+        shippingAddress: user.shippingAddress || {
+          fullName: '',
+          address: '',
+          city: '',
+          postalCode: '',
+          country: '',
+          phoneNumber: '',
+        },
+      };
+      setProfileData(newProfileData);
+      setShippingAddressForm(newProfileData.shippingAddress);
       fetchOrders();
     } else {
       setLoading(false);
     }
   }, [user, authLoading, navigate, isLoggingOut]);
-
-
 
   // Fetch wishlist on mount
   useEffect(() => {
@@ -107,6 +136,11 @@ function Profile() {
     setProfileData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleShippingAddressChange = (e) => {
+    const { name, value } = e.target;
+    setShippingAddressForm((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [name]: value }));
@@ -115,31 +149,127 @@ function Profile() {
   const handleSaveProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.put(
+      await axios.put(
         'http://localhost:5001/api/users/profile',
         { username: profileData.username, address: profileData.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedUser = res.data.user || res.data;
+      const updatedProfileRes = await axios.get('http://localhost:5001/api/users/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedUser = updatedProfileRes.data;
       const avatarUrl = updatedUser.avatar
         ? updatedUser.avatar.startsWith('http')
           ? updatedUser.avatar
           : `http://localhost:5001${updatedUser.avatar}`
         : profileData.avatar;
-      setProfileData({
+      const newProfileData = {
         username: updatedUser.username || '',
         email: updatedUser.email || '',
         address: updatedUser.address || '',
         avatar: avatarUrl,
-      });
+        shippingAddress: updatedUser.shippingAddress || {
+          fullName: '',
+          address: '',
+          city: '',
+          postalCode: '',
+          country: '',
+          phoneNumber: '',
+        },
+      };
+      setProfileData(newProfileData);
+      setShippingAddressForm(newProfileData.shippingAddress);
       updateUser({ ...updatedUser, _id: updatedUser.id, avatar: avatarUrl });
-      setIsEditing(false);
+      setIsEditingProfile(false);
       setNotification({ message: 'Profile updated successfully!', type: 'success' });
       setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     } catch (err) {
       console.error('Save profile error:', err);
       setError(err.response?.data?.message || 'Failed to save profile');
       setNotification({ message: 'Failed to update profile.', type: 'error' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    }
+  };
+
+  const handleSaveShippingAddress = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        'http://localhost:5001/api/users/profile/shipping-address',
+        {
+          fullName: shippingAddressForm.fullName.trim(),
+          address: shippingAddressForm.address.trim(),
+          city: shippingAddressForm.city.trim(),
+          postalCode: shippingAddressForm.postalCode.trim(),
+          country: shippingAddressForm.country.trim(),
+          phoneNumber: shippingAddressForm.phoneNumber.trim(),
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const updatedProfileRes = await axios.get('http://localhost:5001/api/users/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedUser = updatedProfileRes.data;
+      const newProfileData = {
+        ...profileData,
+        shippingAddress: updatedUser.shippingAddress || {
+          fullName: '',
+          address: '',
+          city: '',
+          postalCode: '',
+          country: '',
+          phoneNumber: '',
+        },
+      };
+      setProfileData(newProfileData);
+      setShippingAddressForm(newProfileData.shippingAddress);
+      updateUser(updatedUser);
+      setIsEditingShipping(false);
+      setNotification({ message: 'Shipping address updated successfully!', type: 'success' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    } catch (err) {
+      console.error('Save shipping address error:', err);
+      setError(err.response?.data?.message || 'Failed to save shipping address');
+      setNotification({ message: 'Failed to update shipping address.', type: 'error' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    }
+  };
+
+  const handleDeleteAddress = async () => {
+    const confirmDelete = window.confirm('Are you sure you want to delete your saved shipping address?');
+    if (!confirmDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        'http://localhost:5001/api/users/profile/shipping-address',
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const updatedProfileRes = await axios.get('http://localhost:5001/api/users/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedUser = updatedProfileRes.data;
+      const newProfileData = {
+        ...profileData,
+        shippingAddress: updatedUser.shippingAddress || {
+          fullName: '',
+          address: '',
+          city: '',
+          postalCode: '',
+          country: '',
+          phoneNumber: '',
+        },
+      };
+      setProfileData(newProfileData);
+      setShippingAddressForm(newProfileData.shippingAddress);
+      updateUser(updatedUser);
+      setNotification({ message: 'Shipping address deleted successfully!', type: 'success' });
+      setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    } catch (err) {
+      console.error('Delete address error:', err);
+      setError(err.response?.data?.message || 'Failed to delete shipping address');
+      setNotification({ message: 'Failed to delete shipping address.', type: 'error' });
       setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     }
   };
@@ -205,7 +335,7 @@ function Profile() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setShowPasswordForm(false);
+      setActiveSection(null);
       setNotification({ message: 'Password updated successfully! Please log in again.', type: 'success' });
       setTimeout(() => {
         setNotification({ message: '', type: '' });
@@ -235,7 +365,6 @@ function Profile() {
     navigate('/orders');
   };
 
-  // Add function to navigate to wishlist
   const handleNavigateToWishlist = () => {
     navigate('/wishlist');
   };
@@ -250,13 +379,32 @@ function Profile() {
     }
   };
 
-  const filteredOrders = filterStatus === 'All'
-    ? orders
-    : orders.filter(order => order.status === filterStatus);
+  const handleCancelProfileEdit = () => {
+    setProfileData((prev) => ({
+      ...prev,
+      username: user.username || '',
+      address: user.address || '',
+      avatar: user.avatar || '/default-avatar.jpg',
+    }));
+    setAvatarFile(null);
+    setPreviewAvatar(null);
+    setIsEditingProfile(false);
+  };
+
+  const toggleSection = (section) => {
+    setActiveSection(activeSection === section ? null : section);
+    if (section === 'profile') {
+      setIsEditingProfile(false);
+      setShowSavedAddress(false);
+    }
+    if (section === 'shipping') {
+      setIsEditingShipping(false);
+    }
+  };
 
   if (authLoading || loading) {
     return (
-      <div className={`cosmic-loading ${darkMode ? 'dark-mode' : ''}`}>
+      <div className={`cosmic-loading ${darkMode ? 'dark-mode' : 'light-mode'}`}>
         <div className="spinner-orbit"></div>
         <p>Loading Profile...</p>
         {error && <p className="error-pod">{error}</p>}
@@ -267,7 +415,7 @@ function Profile() {
   if (!user) return null;
 
   return (
-    <div className={`profile-galaxy ${darkMode ? 'dark-mode' : ''}`}>
+    <div className={`profile-galaxy ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       <div className="profile-container">
         <aside className="stellar-sidebar">
           <div className="sidebar-header">
@@ -282,11 +430,14 @@ function Profile() {
           <nav className="sidebar-nav">
             <button
               className="nav-btn"
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => toggleSection('profile')}
             >
               <i className="fas fa-user"></i> <span className="btn-text">Profile</span>
             </button>
-            <button className="nav-btn" onClick={handleNavigateToOrders}>
+            <button
+              className="nav-btn"
+              onClick={handleNavigateToOrders}
+            >
               <i className="fas fa-list"></i> <span className="btn-text">Orders</span>
               {orders.length > 0 && (
                 <span className="notification-badge">{orders.length}</span>
@@ -294,23 +445,19 @@ function Profile() {
             </button>
             <button className="nav-btn" onClick={() => navigate('/cart')}>
               <i className="fas fa-shopping-cart"></i> <span className="btn-text">Cart</span>
+              {cartCount > 0 && (
+                <span className="notification-badge">{cartCount}</span>
+              )}
             </button>
-            {/* Add Wishlist Button */}
-            {/* <button className="nav-btn" onClick={handleNavigateToWishlist}>
-              <i className="fas fa-heart"></i> <span className="btn-text">Wishlist</span>
-            </button> */}
-
             <button className="nav-btn" onClick={handleNavigateToWishlist}>
               <i className="fas fa-heart"></i> <span className="btn-text">Wishlist</span>
               {wishlist.length > 0 && (
                 <span className="notification-badge">{wishlist.length}</span>
               )}
             </button>
-
-
             <button
               className="nav-btn"
-              onClick={() => setShowPasswordForm(!showPasswordForm)}
+              onClick={() => toggleSection('password')}
             >
               <i className="fas fa-lock"></i> <span className="btn-text">Password</span>
             </button>
@@ -330,170 +477,281 @@ function Profile() {
             )}
             {error && <p className="error-pod">{error}</p>}
           </header>
-          <section className="profile-orbit">
-            <div className="stellar-card profile-pod flip-card">
-              <div className={`flip-card-inner ${isEditing ? 'flipped' : ''}`}>
-                {/* Front Side (View Mode) */}
-                <div className="flip-card-front">
-                  <h3 className="card-title">Profile Details</h3>
-                  <div className="avatar-cluster">
-                    <div className="avatar-wrapper">
-                      <img
-                        src={profileData.avatar || '/default-avatar.jpg'}
-                        alt="User Avatar"
-                        className="avatar-star"
-                        onError={(e) => {
-                          console.log('Avatar load failed, using default:', e.target.src);
-                          e.target.src = '/default-avatar.jpg';
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="profile-data">
-                    <p><strong>Email:</strong> {profileData.email}</p>
-                    <p><strong>Username:</strong> {profileData.username || 'N/A'}</p>
-                    <p><strong>Address:</strong> {profileData.address || 'N/A'}</p>
-                  </div>
-                </div>
-                {/* Back Side (Edit Mode) */}
-                <div className="flip-card-back">
-                  <h3 className="card-title">Edit Profile</h3>
-                  <div className="avatar-cluster">
-                    <div className="avatar-wrapper">
-                      <img
-                        src={previewAvatar || profileData.avatar || '/default-avatar.jpg'}
-                        alt="User Avatar"
-                        className="avatar-star"
-                        onError={(e) => {
-                          console.log('Avatar load failed, using default:', e.target.src);
-                          e.target.src = '/default-avatar.jpg';
-                        }}
-                      />
-                      <div className="avatar-edit">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarChange}
-                          className="avatar-upload"
+          <section className="accordion-container">
+            {/* Profile Section */}
+            <div className="accordion-item">
+              <button
+                className={`accordion-header ${activeSection === 'profile' ? 'active' : ''}`}
+                onClick={() => toggleSection('profile')}
+              >
+                Profile
+                <span className="accordion-icon">
+                  {activeSection === 'profile' ? '−' : '+'}
+                </span>
+              </button>
+              {activeSection === 'profile' && (
+                <div className="accordion-content">
+                  <div className="stellar-card profile-pod">
+                    <h3 className="card-title">Profile Details</h3>
+                    <div className="avatar-cluster">
+                      <div className="avatar-wrapper">
+                        <img
+                          src={previewAvatar || profileData.avatar || '/default-avatar.jpg'}
+                          alt="User Avatar"
+                          className="avatar-star"
+                          onError={(e) => {
+                            e.target.src = '/default-avatar.jpg';
+                            e.target.onerror = null;
+                          }}
                         />
-                        {avatarFile && (
-                          <button className="nebula-btn upload-btn" onClick={handleAvatarUpload}>
-                            Upload Avatar
-                          </button>
+                        <button
+                          className="nebula-btn edit-btn"
+                          onClick={() => setIsEditingProfile(!isEditingProfile)}
+                        >
+                          {isEditingProfile ? 'Cancel' : 'Edit'}
+                        </button>
+                      </div>
+                      {isEditingProfile && (
+                        <div className="avatar-edit">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="avatar-upload"
+                          />
+                          {avatarFile && (
+                            <button className="nebula-btn upload-btn" onClick={handleAvatarUpload}>
+                              Upload Avatar
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="profile-data">
+                      <p><strong>Email:</strong> {profileData.email || 'N/A'}</p>
+                      <div className="profile-field">
+                        <strong>Username:</strong>
+                        {isEditingProfile ? (
+                          <input
+                            type="text"
+                            name="username"
+                            value={profileData.username || ''}
+                            onChange={handleInputChange}
+                            className="input-field"
+                            placeholder="Username"
+                          />
+                        ) : (
+                          <span>{profileData.username || 'N/A'}</span>
                         )}
                       </div>
-                    </div>
-                  </div>
-                  <div className="profile-data">
-                    <p><strong>Email:</strong> {profileData.email}</p>
-                    <input
-                      type="text"
-                      name="username"
-                      value={profileData.username || ''}
-                      onChange={handleInputChange}
-                      className="input-field"
-                      placeholder="Username"
-                    />
-                    <textarea
-                      name="address"
-                      value={profileData.address || ''}
-                      onChange={handleInputChange}
-                      className="input-field textarea-field"
-                      placeholder="Address"
-                    />
-                    <div className="action-cluster">
-                      <button className="nebula-btn save-btn" onClick={handleSaveProfile}>
-                        Save
-                      </button>
-                      <button className="nebula-btn cancel-btn" onClick={() => setIsEditing(false)}>
-                        Cancel
-                      </button>
+                      <div className="profile-field">
+                        <strong>Address:</strong>
+                        {isEditingProfile ? (
+                          <textarea
+                            name="address"
+                            value={profileData.address || ''}
+                            onChange={handleInputChange}
+                            className="input-field textarea-field"
+                            placeholder="Address"
+                          />
+                        ) : (
+                          <span>{profileData.address || 'N/A'}</span>
+                        )}
+                      </div>
+                      {isEditingProfile && (
+                        <div className="action-cluster">
+                          <button className="nebula-btn save-btn" onClick={handleSaveProfile}>
+                            Save
+                          </button>
+                          <button className="nebula-btn cancel-btn" onClick={handleCancelProfileEdit}>
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                      {!isEditingProfile && (
+                        <>
+                          <button
+                            className="nebula-btn toggle-address-btn"
+                            onClick={() => setShowSavedAddress(!showSavedAddress)}
+                          >
+                            {showSavedAddress ? 'Hide Saved Address' : 'Show Saved Address'}
+                          </button>
+                          {showSavedAddress && (
+                            <div className="shipping-address">
+                              <p><strong>Saved Shipping Address:</strong></p>
+                              {profileData.shippingAddress && Object.values(profileData.shippingAddress).some(val => val) ? (
+                                <ul>
+                                  {profileData.shippingAddress.fullName && (
+                                    <li><strong>Full Name:</strong> {profileData.shippingAddress.fullName}</li>
+                                  )}
+                                  {profileData.shippingAddress.address && (
+                                    <li><strong>Address:</strong> {profileData.shippingAddress.address}</li>
+                                  )}
+                                  {profileData.shippingAddress.city && (
+                                    <li><strong>City:</strong> {profileData.shippingAddress.city}</li>
+                                  )}
+                                  {profileData.shippingAddress.postalCode && (
+                                    <li><strong>Postal Code:</strong> {profileData.shippingAddress.postalCode}</li>
+                                  )}
+                                  {profileData.shippingAddress.country && (
+                                    <li><strong>Country:</strong> {profileData.shippingAddress.country}</li>
+                                  )}
+                                  {profileData.shippingAddress.phoneNumber && (
+                                    <li><strong>Phone:</strong> {profileData.shippingAddress.phoneNumber}</li>
+                                  )}
+                                </ul>
+                              ) : (
+                                <p>No saved shipping address.</p>
+                              )}
+                              {profileData.shippingAddress && Object.values(profileData.shippingAddress).some(val => val) && (
+                                <button className="nebula-btn delete-btn" onClick={handleDeleteAddress}>
+                                  Delete Address
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {showPasswordForm && (
-              <div className="stellar-card password-pod">
-                <h3 className="card-title">Change Password</h3>
-                <div className="password-form">
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Current Password"
-                    className="input-field"
-                  />
-                  <input
-                    type="password"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="New Password"
-                    className="input-field"
-                  />
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Confirm New Password"
-                    className="input-field"
-                  />
-                  <button className="nebula-btn update-btn" onClick={handleChangePassword}>
-                    Update Password
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="stellar-card orders-pod">
-              <h3 className="card-title">Orders</h3>
-              <div className="order-filters">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="All">All</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div className="order-summary">
-                <p>Total Orders: {orders.length}</p>
-                <p>Total Spent: ₹{orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}</p>
-              </div>
-              {filteredOrders.length > 0 ? (
-                <div className="orders-orbit">
-                  {(showFullOrders ? filteredOrders : filteredOrders.slice(0, 3)).map((order) => (
-                    <div key={order._id} className="order-planet">
-                      <p><strong>Order #{order._id.slice(-6)}</strong></p>
-                      <p>{new Date(order.createdAt).toLocaleDateString()}</p>
-                      <p>₹{order.total.toFixed(2)}</p>
-                      <div className="status-indicator">
-                        <span
-                          className={`status-dot ${order.status.toLowerCase()}`}
-                          title={order.status}
-                        ></span>
-                        <span>{order.status}</span>
+            {/* Update Shipping Address Section */}
+            <div className="accordion-item">
+              <button
+                className={`accordion-header ${activeSection === 'shipping' ? 'active' : ''}`}
+                onClick={() => toggleSection('shipping')}
+              >
+                Update Shipping Address
+                <span className="accordion-icon">
+                  {activeSection === 'shipping' ? '−' : '+'}
+                </span>
+              </button>
+              {activeSection === 'shipping' && (
+                <div className="accordion-content">
+                  <div className="stellar-card shipping-pod">
+                    <h3 className="card-title">Update Shipping Address</h3>
+                    <div className="shipping-address-form">
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={shippingAddressForm.fullName}
+                        onChange={handleShippingAddressChange}
+                        className="input-field"
+                        placeholder="Full Name"
+                      />
+                      <input
+                        type="text"
+                        name="address"
+                        value={shippingAddressForm.address}
+                        onChange={handleShippingAddressChange}
+                        className="input-field"
+                        placeholder="Address"
+                      />
+                      <input
+                        type="text"
+                        name="city"
+                        value={shippingAddressForm.city}
+                        onChange={handleShippingAddressChange}
+                        className="input-field"
+                        placeholder="City"
+                      />
+                      <input
+                        type="text"
+                        name="postalCode"
+                        value={shippingAddressForm.postalCode}
+                        onChange={handleShippingAddressChange}
+                        className="input-field"
+                        placeholder="Postal Code"
+                      />
+                      <input
+                        type="text"
+                        name="country"
+                        value={shippingAddressForm.country}
+                        onChange={handleShippingAddressChange}
+                        className="input-field"
+                        placeholder="Country"
+                      />
+                      <input
+                        type="text"
+                        name="phoneNumber"
+                        value={shippingAddressForm.phoneNumber}
+                        onClick={handleShippingAddressChange}
+                        className="input-field"
+                        placeholder="Phone Number"
+                      />
+                      <div className="action-cluster">
+                        <button className="nebula-btn save-btn" onClick={handleSaveShippingAddress}>
+                          Save
+                        </button>
+                        <button className="nebula-btn cancel-btn" onClick={() => setIsEditingShipping(false)}>
+                          Cancel
+                        </button>
                       </div>
                     </div>
-                  ))}
-                  {filteredOrders.length > 3 && (
-                    <button
-                      className="nebula-btn"
-                      onClick={() => setShowFullOrders(!showFullOrders)}
-                    >
-                      {showFullOrders ? 'Show Less' : 'Show All'}
-                    </button>
-                  )}
+                  </div>
                 </div>
-              ) : (
-                <p>No orders found</p>
+              )}
+            </div>
+
+            {/* Orders Section - Now Navigates to /orders */}
+            <div className="accordion-item">
+              <button
+                className="accordion-header"
+                onClick={handleNavigateToOrders}
+              >
+                Orders
+              </button>
+            </div>
+
+            {/* Change Password Section */}
+            <div className="accordion-item">
+              <button
+                className={`accordion-header ${activeSection === 'password' ? 'active' : ''}`}
+                onClick={() => toggleSection('password')}
+              >
+                Change Password
+                <span className="accordion-icon">
+                  {activeSection === 'password' ? '−' : '+'}
+                </span>
+              </button>
+              {activeSection === 'password' && (
+                <div className="accordion-content">
+                  <div className="stellar-card password-pod">
+                    <h3 className="card-title">Change Password</h3>
+                    <div className="password-form">
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="Current Password"
+                        className="input-field"
+                      />
+                      <input
+                        type="password"
+                        name="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="New Password"
+                        className="input-field"
+                      />
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordChange}
+                        placeholder="Confirm New Password"
+                        className="input-field"
+                      />
+                      <button className="nebula-btn update-btn" onClick={handleChangePassword}>
+                        Update Password
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </section>
