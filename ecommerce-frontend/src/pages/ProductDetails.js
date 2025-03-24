@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext'; // Import useAuth
-import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify'; // Import Toast for notifications
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/ProductDetails.css';
 
@@ -12,7 +12,7 @@ function ProductDetails() {
   const { id } = useParams();
   const { products, loading, error: productsError } = useProducts();
   const { addToCart } = useCart();
-  const { user, loading: authLoading, logout } = useAuth(); // Get user and token from AuthContext
+  const { user, loading: authLoading, logout } = useAuth();
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [stockCount, setStockCount] = useState(0);
@@ -25,18 +25,24 @@ function ProductDetails() {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [email, setEmail] = useState('');
+  const [pincode, setPincode] = useState('');
+  const [deliveryInfo, setDeliveryInfo] = useState(null);
+  const [isCompareAdded, setIsCompareAdded] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0, visible: false });
+
+  const mainImageRef = useRef(null);
 
   const product = products.find((p) => p._id === id);
 
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
   useEffect(() => {
-    if (authLoading) return; // Wait for auth to finish loading
+    if (authLoading) return;
 
     if (!user) {
-      // If user is not logged in, redirect to login
       navigate('/login');
       return;
     }
@@ -54,14 +60,13 @@ function ProductDetails() {
         setAverageRating(0);
         setReviewsLoading(false);
       }
-      // Add to recently viewed (localStorage)
       const recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
       if (!recentlyViewed.includes(product._id)) {
         recentlyViewed.push(product._id);
         localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed.slice(-5)));
       }
-      // Check if product is in wishlist
       fetchWishlist();
+      checkIfInCompare();
     }
   }, [product, id, user, authLoading, navigate]);
 
@@ -72,7 +77,6 @@ function ProductDetails() {
       const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Check if the current product is in the wishlist
       const isProductInWishlist = res.data.some((item) => item.productId?._id === id);
       setIsInWishlist(isProductInWishlist);
     } catch (err) {
@@ -170,6 +174,31 @@ function ProductDetails() {
     setCurrentImageIndex(index);
   };
 
+  const handleThumbnailHover = (index) => {
+    setCurrentImageIndex(index);
+  };
+
+  const handleMouseMove = (e) => {
+    const rect = mainImageRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Calculate the percentage position of the cursor within the image
+    const xPercent = (x / rect.width) * 100;
+    const yPercent = (y / rect.height) * 100;
+
+    // Ensure the cursor is within the image bounds
+    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+      setZoomPosition({ x: xPercent, y: yPercent, visible: true });
+    } else {
+      setZoomPosition({ x: 0, y: 0, visible: false });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setZoomPosition({ x: 0, y: 0, visible: false });
+  };
+
   const handleNotifySubmit = (e) => {
     e.preventDefault();
     console.log(`Notification requested for ${email} when ${product.name} is back in stock.`);
@@ -188,7 +217,6 @@ function ProductDetails() {
     try {
       const token = localStorage.getItem('token');
       if (isInWishlist) {
-        // Remove from wishlist
         const wishlistItem = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -201,7 +229,6 @@ function ProductDetails() {
           toast.success('Removed from wishlist!');
         }
       } else {
-        // Add to wishlist
         await axios.post(
           'http://localhost:5001/api/wishlist',
           { userId: user._id, productId: id },
@@ -222,24 +249,120 @@ function ProductDetails() {
     }
   };
 
-  const shareProduct = (platform) => {
+  const handleShare = () => {
+    const url = window.location.href;
+    const text = `Check out this amazing product: ${product.name} on Clean Modern Marketplace!`;
+
+    if (navigator.share) {
+      navigator
+        .share({
+          title: product.name,
+          text: text,
+          url: url,
+        })
+        .catch((err) => {
+          console.error('Error sharing:', err);
+          setIsShareModalOpen(true);
+        });
+    } else {
+      setIsShareModalOpen(true);
+    }
+  };
+
+  const shareProduct = async (platform) => {
     const url = window.location.href;
     const text = `Check out this amazing product: ${product.name} on Clean Modern Marketplace!`;
     let shareUrl = '';
+
     switch (platform) {
+      case 'whatsapp':
+        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+        break;
       case 'twitter':
         shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
         break;
       case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
         break;
-      case 'whatsapp':
-        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`;
-        break;
+      case 'copy':
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success('Link copied to clipboard!', {
+            position: 'top-right',
+            autoClose: 2000,
+          });
+        } catch (err) {
+          console.error('Failed to copy link:', err);
+          toast.error('Failed to copy link.', {
+            position: 'top-right',
+            autoClose: 2000,
+          });
+        }
+        setIsShareModalOpen(false);
+        return;
       default:
         return;
     }
     window.open(shareUrl, '_blank');
+    setIsShareModalOpen(false);
+  };
+
+  const handlePincodeCheck = (e) => {
+    e.preventDefault();
+    if (!pincode || pincode.length !== 6 || isNaN(pincode)) {
+      toast.error('Please enter a valid 6-digit pincode.', {
+        position: 'top-right',
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    setTimeout(() => {
+      setDeliveryInfo({
+        pincode,
+        available: true,
+        estimatedDelivery: '2-3 days',
+      });
+      toast.success('Delivery available for your pincode!', {
+        position: 'top-right',
+        autoClose: 2000,
+      });
+    }, 1000);
+  };
+
+  const checkIfInCompare = () => {
+    const compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+    setIsCompareAdded(compareList.includes(product._id));
+  };
+
+  const handleCompareToggle = () => {
+    let compareList = JSON.parse(localStorage.getItem('compareList') || '[]');
+    if (isCompareAdded) {
+      compareList = compareList.filter((pid) => pid !== product._id);
+      setIsCompareAdded(false);
+      toast.success('Removed from comparison list!', {
+        position: 'top-right',
+        autoClose: 2000,
+      });
+    } else {
+      if (compareList.length >= 4) {
+        toast.error('You can compare up to 4 products only.', {
+          position: 'top-right',
+          autoClose: 2000,
+        });
+        return;
+      }
+      compareList.push(product._id);
+      setIsCompareAdded(true);
+      toast.success('Added to comparison list!', {
+        position: 'top-right',
+        autoClose: 2000,
+      });
+    }
+    localStorage.setItem('compareList', JSON.stringify(compareList));
   };
 
   if (authLoading || loading) {
@@ -296,16 +419,13 @@ function ProductDetails() {
     <div className="product-details-container">
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="product-details-wrapper">
-        {/* Back to Products Link */}
         <div className="back-to-products">
           <button className="btn-back-to-products" onClick={() => navigate('/products')}>
             ← Back to Products
           </button>
         </div>
 
-        {/* Main Product Section */}
         <div className="product-main">
-          {/* Image Section */}
           <div className="image-section">
             <div className="thumbnails">
               {imageList.map((img, index) => (
@@ -313,6 +433,7 @@ function ProductDetails() {
                   key={index}
                   className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                   onClick={() => handleImageChange(index)}
+                  onMouseEnter={() => handleThumbnailHover(index)}
                 >
                   <img
                     src={img}
@@ -323,13 +444,64 @@ function ProductDetails() {
                 </div>
               ))}
             </div>
-            <div className="main-image">
-              <img
-                src={imageList[currentImageIndex]}
-                alt={product.name}
-                loading="lazy"
-                onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
-              />
+            <div className="main-image-wrapper">
+              <div
+                className="main-image"
+                ref={mainImageRef}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                <img
+                  src={imageList[currentImageIndex]}
+                  alt={product.name}
+                  loading="lazy"
+                  onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
+                />
+                {zoomPosition.visible && (
+                  <div
+                    className="zoom-lens"
+                    style={{
+                      left: `${zoomPosition.x}%`,
+                      top: `${zoomPosition.y}%`,
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  />
+                )}
+                {zoomPosition.visible && (
+                  <div
+                    className="zoom-result"
+                    style={{
+                      backgroundImage: `url(${imageList[currentImageIndex]})`,
+                      backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                    }}
+                  />
+                )}
+                <button
+                  className="share-btn"
+                  onClick={handleShare}
+                  title="Share this product"
+                  aria-label="Share this product"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                  </svg>
+                  <span>Share</span>
+                </button>
+              </div>
               <div className="action-buttons-mobile">
                 {stockCount > 0 ? (
                   <>
@@ -360,44 +532,28 @@ function ProductDetails() {
             </div>
           </div>
 
-          {/* Product Info */}
           <div className="product-info">
             <div className="product-header">
-              <h1 className="product-title1">{product.name}</h1>
+              <h1 className="product-title">{product.name}</h1>
               <button
                 className={`wishlist-icon ${isInWishlist ? 'in-wishlist' : ''}`}
                 onClick={handleWishlistToggle}
                 title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                aria-label={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
               >
-                {isInWishlist ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="#d32f2f"
-                    stroke="#d32f2f"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#212121"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                  </svg>
-                )}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill={isInWishlist ? '#d32f2f' : 'none'}
+                  stroke={isInWishlist ? '#d32f2f' : '#212121'}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
               </button>
             </div>
             <div className="product-rating">
@@ -454,24 +610,46 @@ function ProductDetails() {
                 </button>
               )}
             </div>
-            <div className="share-section">
-              <div className="share-buttons">
-                <p>Share:</p>
-                <button className="share-btn twitter" onClick={() => shareProduct('twitter')}>
-                  Twitter
+            <div className="pincode-check">
+              <form onSubmit={handlePincodeCheck}>
+                <input
+                  type="text"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="Enter pincode to check delivery"
+                  maxLength="6"
+                />
+                <button type="submit" className="btn-check-pincode">
+                  Check
                 </button>
-                <button className="share-btn facebook" onClick={() => shareProduct('facebook')}>
-                  Facebook
+              </form>
+              {deliveryInfo && (
+                <p className="delivery-info">
+                  {deliveryInfo.available
+                    ? `Delivery available to ${deliveryInfo.pincode}. Estimated delivery in ${deliveryInfo.estimatedDelivery}.`
+                    : `Delivery not available to ${deliveryInfo.pincode}.`}
+                </p>
+              )}
+            </div>
+            <div className="compare-section">
+              <button
+                className={`btn-compare ${isCompareAdded ? 'added' : ''}`}
+                onClick={handleCompareToggle}
+              >
+                {isCompareAdded ? 'Remove from Compare' : 'Add to Compare'}
+              </button>
+              {isCompareAdded && (
+                <button
+                  className="btn-view-compare"
+                  onClick={() => navigate('/compare')}
+                >
+                  View Comparison
                 </button>
-                <button className="share-btn whatsapp" onClick={() => shareProduct('whatsapp')}>
-                  WhatsApp
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Product Details Section */}
         <div className="product-details-section">
           <h2>Product Details</h2>
           <div className="details-content">
@@ -506,7 +684,6 @@ function ProductDetails() {
           </div>
         </div>
 
-        {/* Reviews Section */}
         <div className="reviews-section">
           <h2>Ratings & Reviews</h2>
           {reviewsLoading ? (
@@ -559,24 +736,25 @@ function ProductDetails() {
           )}
         </div>
 
-        {/* Related Products Section */}
         {relatedProducts.length > 0 && (
           <div className="related-products-section">
             <h2>People Also Bought</h2>
             <div className="related-products-grid">
               {relatedProducts.map((related) => (
                 <div key={related._id} className="related-product-card">
-                  <img
-                    src={related.image || 'https://placehold.co/150?text=No+Image'}
-                    alt={related.name}
-                    loading="lazy"
-                    onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
-                  />
+                  <div className="related-product-image">
+                    <img
+                      src={related.image || 'https://placehold.co/150?text=No+Image'}
+                      alt={related.name}
+                      loading="lazy"
+                      onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
+                    />
+                  </div>
                   <div className="related-product-info">
                     <h3>{related.name}</h3>
                     <p>₹{Number(related.price).toFixed(2)}</p>
                     <button
-                      className="btn-quick-view"
+                      className="btn-quick"
                       onClick={() => navigate(`/product/${related._id}`)}
                     >
                       Quick View
@@ -588,24 +766,25 @@ function ProductDetails() {
           </div>
         )}
 
-        {/* Recently Viewed Products */}
         {recentlyViewed.length > 0 && (
           <div className="recently-viewed-section">
             <h2>Recently Viewed</h2>
             <div className="recently-viewed-grid">
               {recentlyViewed.map((viewed) => (
                 <div key={viewed._id} className="recently-viewed-card">
-                  <img
-                    src={viewed.image || 'https://placehold.co/150?text=No+Image'}
-                    alt={viewed.name}
-                    loading="lazy"
-                    onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
-                  />
+                  <div className="recently-viewed-image">
+                    <img
+                      src={viewed.image || 'https://placehold.co/150?text=No+Image'}
+                      alt={viewed.name}
+                      loading="lazy"
+                      onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
+                    />
+                  </div>
                   <div className="recently-viewed-info">
                     <h3>{viewed.name}</h3>
                     <p>₹{Number(viewed.price).toFixed(2)}</p>
                     <button
-                      className="btn-quick-view"
+                      className="btn-quick"
                       onClick={() => navigate(`/product/${viewed._id}`)}
                     >
                       Quick View
@@ -618,7 +797,6 @@ function ProductDetails() {
         )}
       </div>
 
-      {/* Notify Me Modal */}
       {isNotifyModalOpen && (
         <div className="notify-modal">
           <div className="notify-modal-content">
@@ -627,7 +805,7 @@ function ProductDetails() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)} 
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
               />
@@ -642,6 +820,112 @@ function ProductDetails() {
                 Close
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isShareModalOpen && (
+        <div className="share-modal">
+          <div className="share-modal-content">
+            <h3>Share this Product</h3>
+            <div className="share-options">
+              <button
+                className="share-option whatsapp"
+                onClick={() => shareProduct('whatsapp')}
+                title="Share on WhatsApp"
+                aria-label="Share on WhatsApp"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M20.1 3.9C17.8 1.6 14.5.5 11.2.5 5.2.5.5 5.2.5 11.2c0 1.9.5 3.7 1.4 5.3L.5 23l6.6-1.7c1.5.8 3.2 1.3 5 1.3 6 0 10.7-4.7 10.7-10.7 0-3.3-1.1-6.6-3.4-8.9zM11.2 20.5c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.9 1 1-3.8-.2-.3c-.8-1.3-1.2-2.8-1.2-4.3 0-5 4.1-9 9-9s9 4.1 9 9-4.1 9-9 9zm5.5-5.5c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.2-.8.9-.9 1.1-.1.2-.2.2-.4.1s-.9-.4-1.7-.8c-.6-.3-1.1-.7-1.5-1.1-.4-.4-.6-.8-.8-1.3-.1-.5 0-.9.2-1 .1-.1.3-.3.4-.5.1-.2.1-.4.1-.6 0-.2-.1-.4-.3-.5-.2-.1-1.7-.8-2-1-.3-.2-.5-.3-.7-.5-.2-.2-.3-.4-.2-.6s.3-.5.5-.7c.2-.2.4-.3.7-.3h.5c.2 0 .5.1.7.3.2.2.7.7.9.9.2.2.3.3.4.5.1.2.1.4.1.6 0 .2-.1.4-.2.6-.1.2-.3.4-.5.6-.2.2-.4.4-.6.6-.2.2-.3.4-.2.6.1.2.5.9 1.1 1.5.7.7 1.4 1 1.7 1.1.2.1.4.1.6 0 .2-.1.7-.3 1-.6.3-.3.5-.3.7-.2.2.1.7.5.9.7.2.2.3.4.2.6-.1.2-.3.5-.6.6z"></path>
+                </svg>
+                WhatsApp
+              </button>
+              <button
+                className="share-option telegram"
+                onClick={() => shareProduct('telegram')}
+                title="Share on Telegram"
+                aria-label="Share on Telegram"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"></path>
+                </svg>
+                Telegram
+              </button>
+              <button
+                className="share-option twitter"
+                onClick={() => shareProduct('twitter')}
+                title="Share on Twitter"
+                aria-label="Share on Twitter"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                </svg>
+                Twitter
+              </button>
+              <button
+                className="share-option facebook"
+                onClick={() => shareProduct('facebook')}
+                title="Share on Facebook"
+                aria-label="Share on Facebook"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                </svg>
+                Facebook
+              </button>
+              <button
+                className="share-option copy-link"
+                onClick={() => shareProduct('copy')}
+                title="Copy Link"
+                aria-label="Copy Link"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                </svg>
+                Copy Link
+              </button>
+            </div>
+            <button
+              className="btn-close-modal"
+              onClick={() => setIsShareModalOpen(false)}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
