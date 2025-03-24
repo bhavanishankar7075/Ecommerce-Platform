@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
@@ -42,6 +42,8 @@ function ProductList() {
   const [correctedSearch, setCorrectedSearch] = useState('');
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const [isRatingsLoading, setIsRatingsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // For infinite scroll loading state
+  const observer = useRef(); // For infinite scroll observer
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,7 +83,6 @@ function ProductList() {
   // Fetch ratings for all products only once when the user logs in
   useEffect(() => {
     const fetchRatings = async () => {
-      // Check if ratings are already stored in localStorage
       const storedRatings = JSON.parse(localStorage.getItem('productRatings'));
       if (storedRatings && Object.keys(storedRatings).length > 0) {
         setProductRatings(storedRatings);
@@ -89,7 +90,6 @@ function ProductList() {
         return;
       }
 
-      // If no stored ratings, fetch them
       if (user && user._id && products.length > 0) {
         try {
           setIsRatingsLoading(true);
@@ -108,7 +108,7 @@ function ProductList() {
             }
           }
           setProductRatings(ratingsData);
-          localStorage.setItem('productRatings', JSON.stringify(ratingsData)); // Store ratings in localStorage
+          localStorage.setItem('productRatings', JSON.stringify(ratingsData));
         } catch (err) {
           console.error('Error fetching ratings:', err);
           toast.error('Failed to load product ratings.');
@@ -119,7 +119,26 @@ function ProductList() {
     };
 
     fetchRatings();
-  }, [user, products]); // Only run when user or products change
+  }, [user, products]);
+
+  // Infinite Scroll: Load more products when the user scrolls to the bottom
+  const lastProductElementRef = useCallback(
+    (node) => {
+      if (isLoadingMore || loading) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && visibleCount < filtered.length) {
+          setIsLoadingMore(true);
+          setTimeout(() => {
+            setVisibleCount((prev) => prev + 12);
+            setIsLoadingMore(false);
+          }, 500); // Simulate a small delay for loading
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [isLoadingMore, loading, visibleCount, filtered.length]
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -265,6 +284,7 @@ function ProductList() {
     }
 
     setFiltered(updatedProducts);
+    setVisibleCount(12); // Reset visible count when filters change
   }, [products, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, sort, productRatings, recentSearches]);
 
   useEffect(() => {
@@ -319,10 +339,6 @@ function ProductList() {
     setRatingFilter(filter.rating);
     setInStockOnly(filter.inStock);
     setShowFilters(false);
-  };
-
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 12);
   };
 
   const handleBackToTop = () => {
@@ -421,14 +437,21 @@ function ProductList() {
   const handleRecentSearchClick = (search) => {
     setSearchQuery(search);
     setShowRecentSearches(false);
-    applyFilters(); // Apply filters to update the product list
+    applyFilters();
   };
 
   // Handle suggestion click to set query and apply filters
   const handleSuggestionClick = (suggestion) => {
     setSearchQuery(suggestion);
-    setCorrectedSearch(''); // Hide the suggestion
-    applyFilters(); // Apply filters to update the product list
+    setCorrectedSearch('');
+    applyFilters();
+  };
+
+  // Clear all recent searches
+  const handleClearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.setItem('recentSearches', JSON.stringify([]));
+    setShowRecentSearches(false);
   };
 
   const activeFilterCount = [
@@ -611,7 +634,12 @@ function ProductList() {
                 />
                 {showRecentSearches && recentSearches.length > 0 && (
                   <div className="recent-searches">
-                    <h4>Recent Searches</h4>
+                    <div className="recent-searches-header">
+                      <h4>Recent Searches</h4>
+                      <button className="btn-clear-recent" onClick={handleClearRecentSearches}>
+                        Clear All
+                      </button>
+                    </div>
                     {recentSearches.map((search, index) => (
                       <div
                         key={index}
@@ -649,7 +677,7 @@ function ProductList() {
 
             <div className="product-grid">
               {filtered.length > 0 ? (
-                filtered.slice(0, visibleCount).map((product) => {
+                filtered.slice(0, visibleCount).map((product, index) => {
                   const stock = product.stock || 0;
                   const isWishlisted = wishlist.some((item) =>
                     item.productId && item.productId._id === product._id
@@ -660,8 +688,14 @@ function ProductList() {
                     ? (product.price / (1 - discount / 100)).toFixed(2)
                     : product.price;
 
+                  // Add ref to the last product card for infinite scroll
+                  const isLastElement = index === filtered.slice(0, visibleCount).length - 1;
                   return (
-                    <div key={product._id} className="product-card">
+                    <div
+                      key={product._id}
+                      className="product-card"
+                      ref={isLastElement ? lastProductElementRef : null}
+                    >
                       <meta name="description" content={`${product.name} - ₹${product.price}`} />
                       {product.featured && <span className="badge featured-badge">Featured</span>}
                       <button
@@ -758,11 +792,9 @@ function ProductList() {
                 <div className="no-products">No products found in this galaxy.</div>
               )}
             </div>
-            {visibleCount < filtered.length && (
+            {isLoadingMore && (
               <div className="load-more-section">
-                <button className="btn-load-more" onClick={handleLoadMore}>
-                  Load More
-                </button>
+                <div className="spinner"></div>
               </div>
             )}
           </div>
