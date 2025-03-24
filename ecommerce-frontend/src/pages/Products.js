@@ -12,12 +12,13 @@ function ProductList() {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const [filtered, setFiltered] = useState([]);
-  const [sort, setSort] = useState(localStorage.getItem('sort') || '');
+  const [sort, setSort] = useState(localStorage.getItem('sort') || 'popularity');
   const [searchQuery, setSearchQuery] = useState(localStorage.getItem('searchQuery') || '');
   const [categoryFilter, setCategoryFilter] = useState(localStorage.getItem('categoryFilter') || '');
   const [priceRange, setPriceRange] = useState(
     JSON.parse(localStorage.getItem('priceRange')) || [0, 10000]
   );
+  const [ratingFilter, setRatingFilter] = useState(localStorage.getItem('ratingFilter') || '');
   const [inStockOnly, setInStockOnly] = useState(
     localStorage.getItem('inStockOnly') === 'true' || false
   );
@@ -29,6 +30,18 @@ function ProductList() {
   const [categories, setCategories] = useState(['']);
   const [wishlist, setWishlist] = useState([]);
   const [wishlistMessages, setWishlistMessages] = useState({});
+  const [productRatings, setProductRatings] = useState(
+    JSON.parse(localStorage.getItem('productRatings')) || {}
+  );
+  const [recentSearches, setRecentSearches] = useState(
+    JSON.parse(localStorage.getItem('recentSearches')) || []
+  );
+  const [recentFilters, setRecentFilters] = useState(
+    JSON.parse(localStorage.getItem('recentFilters')) || []
+  );
+  const [correctedSearch, setCorrectedSearch] = useState('');
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [isRatingsLoading, setIsRatingsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -64,6 +77,49 @@ function ProductList() {
       fetchWishlist();
     }
   }, [user]);
+
+  // Fetch ratings for all products only once when the user logs in
+  useEffect(() => {
+    const fetchRatings = async () => {
+      // Check if ratings are already stored in localStorage
+      const storedRatings = JSON.parse(localStorage.getItem('productRatings'));
+      if (storedRatings && Object.keys(storedRatings).length > 0) {
+        setProductRatings(storedRatings);
+        setIsRatingsLoading(false);
+        return;
+      }
+
+      // If no stored ratings, fetch them
+      if (user && user._id && products.length > 0) {
+        try {
+          setIsRatingsLoading(true);
+          const ratingsData = {};
+          for (const product of products) {
+            const res = await axios.get(`http://localhost:5001/api/reviews/product/${product._id}`);
+            if (res.data && Array.isArray(res.data)) {
+              const totalRating = res.data.reduce((sum, review) => sum + review.rating, 0);
+              const averageRating = res.data.length > 0 ? (totalRating / res.data.length).toFixed(1) : 0;
+              ratingsData[product._id] = {
+                averageRating,
+                reviewCount: res.data.length,
+              };
+            } else {
+              ratingsData[product._id] = { averageRating: 0, reviewCount: 0 };
+            }
+          }
+          setProductRatings(ratingsData);
+          localStorage.setItem('productRatings', JSON.stringify(ratingsData)); // Store ratings in localStorage
+        } catch (err) {
+          console.error('Error fetching ratings:', err);
+          toast.error('Failed to load product ratings.');
+        } finally {
+          setIsRatingsLoading(false);
+        }
+      }
+    };
+
+    fetchRatings();
+  }, [user, products]); // Only run when user or products change
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -101,30 +157,115 @@ function ProductList() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const correctSearchTerm = (query) => {
+    const productNames = products.map(p => p.name.toLowerCase());
+    const words = query.toLowerCase().split(' ');
+    let closestMatch = '';
+    let minDistance = Infinity;
+
+    for (const name of productNames) {
+      const nameWords = name.split(' ');
+      for (const word of words) {
+        for (const nameWord of nameWords) {
+          const distance = levenshteinDistance(word, nameWord);
+          if (distance < minDistance && distance <= 3) {
+            minDistance = distance;
+            closestMatch = nameWord;
+          }
+        }
+      }
+    }
+
+    return closestMatch ? closestMatch.charAt(0).toUpperCase() + closestMatch.slice(1) : '';
+  };
+
+  const levenshteinDistance = (a, b) => {
+    const matrix = Array(b.length + 1).fill(null).map(() =>
+      Array(a.length + 1).fill(null)
+    );
+
+    for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+    for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+
+    for (let j = 1; j <= b.length; j++) {
+      for (let i = 1; i <= a.length; i++) {
+        const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+        matrix[j][i] = Math.min(
+          matrix[j][i - 1] + 1,
+          matrix[j - 1][i] + 1,
+          matrix[j - 1][i - 1] + indicator
+        );
+      }
+    }
+
+    return matrix[b.length][a.length];
+  };
+
   const applyFilters = useCallback(() => {
     let updatedProducts = [...products];
+
     if (searchQuery) {
-      updatedProducts = updatedProducts.filter((product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    } else if (categoryFilter && categoryFilter !== '') {
+      const queryWords = searchQuery.toLowerCase().split(' ');
+      updatedProducts = updatedProducts.filter((product) => {
+        const name = product.name.toLowerCase();
+        return queryWords.some(word => name.includes(word));
+      });
+
+      const corrected = correctSearchTerm(searchQuery);
+      setCorrectedSearch(corrected);
+
+      if (searchQuery && !recentSearches.includes(searchQuery)) {
+        const updatedSearches = [searchQuery, ...recentSearches].slice(0, 5);
+        setRecentSearches(updatedSearches);
+        localStorage.setItem('recentSearches', JSON.stringify(updatedSearches));
+      }
+    } else {
+      setCorrectedSearch('');
+    }
+
+    if (categoryFilter && categoryFilter !== '') {
       updatedProducts = updatedProducts.filter((product) => product.category === categoryFilter);
     }
+
     updatedProducts = updatedProducts.filter(
       (product) => Number(product.price) >= priceRange[0] && Number(product.price) <= priceRange[1]
     );
+
     if (inStockOnly) {
       updatedProducts = updatedProducts.filter((product) => (product.stock || 0) > 0);
     }
-    if (sort === 'price-asc') {
+
+    if (ratingFilter) {
+      updatedProducts = updatedProducts.filter((product) => {
+        const rating = productRatings[product._id]?.averageRating || 0;
+        if (ratingFilter === '4') return rating >= 4;
+        if (ratingFilter === '3') return rating >= 3;
+        return true;
+      });
+    }
+
+    if (sort === 'popularity') {
+      updatedProducts.sort((a, b) => {
+        const aReviews = productRatings[a._id]?.reviewCount || 0;
+        const bReviews = productRatings[b._id]?.reviewCount || 0;
+        return bReviews - aReviews;
+      });
+    } else if (sort === 'price-asc') {
       updatedProducts.sort((a, b) => Number(a.price) - Number(b.price));
     } else if (sort === 'price-desc') {
-      updatedProducts.sort((a, b) => Number(b.price) - Number(b.price));
-    } else if (sort === 'name-asc') {
-      updatedProducts.sort((a, b) => a.name.localeCompare(b.name));
+      updatedProducts.sort((a, b) => Number(b.price) - Number(a.price));
+    } else if (sort === 'newest') {
+      updatedProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sort === 'discount') {
+      updatedProducts.sort((a, b) => {
+        const aDiscount = a.offer ? parseFloat(a.offer) : 0;
+        const bDiscount = b.offer ? parseFloat(b.offer) : 0;
+        return bDiscount - aDiscount;
+      });
     }
+
     setFiltered(updatedProducts);
-  }, [products, searchQuery, categoryFilter, priceRange, inStockOnly, sort]);
+  }, [products, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, sort, productRatings, recentSearches]);
 
   useEffect(() => {
     localStorage.setItem('sort', sort);
@@ -132,21 +273,52 @@ function ProductList() {
     localStorage.setItem('categoryFilter', categoryFilter);
     localStorage.setItem('priceRange', JSON.stringify(priceRange));
     localStorage.setItem('inStockOnly', inStockOnly.toString());
+    localStorage.setItem('ratingFilter', ratingFilter);
     applyFilters();
-  }, [sort, searchQuery, categoryFilter, priceRange, inStockOnly, applyFilters]);
+  }, [sort, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, applyFilters]);
+
+  useEffect(() => {
+    const currentFilters = {
+      category: categoryFilter,
+      priceRange,
+      rating: ratingFilter,
+      inStock: inStockOnly,
+    };
+    const filterString = JSON.stringify(currentFilters);
+    if (
+      categoryFilter || priceRange[0] !== 0 || priceRange[1] !== maxPrice || ratingFilter || inStockOnly
+    ) {
+      const updatedRecentFilters = recentFilters.filter(f => JSON.stringify(f) !== filterString);
+      updatedRecentFilters.unshift(currentFilters);
+      const limitedFilters = updatedRecentFilters.slice(0, 5);
+      setRecentFilters(limitedFilters);
+      localStorage.setItem('recentFilters', JSON.stringify(limitedFilters));
+    }
+  }, [categoryFilter, priceRange, ratingFilter, inStockOnly, maxPrice]);
 
   const resetFilters = () => {
-    setSort('');
+    setSort('popularity');
     setSearchQuery('');
     setCategoryFilter('');
     setPriceRange([0, maxPrice]);
     setInStockOnly(false);
+    setRatingFilter('');
     setFiltered([...products]);
-    localStorage.setItem('sort', '');
+    localStorage.setItem('sort', 'popularity');
     localStorage.setItem('searchQuery', '');
     localStorage.setItem('categoryFilter', '');
     localStorage.setItem('priceRange', JSON.stringify([0, maxPrice]));
     localStorage.setItem('inStockOnly', 'false');
+    localStorage.setItem('ratingFilter', '');
+    setShowFilters(false);
+  };
+
+  const applyRecentFilter = (filter) => {
+    setCategoryFilter(filter.category);
+    setPriceRange(filter.priceRange);
+    setRatingFilter(filter.rating);
+    setInStockOnly(filter.inStock);
+    setShowFilters(false);
   };
 
   const handleLoadMore = () => {
@@ -175,7 +347,7 @@ function ProductList() {
     });
   };
 
- /*  const handleAddToWishlist = async (productId) => {
+  const handleAddToWishlist = async (productId) => {
     if (!user) {
       toast.error('Please log in to add to wishlist.');
       navigate('/login');
@@ -202,47 +374,12 @@ function ProductList() {
         }));
       }, 3000);
     } catch (err) {
-      console.error('Error adding to wishlist:', err);
+      console.error('Error adding to wishlist:', err.response || err);
       const errorMessage = err.response?.data?.message || 'Failed to add to wishlist.';
       toast.error(errorMessage);
     }
   };
- */
-  
-  
-  const handleAddToWishlist = async (productId) => {
-    if (!user) {
-      toast.error('Please log in to add to wishlist.');
-      navigate('/login');
-      return;
-    }
-  
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        'http://localhost:5001/api/wishlist',
-        { productId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setWishlist([...wishlist, res.data.item]);
-      setWishlistMessages((prev) => ({
-        ...prev,
-        [productId]: 'Added to wishlist!',
-      }));
-      toast.success('Added to wishlist!');
-      setTimeout(() => {
-        setWishlistMessages((prev) => ({
-          ...prev,
-          [productId]: '',
-        }));
-      }, 3000);
-    } catch (err) {
-      console.error('Error adding to wishlist:', err.response || err); // Log the full error response
-      const errorMessage = err.response?.data?.message || 'Failed to add to wishlist.';
-      toast.error(errorMessage);
-    }
-  };
-  
+
   const handleRemoveFromWishlist = async (productId) => {
     try {
       const token = localStorage.getItem('token');
@@ -271,6 +408,35 @@ function ProductList() {
       toast.error(err.response?.data?.message || 'Failed to remove from wishlist.');
     }
   };
+
+  // Handle Enter key press to close suggestions and apply search
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      setShowRecentSearches(false);
+      applyFilters();
+    }
+  };
+
+  // Handle recent search click to set query and apply filters
+  const handleRecentSearchClick = (search) => {
+    setSearchQuery(search);
+    setShowRecentSearches(false);
+    applyFilters(); // Apply filters to update the product list
+  };
+
+  // Handle suggestion click to set query and apply filters
+  const handleSuggestionClick = (suggestion) => {
+    setSearchQuery(suggestion);
+    setCorrectedSearch(''); // Hide the suggestion
+    applyFilters(); // Apply filters to update the product list
+  };
+
+  const activeFilterCount = [
+    categoryFilter,
+    priceRange[0] !== 0 || priceRange[1] !== maxPrice,
+    ratingFilter,
+    inStockOnly,
+  ].filter(Boolean).length;
 
   if (loading) {
     return (
@@ -304,26 +470,43 @@ function ProductList() {
 
         <h1 className="page-title">{titles[titleIndex]}</h1>
 
-        <div className={`search-bar ${scrollPosition > 150 ? 'sticky' : ''}`}>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search the cosmos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="filter-toggle">
-          <button className="btn-filter-toggle" onClick={() => setShowFilters(!showFilters)}>
-            Filters
-          </button>
-          <div className={`filter-panel ${showFilters ? 'visible' : ''}`}>
-            <div className="filter-option category-filter">
-              <label>Category</label>
+        <div className="products-content">
+          <div className={`filters-sidebar ${showFilters ? 'visible' : ''}`}>
+            <div className="filters-header">
+              <h3>Filters</h3>
+              <div>
+                <button className="btn-clear-all" onClick={resetFilters}>
+                  Clear All
+                </button>
+                <button className="btn-close-filters" onClick={() => setShowFilters(false)}>
+                  ✕
+                </button>
+              </div>
+            </div>
+            {recentFilters.length > 0 && (
+              <div className="filter-section">
+                <h4>Recent Filters</h4>
+                {recentFilters.map((filter, index) => (
+                  <button
+                    key={index}
+                    className="recent-filter"
+                    onClick={() => applyRecentFilter(filter)}
+                  >
+                    {filter.category || 'All Categories'}, ₹{filter.priceRange[0]}-₹{filter.priceRange[1]}
+                    {filter.rating && `, ${filter.rating}★ & above`}
+                    {filter.inStock && ', In Stock'}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="filter-section">
+              <h4>Categories</h4>
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setShowFilters(false);
+                }}
               >
                 {categories.map((cat) => (
                   <option key={cat || 'all'} value={cat}>
@@ -332,8 +515,11 @@ function ProductList() {
                 ))}
               </select>
             </div>
-            <div className="filter-option price-filter">
-              <label>Price: ₹{priceRange[0]} - ₹{priceRange[1]}</label>
+            <div className="filter-section">
+              <h4>Price</h4>
+              <div className="price-range">
+                <span>₹{priceRange[0]}</span> - <span>₹{priceRange[1]}</span>
+              </div>
               <input
                 type="range"
                 min="0"
@@ -346,122 +532,241 @@ function ProductList() {
                 min="0"
                 max={maxPrice}
                 value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                onChange={(e) => {
+                  setPriceRange([priceRange[0], Number(e.target.value)]);
+                  setShowFilters(false);
+                }}
               />
             </div>
-            <div className="filter-option stock-filter">
-              <label className="switch">
+            <div className="filter-section">
+              <h4>Customer Ratings</h4>
+              <label>
+                <input
+                  type="radio"
+                  name="rating"
+                  value="4"
+                  checked={ratingFilter === '4'}
+                  onChange={(e) => {
+                    setRatingFilter(e.target.value);
+                    setShowFilters(false);
+                  }}
+                />
+                4★ & above
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="rating"
+                  value="3"
+                  checked={ratingFilter === '3'}
+                  onChange={(e) => {
+                    setRatingFilter(e.target.value);
+                    setShowFilters(false);
+                  }}
+                />
+                3★ & above
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="rating"
+                  value=""
+                  checked={ratingFilter === ''}
+                  onChange={(e) => {
+                    setRatingFilter(e.target.value);
+                    setShowFilters(false);
+                  }}
+                />
+                All
+              </label>
+            </div>
+            <div className="filter-section">
+              <h4>Availability</h4>
+              <label>
                 <input
                   type="checkbox"
                   checked={inStockOnly}
-                  onChange={(e) => setInStockOnly(e.target.checked)}
+                  onChange={(e) => {
+                    setInStockOnly(e.target.checked);
+                    setShowFilters(false);
+                  }}
                 />
-                <span className="slider round"></span>
+                In Stock Only
               </label>
-              <span className="stock-label">In Stock</span>
             </div>
-            <div className="filter-option sort-filter">
-              <button
-                className={`btn-sort ${sort === 'price-asc' ? 'active' : ''}`}
-                onClick={() => setSort('price-asc')}
-              >
-                Price ↑
-              </button>
-              <button
-                className={`btn-sort ${sort === 'price-desc' ? 'active' : ''}`}
-                onClick={() => setSort('price-desc')}
-              >
-                Price ↓
-              </button>
-              <button
-                className={`btn-sort ${sort === 'name-asc' ? 'active' : ''}`}
-                onClick={() => setSort('name-asc')}
-              >
-                A-Z
-              </button>
-            </div>
-            <button className="btn-reset" onClick={resetFilters}>
-              Reset Filters
-            </button>
           </div>
-        </div>
 
-        <div className="product-grid">
-          {filtered.length > 0 ? (
-            filtered.slice(0, visibleCount).map((product) => {
-              const stock = product.stock || 0;
-              const isWishlisted = wishlist.some((item) =>
-                item.productId && item.productId._id === product._id
-              );
-
-              console.log(`Rendering wishlist button for product: ${product.name}, ID: ${product._id}`);
-
-              return (
-                <div key={product._id} className="product-card">
-                  <meta name="description" content={`${product.name} - ₹${product.price}`} />
-                  {product.featured && <span className="badge featured-badge">Featured</span>}
-                  <button
-                    className={`wishlist-btn ${isWishlisted ? 'filled' : ''}`}
-                    onClick={() =>
-                      isWishlisted
-                        ? handleRemoveFromWishlist(product._id)
-                        : handleAddToWishlist(product._id)
-                    }
-                  >
-                    ♥
-                  </button>
-                  {wishlistMessages[product._id] && (
-                    <span className="wishlist-message">{wishlistMessages[product._id]}</span>
-                  )}
-                  <div className="image-container">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="product-image"
-                      loading="lazy"
-                      onError={(e) => {
-                        console.log(`Failed to load image for ${product.name}: ${product.image}`);
-                        e.target.src = '/default-product.jpg';
-                      }}
-                      onClick={() => handleImageClick(product._id)}
-                    />
-                  </div>
-                  <div className="card-content">
-                    <h3 className="product-title">{product.name}</h3>
-                    <p className="product-price">₹{Number(product.price).toFixed(2)}</p>
-                    <p className={`stock-status ${getStockStatus(stock).replace(' ', '-')}`}>
-                      {getStockStatus(stock)}
-                    </p>
-                    <div className="button-group">
-                      <button
-                        className="btn-add-to-cart"
-                        onClick={() => handleAddToCart(product)}
-                        disabled={stock <= 0}
+          <div className="products-main">
+            <div className="products-header">
+              <div className="search-bar">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search the cosmos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowRecentSearches(true)}
+                  onBlur={() => setTimeout(() => setShowRecentSearches(false), 200)}
+                  onKeyPress={handleSearchKeyPress}
+                />
+                {showRecentSearches && recentSearches.length > 0 && (
+                  <div className="recent-searches">
+                    <h4>Recent Searches</h4>
+                    {recentSearches.map((search, index) => (
+                      <div
+                        key={index}
+                        className="recent-search-item"
+                        onClick={() => handleRecentSearchClick(search)}
                       >
-                        <i className="fas fa-shopping-cart"></i> Add
-                      </button>
+                        {search}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {correctedSearch && searchQuery && (
+                  <div className="search-suggestion">
+                    Did you mean: <span onClick={() => handleSuggestionClick(correctedSearch)}>{correctedSearch}</span>?
+                  </div>
+                )}
+              </div>
+              <div className="sort-options">
+                <label>Sort By: </label>
+                <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                  <option value="popularity">Popularity</option>
+                  <option value="price-asc">Price -- Low to High</option>
+                  <option value="price-desc">Price -- High to Low</option>
+                  <option value="newest">Newest First</option>
+                  <option value="discount">Discount</option>
+                </select>
+              </div>
+              <button
+                className="btn-filter-toggle"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+              </button>
+            </div>
+
+            <div className="product-grid">
+              {filtered.length > 0 ? (
+                filtered.slice(0, visibleCount).map((product) => {
+                  const stock = product.stock || 0;
+                  const isWishlisted = wishlist.some((item) =>
+                    item.productId && item.productId._id === product._id
+                  );
+                  const rating = productRatings[product._id] || { averageRating: 0, reviewCount: 0 };
+                  const discount = product.offer ? parseFloat(product.offer) : 0;
+                  const originalPrice = discount
+                    ? (product.price / (1 - discount / 100)).toFixed(2)
+                    : product.price;
+
+                  return (
+                    <div key={product._id} className="product-card">
+                      <meta name="description" content={`${product.name} - ₹${product.price}`} />
+                      {product.featured && <span className="badge featured-badge">Featured</span>}
                       <button
-                        className="btn-view-details"
+                        className={`wishlist-btn ${isWishlisted ? 'filled' : ''}`}
+                        onClick={() =>
+                          isWishlisted
+                            ? handleRemoveFromWishlist(product._id)
+                            : handleAddToWishlist(product._id)
+                        }
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill={isWishlisted ? '#d32f2f' : 'none'}
+                          stroke={isWishlisted ? '#d32f2f' : '#212121'}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                      </button>
+                      {wishlistMessages[product._id] && (
+                        <span className="wishlist-message">{wishlistMessages[product._id]}</span>
+                      )}
+                      <div className="product-card-inner">
+                        <div className="image-container">
+                          {isRatingsLoading ? (
+                            <div className="skeleton-image"></div>
+                          ) : (
+                            <img
+                              src={product.image || 'https://via.placeholder.com/150'}
+                              alt={product.name}
+                              className="product-image"
+                              loading="lazy"
+                              onError={(e) => {
+                                console.log(`Failed to load image for ${product.name}: ${product.image}`);
+                                e.target.src = 'https://via.placeholder.com/150';
+                              }}
+                              onClick={() => handleImageClick(product._id)}
+                            />
+                          )}
+                        </div>
+                        <div className="card-content">
+                          <h3 className="product-title">{product.name}</h3>
+                          <div className="price-section">
+                            <span className="product-price">₹{Number(product.price).toFixed(2)}</span>
+                            {discount > 0 && (
+                              <>
+                                <span className="original-price">₹{Number(originalPrice).toFixed(2)}</span>
+                                <span className="discount">{discount}% off</span>
+                              </>
+                            )}
+                          </div>
+                          {rating.averageRating > 0 && (
+                            <div className="rating-section">
+                              <span className="rating-badge">
+                                {rating.averageRating} ★ ({rating.reviewCount})
+                              </span>
+                            </div>
+                          )}
+                          <p className={`stock-status ${getStockStatus(stock).replace(' ', '-')}`}>
+                            {getStockStatus(stock)}
+                          </p>
+                          <div className="button-group">
+                            <button
+                              className="btn-add-to-cart"
+                              onClick={() => handleAddToCart(product)}
+                              disabled={stock <= 0}
+                            >
+                              <i className="fas fa-shopping-cart"></i> Add
+                            </button>
+                            <button
+                              className="btn-view-details"
+                              onClick={() => navigate(`/product/${product._id}`)}
+                            >
+                              <i className="fas fa-eye"></i> View
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        className="btn-quick-view"
                         onClick={() => navigate(`/product/${product._id}`)}
                       >
-                        <i className="fas fa-eye"></i> View
+                        Quick View
                       </button>
                     </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="no-products">No products found in this galaxy.</div>
-          )}
-        </div>
-        {visibleCount < filtered.length && (
-          <div className="load-more-section">
-            <button className="btn-load-more" onClick={handleLoadMore}>
-              Load More
-            </button>
+                  );
+                })
+              ) : (
+                <div className="no-products">No products found in this galaxy.</div>
+              )}
+            </div>
+            {visibleCount < filtered.length && (
+              <div className="load-more-section">
+                <button className="btn-load-more" onClick={handleLoadMore}>
+                  Load More
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {scrollPosition > 300 && (
           <button className="back-to-top" onClick={handleBackToTop}>
