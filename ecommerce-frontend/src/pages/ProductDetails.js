@@ -1,26 +1,31 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext'; // Import useAuth
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify'; // Import Toast for notifications
+import 'react-toastify/dist/ReactToastify.css';
 import '../styles/ProductDetails.css';
-
 
 function ProductDetails() {
   const { id } = useParams();
   const { products, loading, error: productsError } = useProducts();
   const { addToCart } = useCart();
+  const { user, loading: authLoading, logout } = useAuth(); // Get user and token from AuthContext
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [stockCount, setStockCount] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
+  const [ratingBreakdown, setRatingBreakdown] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const [email, setEmail] = useState('');
 
   const product = products.find((p) => p._id === id);
@@ -28,6 +33,14 @@ function ProductDetails() {
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
+
+    if (!user) {
+      // If user is not logged in, redirect to login
+      navigate('/login');
+      return;
+    }
+
     if (product) {
       setStockCount(product.stock || 0);
       if (product.sizes && product.sizes.length > 0) {
@@ -47,8 +60,32 @@ function ProductDetails() {
         recentlyViewed.push(product._id);
         localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed.slice(-5)));
       }
+      // Check if product is in wishlist
+      fetchWishlist();
     }
-  }, [product, id]);
+  }, [product, id, user, authLoading, navigate]);
+
+  const fetchWishlist = async () => {
+    if (!user || !user._id) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Check if the current product is in the wishlist
+      const isProductInWishlist = res.data.some((item) => item.productId?._id === id);
+      setIsInWishlist(isProductInWishlist);
+    } catch (err) {
+      console.error('Error fetching wishlist:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        navigate('/login');
+        toast.error('Session expired. Please log in again.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to load wishlist status.');
+      }
+    }
+  };
 
   const fetchReviews = async () => {
     try {
@@ -58,17 +95,20 @@ function ProductDetails() {
       if (!Array.isArray(res.data)) {
         setReviews([]);
         setAverageRating(0);
+        setRatingBreakdown({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
         setReviewsLoading(false);
         setReviewsError(res.data.message || 'Failed to load reviews. Please try again.');
         return;
       }
       setReviews(res.data);
       calculateAverageRating(res.data);
+      calculateRatingBreakdown(res.data);
       setReviewsLoading(false);
     } catch (err) {
       setReviewsError(err.response?.data?.message || 'Failed to load reviews. Please try again later.');
       setReviews([]);
       setAverageRating(0);
+      setRatingBreakdown({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
       setReviewsLoading(false);
     }
   };
@@ -81,6 +121,14 @@ function ProductDetails() {
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
     const avg = totalRating / reviews.length;
     setAverageRating(avg.toFixed(1));
+  };
+
+  const calculateRatingBreakdown = (reviews) => {
+    const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach((review) => {
+      breakdown[review.rating] = (breakdown[review.rating] || 0) + 1;
+    });
+    setRatingBreakdown(breakdown);
   };
 
   const handleAddToCart = async () => {
@@ -124,11 +172,54 @@ function ProductDetails() {
 
   const handleNotifySubmit = (e) => {
     e.preventDefault();
-    // Simulate sending a notification request (replace with actual API call)
     console.log(`Notification requested for ${email} when ${product.name} is back in stock.`);
     setIsNotifyModalOpen(false);
     setEmail('');
     alert('You will be notified when this product is back in stock!');
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!user || !user._id) {
+      toast.error('Please log in to add items to your wishlist.');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (isInWishlist) {
+        // Remove from wishlist
+        const wishlistItem = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const itemToRemove = wishlistItem.data.find((item) => item.productId?._id === id);
+        if (itemToRemove) {
+          await axios.delete(`http://localhost:5001/api/wishlist/${itemToRemove._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setIsInWishlist(false);
+          toast.success('Removed from wishlist!');
+        }
+      } else {
+        // Add to wishlist
+        await axios.post(
+          'http://localhost:5001/api/wishlist',
+          { userId: user._id, productId: id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setIsInWishlist(true);
+        toast.success('Added to wishlist!');
+      }
+    } catch (err) {
+      console.error('Error updating wishlist:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        await logout();
+        navigate('/login');
+        toast.error('Session expired. Please log in again.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to update wishlist.');
+      }
+    }
   };
 
   const shareProduct = (platform) => {
@@ -151,7 +242,7 @@ function ProductDetails() {
     window.open(shareUrl, '_blank');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
@@ -185,7 +276,7 @@ function ProductDetails() {
 
   const imageList =
     product.images && Array.isArray(product.images) && product.images.length > 0
-      ? product.images
+      ? [product.image, ...product.images]
       : [product.image || 'https://placehold.co/400?text=No+Image'];
 
   const stockStatus = stockCount > 5 ? 'In Stock' : stockCount > 0 ? 'Low Stock' : 'Out of Stock';
@@ -198,87 +289,156 @@ function ProductDetails() {
     .map((pid) => products.find((p) => p._id === pid))
     .filter(Boolean);
 
-  // For demo purposes, assuming the offer is "45% OFF". Replace with actual offer data if available.
   const offerText = product.offer ? product.offer : '45% OFF';
+  const originalPrice = product.price / (1 - parseFloat(offerText) / 100);
 
-  return ( 
-    <div className="clean-modern-container my-5 py-5">
+  return (
+    <div className="product-details-container">
+      <ToastContainer position="top-right" autoClose={3000} />
       <div className="product-details-wrapper">
+        {/* Back to Products Link */}
+        <div className="back-to-products">
+          <button className="btn-back-to-products" onClick={() => navigate('/products')}>
+            ← Back to Products
+          </button>
+        </div>
+
         {/* Main Product Section */}
         <div className="product-main">
           {/* Image Section */}
           <div className="image-section">
-            <div className="image-slider">
-              <div className="main-image">
-                <img
-                  src={imageList[currentImageIndex]}
-                  alt={product.name}
-                  loading="lazy"
-                  onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
-                />
-              </div>
-              <div className="thumbnails">
-                {imageList.map((img, index) => (
-                  <div
-                    key={index}
-                    className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                    onClick={() => handleImageChange(index)}
+            <div className="thumbnails">
+              {imageList.map((img, index) => (
+                <div
+                  key={index}
+                  className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                  onClick={() => handleImageChange(index)}
+                >
+                  <img
+                    src={img}
+                    alt={`${product.name} view ${index + 1}`}
+                    loading="lazy"
+                    onError={(e) => (e.target.src = 'https://placehold.co/100?text=No+Image')}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="main-image">
+              <img
+                src={imageList[currentImageIndex]}
+                alt={product.name}
+                loading="lazy"
+                onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
+              />
+              <div className="action-buttons-mobile">
+                {stockCount > 0 ? (
+                  <>
+                    <button
+                      className="add-to-cart"
+                      onClick={handleAddToCart}
+                      disabled={isAddingToCart}
+                    >
+                      {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                    </button>
+                    <button
+                      className="btn-buy-now"
+                      onClick={handleBuyNow}
+                      disabled={isBuyingNow}
+                    >
+                      {isBuyingNow ? 'Processing...' : 'Buy Now'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="btn-notify"
+                    onClick={() => setIsNotifyModalOpen(true)}
                   >
-                    <img
-                      src={img}
-                      alt={`${product.name} view ${index + 1}`}
-                      loading="lazy"
-                      onError={(e) => (e.target.src = 'https://placehold.co/100?text=No+Image')}
-                    />
-                  </div>
-                ))}
+                    Notify Me
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           {/* Product Info */}
-          <div className="product-info-card my-5 py-5">
-            <h1 className="product-title">{product.name}</h1>
+          <div className="product-info">
+            <div className="product-header">
+              <h1 className="product-title1">{product.name}</h1>
+              <button
+                className={`wishlist-icon ${isInWishlist ? 'in-wishlist' : ''}`}
+                onClick={handleWishlistToggle}
+                title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              >
+                {isInWishlist ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="#d32f2f"
+                    stroke="#d32f2f"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#212121"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                )}
+              </button>
+            </div>
             <div className="product-rating">
               <span className="rating-badge">
-                {averageRating}/5 ({reviews.length} reviews)
+                {averageRating} ★ ({reviews.length} Ratings & {reviews.length} Reviews)
               </span>
             </div>
-            <div className="price-offer">
-              <p className="product-price">₹{Number(product.price).toFixed(2)}</p>
-              {offerText && <span className="offer-badge">{offerText}%</span>}
+            <div className="price-section">
+              <span className="product-price">₹{Number(product.price).toFixed(2)}</span>
+              <span className="original-price">₹{Number(originalPrice).toFixed(2)}</span>
+              <span className="discount">{offerText}</span>
             </div>
             <p className={`stock-status ${stockStatus.toLowerCase().replace(' ', '-')}`}>
-              {stockStatus} {stockCount > 0 && <span className="stock-count">({stockCount} left)</span>}
+              {stockStatus} {stockCount > 0 && <span>({stockCount} left)</span>}
             </p>
             {product.sizes && product.sizes.length > 0 && (
               <div className="size-selector">
-                <label htmlFor="size">Select Size:</label>
-                <select
-                  id="size"
-                  value={selectedSize}
-                  onChange={(e) => setSelectedSize(e.target.value)}
-                >
-                  {product.sizes.map((size, index) => (
-                    <option key={index} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
+                <label>Size: </label>
+                {product.sizes.map((size, index) => (
+                  <button
+                    key={index}
+                    className={`size-option ${selectedSize === size ? 'selected' : ''}`}
+                    onClick={() => setSelectedSize(size)}
+                  >
+                    {size}
+                  </button>
+                ))}
               </div>
             )}
             <div className="action-buttons">
               {stockCount > 0 ? (
                 <>
                   <button
-                    className="btn-add-to-cart"
+                    className="add-to-cart"
                     onClick={handleAddToCart}
                     disabled={isAddingToCart}
                   >
                     {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                   </button>
                   <button
-                    className="btn-buy-now buy-now-mobile"
+                    className="btn-buy-now"
                     onClick={handleBuyNow}
                     disabled={isBuyingNow}
                   >
@@ -294,17 +454,19 @@ function ProductDetails() {
                 </button>
               )}
             </div>
-            <div className="share-buttons">
-              <p>Share this product:</p>
-              <button className="share-btn twitter" onClick={() => shareProduct('twitter')}>
-                Twitter
-              </button>
-              <button className="share-btn facebook" onClick={() => shareProduct('facebook')}>
-                Facebook
-              </button>
-              <button className="share-btn whatsapp" onClick={() => shareProduct('whatsapp')}>
-                WhatsApp
-              </button>
+            <div className="share-section">
+              <div className="share-buttons">
+                <p>Share:</p>
+                <button className="share-btn twitter" onClick={() => shareProduct('twitter')}>
+                  Twitter
+                </button>
+                <button className="share-btn facebook" onClick={() => shareProduct('facebook')}>
+                  Facebook
+                </button>
+                <button className="share-btn whatsapp" onClick={() => shareProduct('whatsapp')}>
+                  WhatsApp
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -346,7 +508,7 @@ function ProductDetails() {
 
         {/* Reviews Section */}
         <div className="reviews-section">
-          <h2>Customer Reviews</h2>
+          <h2>Ratings & Reviews</h2>
           {reviewsLoading ? (
             <div className="loading-container">
               <div className="spinner"></div>
@@ -355,24 +517,45 @@ function ProductDetails() {
           ) : reviewsError ? (
             <p className="error-text">{reviewsError}</p>
           ) : reviews.length === 0 ? (
-            <p className='no-reviews'>No reviews yet for this product. Be the first to share your thoughts!</p>
+            <p className="no-reviews">No reviews yet for this product. Be the first to share your thoughts!</p>
           ) : (
-            <div className="reviews-list">
-              {reviews.map((review) => (
-                <div key={review._id} className="review-item">
-                  <div className="review-header">
-                    <span className="reviewer-name">{review.userId?.name || 'Anonymous'}</span>
-                    <span className="rating-badge">
-                      {review.rating}/5
-                    </span>
-                    <span className="review-date">
-                      {new Date(review.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="review-comment">{review.comment || 'No comment provided.'}</p>
+            <>
+              <div className="rating-summary">
+                <div className="average-rating">
+                  <span>{averageRating} ★</span>
+                  <p>{reviews.length} Ratings & {reviews.length} Reviews</p>
                 </div>
-              ))}
-            </div>
+                <div className="rating-breakdown">
+                  <p>5★: {ratingBreakdown[5]}</p>
+                  <p>4★: {ratingBreakdown[4]}</p>
+                  <p>3★: {ratingBreakdown[3]}</p>
+                  <p>2★: {ratingBreakdown[2]}</p>
+                  <p>1★: {ratingBreakdown[1]}</p>
+                </div>
+              </div>
+              <div className="reviews-list">
+                {reviews.slice(0, 3).map((review) => (
+                  <div key={review._id} className="review-item">
+                    <div className="review-header">
+                      <span className="reviewer-name">{review.userId?.name || 'Anonymous'}</span>
+                      <span className="rating-badge">{review.rating} ★</span>
+                      <span className="review-date">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="review-comment">{review.comment || 'No comment provided.'}</p>
+                  </div>
+                ))}
+                {reviews.length > 3 && (
+                  <button
+                    className="view-all-reviews"
+                    onClick={() => navigate(`/product/${id}/reviews`)}
+                  >
+                    View All Reviews
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
 
@@ -460,26 +643,6 @@ function ProductDetails() {
               </button>
             </form>
           </div>
-        </div>
-      )}
-
-      {/* Sticky Action Buttons for Mobile */}
-      {stockCount > 0 && (
-        <div className="sticky-action-buttons">
-          <button
-            className="btn-add-to-cart"
-            onClick={handleAddToCart}
-            disabled={isAddingToCart}
-          >
-            {isAddingToCart ? 'Adding...' : 'Add to Cart'}
-          </button>
-          <button
-            className="btn-buy-now"
-            onClick={handleBuyNow}
-            disabled={isBuyingNow}
-          >
-            {isBuyingNow ? 'Processing...' : 'Buy Now'}
-          </button>
         </div>
       )}
     </div>
