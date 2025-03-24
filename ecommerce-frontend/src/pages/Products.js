@@ -22,6 +22,11 @@ function ProductList() {
   const [inStockOnly, setInStockOnly] = useState(
     localStorage.getItem('inStockOnly') === 'true' || false
   );
+  const [quickFilters, setQuickFilters] = useState({
+    inStock: false,
+    highRated: false,
+    discounted: false,
+  });
   const [visibleCount, setVisibleCount] = useState(12);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [titleIndex, setTitleIndex] = useState(0);
@@ -42,8 +47,8 @@ function ProductList() {
   const [correctedSearch, setCorrectedSearch] = useState('');
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const [isRatingsLoading, setIsRatingsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // For infinite scroll loading state
-  const observer = useRef(); // For infinite scroll observer
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observer = useRef();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -132,7 +137,7 @@ function ProductList() {
           setTimeout(() => {
             setVisibleCount((prev) => prev + 12);
             setIsLoadingMore(false);
-          }, 500); // Simulate a small delay for loading
+          }, 500);
         }
       });
       if (node) observer.current.observe(node);
@@ -250,17 +255,22 @@ function ProductList() {
       (product) => Number(product.price) >= priceRange[0] && Number(product.price) <= priceRange[1]
     );
 
-    if (inStockOnly) {
+    if (inStockOnly || quickFilters.inStock) {
       updatedProducts = updatedProducts.filter((product) => (product.stock || 0) > 0);
     }
 
-    if (ratingFilter) {
+    if (ratingFilter || quickFilters.highRated) {
       updatedProducts = updatedProducts.filter((product) => {
         const rating = productRatings[product._id]?.averageRating || 0;
         if (ratingFilter === '4') return rating >= 4;
         if (ratingFilter === '3') return rating >= 3;
+        if (quickFilters.highRated) return rating >= 4;
         return true;
       });
+    }
+
+    if (quickFilters.discounted) {
+      updatedProducts = updatedProducts.filter((product) => product.offer && parseFloat(product.offer) > 0);
     }
 
     if (sort === 'popularity') {
@@ -284,8 +294,8 @@ function ProductList() {
     }
 
     setFiltered(updatedProducts);
-    setVisibleCount(12); // Reset visible count when filters change
-  }, [products, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, sort, productRatings, recentSearches]);
+    setVisibleCount(12);
+  }, [products, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, sort, productRatings, recentSearches, quickFilters]);
 
   useEffect(() => {
     localStorage.setItem('sort', sort);
@@ -295,7 +305,7 @@ function ProductList() {
     localStorage.setItem('inStockOnly', inStockOnly.toString());
     localStorage.setItem('ratingFilter', ratingFilter);
     applyFilters();
-  }, [sort, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, applyFilters]);
+  }, [sort, searchQuery, categoryFilter, priceRange, inStockOnly, ratingFilter, quickFilters, applyFilters]);
 
   useEffect(() => {
     const currentFilters = {
@@ -323,6 +333,7 @@ function ProductList() {
     setPriceRange([0, maxPrice]);
     setInStockOnly(false);
     setRatingFilter('');
+    setQuickFilters({ inStock: false, highRated: false, discounted: false });
     setFiltered([...products]);
     localStorage.setItem('sort', 'popularity');
     localStorage.setItem('searchQuery', '');
@@ -339,6 +350,40 @@ function ProductList() {
     setRatingFilter(filter.rating);
     setInStockOnly(filter.inStock);
     setShowFilters(false);
+  };
+
+  const handleQuickFilterToggle = (filter) => {
+    setQuickFilters((prev) => ({
+      ...prev,
+      [filter]: !prev[filter],
+    }));
+  };
+
+  const handleShareProduct = async (product) => {
+    const shareUrl = `${window.location.origin}/product/${product._id}`;
+    const shareData = {
+      title: product.name,
+      text: `Check out this product: ${product.name} - ₹${product.price}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Product link copied to clipboard!', {
+          position: 'bottom-right',
+          autoClose: 2000,
+        });
+      }
+    } catch (err) {
+      console.error('Error sharing product:', err);
+      toast.error('Failed to share product.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+    }
   };
 
   const handleBackToTop = () => {
@@ -425,7 +470,6 @@ function ProductList() {
     }
   };
 
-  // Handle Enter key press to close suggestions and apply search
   const handleSearchKeyPress = (e) => {
     if (e.key === 'Enter') {
       setShowRecentSearches(false);
@@ -433,21 +477,18 @@ function ProductList() {
     }
   };
 
-  // Handle recent search click to set query and apply filters
   const handleRecentSearchClick = (search) => {
     setSearchQuery(search);
     setShowRecentSearches(false);
     applyFilters();
   };
 
-  // Handle suggestion click to set query and apply filters
   const handleSuggestionClick = (suggestion) => {
     setSearchQuery(suggestion);
     setCorrectedSearch('');
     applyFilters();
   };
 
-  // Clear all recent searches
   const handleClearRecentSearches = () => {
     setRecentSearches([]);
     localStorage.setItem('recentSearches', JSON.stringify([]));
@@ -459,15 +500,10 @@ function ProductList() {
     priceRange[0] !== 0 || priceRange[1] !== maxPrice,
     ratingFilter,
     inStockOnly,
+    quickFilters.inStock,
+    quickFilters.highRated,
+    quickFilters.discounted,
   ].filter(Boolean).length;
-
-  if (loading) {
-    return (
-      <div className="container my-5 text-center">
-        <div className="spinner"></div>
-      </div>
-    );
-  }
 
   if (productsError) {
     return (
@@ -675,8 +711,47 @@ function ProductList() {
               </button>
             </div>
 
+            {/* Quick Filters */}
+            <div className="quick-filters">
+              <button
+                className={`quick-filter-chip ${quickFilters.inStock ? 'active' : ''}`}
+                onClick={() => handleQuickFilterToggle('inStock')}
+              >
+                In Stock
+              </button>
+              <button
+                className={`quick-filter-chip ${quickFilters.highRated ? 'active' : ''}`}
+                onClick={() => handleQuickFilterToggle('highRated')}
+              >
+                High Rated (4★ & above)
+              </button>
+              <button
+                className={`quick-filter-chip ${quickFilters.discounted ? 'active' : ''}`}
+                onClick={() => handleQuickFilterToggle('discounted')}
+              >
+                Discounted
+              </button>
+            </div>
+
+            {/* Product Grid */}
             <div className="product-grid">
-              {filtered.length > 0 ? (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="product-card skeleton-card">
+                    <div className="skeleton-image"></div>
+                    <div className="card-content">
+                      <div className="skeleton-text skeleton-title"></div>
+                      <div className="skeleton-text skeleton-price"></div>
+                      <div className="skeleton-text skeleton-rating"></div>
+                      <div className="skeleton-text skeleton-stock"></div>
+                      <div className="button-group">
+                        <div className="skeleton-button"></div>
+                        <div className="skeleton-button"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : filtered.length > 0 ? (
                 filtered.slice(0, visibleCount).map((product, index) => {
                   const stock = product.stock || 0;
                   const isWishlisted = wishlist.some((item) =>
@@ -687,9 +762,8 @@ function ProductList() {
                   const originalPrice = discount
                     ? (product.price / (1 - discount / 100)).toFixed(2)
                     : product.price;
-
-                  // Add ref to the last product card for infinite scroll
                   const isLastElement = index === filtered.slice(0, visibleCount).length - 1;
+
                   return (
                     <div
                       key={product._id}
@@ -723,6 +797,28 @@ function ProductList() {
                       {wishlistMessages[product._id] && (
                         <span className="wishlist-message">{wishlistMessages[product._id]}</span>
                       )}
+                      <button
+                        className="share-btn"
+                        onClick={() => handleShareProduct(product)}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#212121"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="18" cy="5" r="3"></circle>
+                          <circle cx="6" cy="12" r="3"></circle>
+                          <circle cx="18" cy="19" r="3"></circle>
+                          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                      </button>
                       <div className="product-card-inner">
                         <div className="image-container">
                           {isRatingsLoading ? (
