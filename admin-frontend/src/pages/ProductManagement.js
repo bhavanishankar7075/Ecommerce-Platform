@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { CSVLink } from 'react-csv';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate for navigation
+import { useNavigate } from 'react-router-dom';
 import '../styles/ProductManagement.css';
 
 function ProductManagement() {
@@ -20,6 +20,9 @@ function ProductManagement() {
     offer: '',
     sizes: [],
     isActive: true,
+    brand: '',
+    weight: '',
+    model: '',
   });
   const [categories] = useState([
     'Clothing',
@@ -51,9 +54,9 @@ function ProductManagement() {
   const [filterOffer, setFilterOffer] = useState('');
   const [previewModal, setPreviewModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showForm, setShowForm] = useState(false); // New state to toggle form visibility
+  const [showForm, setShowForm] = useState(false);
   const productsPerPage = 8;
-  const navigate = useNavigate(); // Initialize useNavigate for navigation
+  const navigate = useNavigate();
 
   // Reset currentPage to 1 whenever a filter changes
   useEffect(() => {
@@ -117,7 +120,6 @@ function ProductManagement() {
 
       console.log('Fetched products response:', res.data);
 
-      // Initialize the selected property for each product
       const initializedProducts = res.data.products.map(product => ({
         ...product,
         selected: product.selected || false,
@@ -211,13 +213,16 @@ function ProductManagement() {
       offer: '',
       sizes: [],
       isActive: true,
+      brand: '',
+      weight: '',
+      model: '',
     });
     setEditingProductId(null);
     const mainImageInput = document.getElementById('mainImageInput');
     const additionalImagesInput = document.getElementById('additionalImagesInput');
     if (mainImageInput) mainImageInput.value = null;
     if (additionalImagesInput) additionalImagesInput.value = null;
-    setShowForm(false); // Hide the form after resetting
+    setShowForm(false);
   };
 
   const resetFilters = () => {
@@ -246,6 +251,40 @@ function ProductManagement() {
     form.append('offer', formData.offer);
     form.append('sizes', JSON.stringify(formData.sizes));
     form.append('isActive', formData.isActive);
+    form.append('brand', formData.brand);
+
+    let weightValue = formData.weight.trim();
+    let weightUnit = 'kg';
+    if (weightValue) {
+      if (weightValue.toLowerCase().endsWith('g')) {
+        const grams = parseFloat(weightValue.replace(/g/i, ''));
+        if (!isNaN(grams)) {
+          weightValue = grams / 1000;
+          weightUnit = 'g';
+        } else {
+          throw new Error('Invalid weight format');
+        }
+      } else if (weightValue.toLowerCase().endsWith('kg')) {
+        weightValue = parseFloat(weightValue.replace(/kg/i, ''));
+        if (isNaN(weightValue)) {
+          throw new Error('Invalid weight format');
+        }
+        weightUnit = 'kg';
+      } else {
+        weightValue = parseFloat(weightValue);
+        if (isNaN(weightValue)) {
+          throw new Error('Invalid weight format');
+        }
+        weightUnit = 'kg';
+      }
+      form.append('weight', weightValue);
+      form.append('weightUnit', weightUnit);
+    } else {
+      form.append('weight', '');
+      form.append('weightUnit', 'kg');
+    }
+
+    form.append('model', formData.model);
     if (formData.mainImage) {
       form.append('image', formData.mainImage);
     }
@@ -254,6 +293,16 @@ function ProductManagement() {
         form.append('images', image);
       }
     });
+    if (editingProductId) {
+      // Clean the existingImages array to remove the base URL before sending to the backend
+      const cleanedExistingImages = formData.existingImages.map(img => {
+        if (img.startsWith('http://localhost:5001')) {
+          return img.replace('http://localhost:5001', '');
+        }
+        return img;
+      });
+      form.append('existingImages', JSON.stringify(cleanedExistingImages));
+    }
 
     try {
       const token = localStorage.getItem('token');
@@ -274,6 +323,12 @@ function ProductManagement() {
           }
         );
         updatedProduct = res.data.product;
+        console.log('Updated product from backend:', updatedProduct);
+        // Update formData.existingImages with the new images array from the backend
+        setFormData((prev) => ({
+          ...prev,
+          existingImages: updatedProduct.images || [],
+        }));
         setProducts((prev) =>
           prev.map((p) => (p._id === editingProductId ? updatedProduct : p))
         );
@@ -289,12 +344,12 @@ function ProductManagement() {
           },
         });
         updatedProduct = res.data.product;
-        // Reset to first page to ensure the new product appears at the top
         setCurrentPage(1);
         toast.success('Product added successfully!');
       }
+      // Reset the form after updating the state
       resetForm();
-      fetchProducts(); // Fetch products to ensure the list is updated with the latest data
+      fetchProducts();
     } catch (err) {
       console.error('Error saving product:', err);
       toast.error(err.response?.data?.message || err.message || 'Failed to save product');
@@ -316,9 +371,16 @@ function ProductManagement() {
       offer: product.offer || '',
       sizes: product.sizes || [],
       isActive: product.isActive,
+      brand: product.brand || '',
+      weight: product.weight
+        ? product.weightUnit === 'g'
+          ? `${product.weight * 1000}g`
+          : `${product.weight}kg`
+        : '',
+      model: product.model || '',
     });
     setEditingProductId(product._id);
-    setShowForm(true); // Show the form when editing
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -382,6 +444,10 @@ function ProductManagement() {
     form.append('offer', product.offer || '');
     form.append('sizes', JSON.stringify(product.sizes || []));
     form.append('isActive', product.isActive);
+    form.append('brand', product.brand || '');
+    form.append('weight', product.weight || '');
+    form.append('weightUnit', product.weightUnit || 'kg');
+    form.append('model', product.model || '');
 
     try {
       const imageResponse = await fetch(product.image);
@@ -411,7 +477,7 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      setCurrentPage(1); // Reset to first page to show the duplicated product
+      setCurrentPage(1);
       toast.success('Product duplicated successfully!');
       fetchProducts();
     } catch (err) {
@@ -478,6 +544,10 @@ function ProductManagement() {
     isActive: p.isActive ? 'Yes' : 'No',
     image: p.image,
     images: p.images?.join(', ') || '',
+    brand: p.brand || '',
+    weight: p.weight || '',
+    weightUnit: p.weightUnit || 'kg',
+    model: p.model || '',
   }));
 
   if (loading) {
@@ -486,7 +556,6 @@ function ProductManagement() {
 
   return (
     <div className="product-management-container">
-      {/* Header Section */}
       <div className="header">
         <h2>Product Management</h2>
         <div className="header-actions">
@@ -499,7 +568,6 @@ function ProductManagement() {
         </div>
       </div>
 
-      {/* Add New Product Button */}
       <div className="add-product-section">
         <button
           className="add-product-btn"
@@ -509,7 +577,6 @@ function ProductManagement() {
         </button>
       </div>
 
-      {/* Product Form Section (Conditionally Rendered) */}
       {showForm && (
         <section className="product-form-section">
           <h2>{editingProductId ? 'Edit Product' : 'Add New Product'}</h2>
@@ -599,6 +666,36 @@ function ProductManagement() {
               />
             </div>
             <div className="form-group">
+              <label>Brand</label>
+              <input
+                type="text"
+                name="brand"
+                value={formData.brand}
+                onChange={handleInputChange}
+                placeholder="Enter brand name"
+              />
+            </div>
+            <div className="form-group">
+              <label>Weight (kg or g)</label>
+              <input
+                type="text"
+                name="weight"
+                value={formData.weight}
+                onChange={handleInputChange}
+                placeholder="Enter weight (e.g., 0.5kg or 500g)"
+              />
+            </div>
+            <div className="form-group">
+              <label>Model</label>
+              <input
+                type="text"
+                name="model"
+                value={formData.model}
+                onChange={handleInputChange}
+                placeholder="Enter model name"
+              />
+            </div>
+            <div className="form-group">
               <label>Status</label>
               <label className="status-toggle">
                 <input
@@ -632,6 +729,7 @@ function ProductManagement() {
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
                       e.target.src = '/default-product.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
                     }}
                   />
                 </div>
@@ -640,10 +738,11 @@ function ProductManagement() {
                 <div className="image-preview">
                   <img
                     src={products.find((p) => p._id === editingProductId)?.image || '/default-product.jpg'}
-                    alt="Current Main "
+                    alt="Current Main"
                     onError={(e) => {
                       console.log('Current main image load failed:', e.target.src);
                       e.target.src = '/default-product.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
                     }}
                   />
                 </div>
@@ -668,6 +767,7 @@ function ProductManagement() {
                       onError={(e) => {
                         console.log('Existing image load failed:', e.target.src);
                         e.target.src = '/default-product.jpg';
+                        e.target.onerror = null; // Prevent infinite loop
                       }}
                     />
                     <button
@@ -692,6 +792,7 @@ function ProductManagement() {
                       onError={(e) => {
                         console.log('New image load failed:', e.target.src);
                         e.target.src = '/default-product.jpg';
+                        e.target.onerror = null; // Prevent infinite loop
                       }}
                     />
                     <button
@@ -726,7 +827,6 @@ function ProductManagement() {
         </section>
       )}
 
-      {/* Product List */}
       <section className="product-list-section">
         <h2>Product List</h2>
         <div className="product-controls">
@@ -821,6 +921,7 @@ function ProductManagement() {
                     onError={(e) => {
                       console.log('Product image load failed:', e.target.src);
                       e.target.src = '/default-product.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
                     }}
                   />
                 </div>
@@ -842,6 +943,16 @@ function ProductManagement() {
                   {product.sizes?.length > 0 && (
                     <p>Sizes: {product.sizes.join(', ')}</p>
                   )}
+                  {product.brand && <p>Brand: {product.brand}</p>}
+                  {product.weight && (
+                    <p>
+                      Weight:{' '}
+                      {product.weightUnit === 'g'
+                        ? `${product.weight * 1000} g`
+                        : `${product.weight} kg`}
+                    </p>
+                  )}
+                  {product.model && <p>Model: {product.model}</p>}
                   <p>
                     Status:{' '}
                     <span className={product.isActive ? 'status-active' : 'status-inactive'}>
@@ -923,6 +1034,7 @@ function ProductManagement() {
                 onError={(e) => {
                   console.log('Modal image load failed:', e.target.src);
                   e.target.src = '/default-product.jpg';
+                  e.target.onerror = null; // Prevent infinite loop
                 }}
               />
             </div>
@@ -942,6 +1054,16 @@ function ProductManagement() {
             {previewModal.sizes?.length > 0 && (
               <p>Sizes: {previewModal.sizes.join(', ')}</p>
             )}
+            {previewModal.brand && <p>Brand: {previewModal.brand}</p>}
+            {previewModal.weight && (
+              <p>
+                Weight:{' '}
+                {previewModal.weightUnit === 'g'
+                  ? `${previewModal.weight * 1000} g`
+                  : `${previewModal.weight} kg`}
+              </p>
+            )}
+            {previewModal.model && <p>Model: {previewModal.model}</p>}
             <p>{previewModal.description}</p>
             {previewModal.images?.length > 0 && (
               <div className="additional-images">
@@ -956,6 +1078,7 @@ function ProductManagement() {
                         onError={(e) => {
                           console.log('Gallery image load failed:', e.target.src);
                           e.target.src = '/default-product.jpg';
+                          e.target.onerror = null; // Prevent infinite loop
                         }}
                       />
                     </div>
