@@ -19,7 +19,7 @@ import Failure from './pages/Failure'; // New component
 import { ToastContainer } from 'react-toastify'; // Import ToastContainer
 import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
 import Wishlist from './pages/Wishlist.';
-
+import Compare from './pages/compare.js'
 function App() {
   return (
     <Router>
@@ -51,6 +51,7 @@ function App() {
               <Route path="/success" element={<Success />} />
               <Route path="/failure" element={<Failure />} />
               <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/compare" element={<Compare />} />
             </Routes>
           </CartProvider>
         </ProductProvider>

@@ -48,6 +48,15 @@ function ProductList() {
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const [isRatingsLoading, setIsRatingsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState(
+    JSON.parse(localStorage.getItem('selectedProducts')) || []
+  );
+  const [priceDropAlerts, setPriceDropAlerts] = useState(
+    JSON.parse(localStorage.getItem('priceDropAlerts')) || {}
+  );
+  const [selectedVariants, setSelectedVariants] = useState(
+    JSON.parse(localStorage.getItem('selectedVariants')) || {}
+  );
   const observer = useRef();
   const navigate = useNavigate();
   const location = useLocation();
@@ -126,6 +135,31 @@ function ProductList() {
     fetchRatings();
   }, [user, products]);
 
+  // Check for price drops on component mount
+  useEffect(() => {
+    if (products.length > 0) {
+      const updatedAlerts = { ...priceDropAlerts };
+      let hasPriceDrop = false;
+
+      products.forEach((product) => {
+        const alert = updatedAlerts[product._id];
+        if (alert && product.price < alert.targetPrice && !alert.notified) {
+          toast.info(`Price Drop Alert: ${product.name} is now ₹${product.price}!`, {
+            position: 'bottom-right',
+            autoClose: 5000,
+          });
+          updatedAlerts[product._id] = { ...alert, notified: true };
+          hasPriceDrop = true;
+        }
+      });
+
+      if (hasPriceDrop) {
+        setPriceDropAlerts(updatedAlerts);
+        localStorage.setItem('priceDropAlerts', JSON.stringify(updatedAlerts));
+      }
+    }
+  }, [products]);
+
   // Infinite Scroll: Load more products when the user scrolls to the bottom
   const lastProductElementRef = useCallback(
     (node) => {
@@ -180,6 +214,16 @@ function ProductList() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Persist selected products for comparison
+  useEffect(() => {
+    localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
+  }, [selectedProducts]);
+
+  // Persist selected variants
+  useEffect(() => {
+    localStorage.setItem('selectedVariants', JSON.stringify(selectedVariants));
+  }, [selectedVariants]);
 
   const correctSearchTerm = (query) => {
     const productNames = products.map(p => p.name.toLowerCase());
@@ -384,6 +428,110 @@ function ProductList() {
         autoClose: 2000,
       });
     }
+  };
+
+  const handleCompareToggle = (product) => {
+    setSelectedProducts((prev) => {
+      const isSelected = prev.some((p) => p._id === product._id);
+      if (isSelected) {
+        return prev.filter((p) => p._id !== product._id);
+      } else {
+        if (prev.length >= 4) {
+          toast.error('You can compare up to 4 products at a time.', {
+            position: 'bottom-right',
+            autoClose: 2000,
+          });
+          return prev;
+        }
+        return [...prev, product];
+      }
+    });
+  };
+
+  const handleCompareNow = () => {
+    if (selectedProducts.length < 2) {
+      toast.error('Please select at least 2 products to compare.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+      return;
+    }
+    navigate('/compare', { state: { products: selectedProducts } });
+  };
+
+  const handleClearCompare = () => {
+    setSelectedProducts([]);
+  };
+
+  const handleSetPriceDropAlert = (product) => {
+    if (!user) {
+      toast.error('Please log in to set a price drop alert.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+      navigate('/login');
+      return;
+    }
+
+    const targetPrice = prompt(`Enter your target price for ${product.name} (Current Price: ₹${product.price}):`, product.price * 0.9);
+    if (targetPrice === null) return; // User cancelled
+
+    const parsedPrice = parseFloat(targetPrice);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast.error('Please enter a valid target price.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    if (parsedPrice >= product.price) {
+      toast.error('Target price must be less than the current price.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    const newAlert = {
+      targetPrice: parsedPrice,
+      notified: false,
+    };
+
+    setPriceDropAlerts((prev) => {
+      const updatedAlerts = { ...prev, [product._id]: newAlert };
+      localStorage.setItem('priceDropAlerts', JSON.stringify(updatedAlerts));
+      return updatedAlerts;
+    });
+
+    toast.success(`Price drop alert set for ${product.name} at ₹${parsedPrice}!`, {
+      position: 'bottom-right',
+      autoClose: 2000,
+    });
+  };
+
+  const handleVariantChange = (productId, variantIndex) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
+      [productId]: variantIndex,
+    }));
+  };
+
+  const getProductDisplayData = (product) => {
+    const variantIndex = selectedVariants[product._id] || 0;
+    if (product.variants && product.variants.length > 0 && variantIndex < product.variants.length) {
+      const variant = product.variants[variantIndex];
+      return {
+        price: variant.price || product.price,
+        stock: variant.stock !== undefined ? variant.stock : product.stock,
+        image: variant.image || product.image,
+      };
+    }
+    return {
+      price: product.price,
+      stock: product.stock,
+      image: product.image,
+    };
   };
 
   const handleBackToTop = () => {
@@ -753,16 +901,19 @@ function ProductList() {
                 ))
               ) : filtered.length > 0 ? (
                 filtered.slice(0, visibleCount).map((product, index) => {
-                  const stock = product.stock || 0;
+                  const displayData = getProductDisplayData(product);
+                  const stock = displayData.stock;
                   const isWishlisted = wishlist.some((item) =>
                     item.productId && item.productId._id === product._id
                   );
                   const rating = productRatings[product._id] || { averageRating: 0, reviewCount: 0 };
                   const discount = product.offer ? parseFloat(product.offer) : 0;
                   const originalPrice = discount
-                    ? (product.price / (1 - discount / 100)).toFixed(2)
-                    : product.price;
+                    ? (displayData.price / (1 - discount / 100)).toFixed(2)
+                    : displayData.price;
                   const isLastElement = index === filtered.slice(0, visibleCount).length - 1;
+                  const isSelectedForCompare = selectedProducts.some((p) => p._id === product._id);
+                  const hasAlert = priceDropAlerts[product._id] && !priceDropAlerts[product._id].notified;
 
                   return (
                     <div
@@ -770,8 +921,9 @@ function ProductList() {
                       className="product-card"
                       ref={isLastElement ? lastProductElementRef : null}
                     >
-                      <meta name="description" content={`${product.name} - ₹${product.price}`} />
+                      <meta name="description" content={`${product.name} - ₹${displayData.price}`} />
                       {product.featured && <span className="badge featured-badge">Featured</span>}
+                      {hasAlert && <span className="badge alert-badge">Price Alert Set</span>}
                       <button
                         className={`wishlist-btn ${isWishlisted ? 'filled' : ''}`}
                         onClick={() =>
@@ -819,18 +971,38 @@ function ProductList() {
                           <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                         </svg>
                       </button>
+                      <button
+                        className="price-alert-btn"
+                        onClick={() => handleSetPriceDropAlert(product)}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#212121"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                          <path d="M12 8v4"></path>
+                          <path d="M12 16h.01"></path>
+                        </svg>
+                      </button>
                       <div className="product-card-inner">
                         <div className="image-container">
                           {isRatingsLoading ? (
                             <div className="skeleton-image"></div>
                           ) : (
                             <img
-                              src={product.image || 'https://via.placeholder.com/150'}
+                              src={displayData.image || 'https://via.placeholder.com/150'}
                               alt={product.name}
                               className="product-image"
                               loading="lazy"
                               onError={(e) => {
-                                console.log(`Failed to load image for ${product.name}: ${product.image}`);
+                                console.log(`Failed to load image for ${product.name}: ${displayData.image}`);
                                 e.target.src = 'https://via.placeholder.com/150';
                               }}
                               onClick={() => handleImageClick(product._id)}
@@ -840,7 +1012,7 @@ function ProductList() {
                         <div className="card-content">
                           <h3 className="product-title">{product.name}</h3>
                           <div className="price-section">
-                            <span className="product-price">₹{Number(product.price).toFixed(2)}</span>
+                            <span className="product-price">₹{Number(displayData.price).toFixed(2)}</span>
                             {discount > 0 && (
                               <>
                                 <span className="original-price">₹{Number(originalPrice).toFixed(2)}</span>
@@ -858,6 +1030,33 @@ function ProductList() {
                           <p className={`stock-status ${getStockStatus(stock).replace(' ', '-')}`}>
                             {getStockStatus(stock)}
                           </p>
+                          {/* Product Variants */}
+                          {product.variants && product.variants.length > 0 && (
+                            <div className="variants-section">
+                              <select
+                                value={selectedVariants[product._id] || 0}
+                                onChange={(e) => handleVariantChange(product._id, Number(e.target.value))}
+                              >
+                                {product.variants.map((variant, idx) => (
+                                  <option key={idx} value={idx}>
+                                    {variant.color && variant.size
+                                      ? `${variant.color} - ${variant.size}`
+                                      : variant.color || variant.size || `Variant ${idx + 1}`}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          <div className="compare-section">
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={isSelectedForCompare}
+                                onChange={() => handleCompareToggle(product)}
+                              />
+                              Compare
+                            </label>
+                          </div>
                           <div className="button-group">
                             <button
                               className="btn-add-to-cart"
@@ -895,6 +1094,41 @@ function ProductList() {
             )}
           </div>
         </div>
+
+        {/* Comparison Bar */}
+        {selectedProducts.length > 0 && (
+          <div className="comparison-bar">
+            <div className="comparison-content">
+              <span>Selected Products ({selectedProducts.length}/4):</span>
+              <div className="selected-products">
+                {selectedProducts.map((product) => (
+                  <div key={product._id} className="selected-product">
+                    <img
+                      src={product.image || 'https://via.placeholder.com/50'}
+                      alt={product.name}
+                      className="selected-product-image"
+                    />
+                    <span>{product.name}</span>
+                    <button
+                      className="remove-product"
+                      onClick={() => handleCompareToggle(product)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="comparison-actions">
+                <button className="btn-clear-compare" onClick={handleClearCompare}>
+                  Clear
+                </button>
+                <button className="btn-compare-now" onClick={handleCompareNow}>
+                  Compare Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {scrollPosition > 300 && (
           <button className="back-to-top" onClick={handleBackToTop}>
