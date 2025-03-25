@@ -28,8 +28,8 @@ function ProductDetails() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [email, setEmail] = useState('');
-  const [pincode, setPincode] = useState('');
-  const [deliveryInfo, setDeliveryInfo] = useState(null);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [availabilityInfo, setAvailabilityInfo] = useState(null);
   const [isCompareAdded, setIsCompareAdded] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0, visible: false });
 
@@ -38,6 +38,16 @@ function ProductDetails() {
   const product = products.find((p) => p._id === id);
 
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+
+  // Sample list of cities and their availability (for demo purposes)
+  const cities = [
+    { name: 'Mumbai', available: true },
+    { name: 'Delhi', available: true },
+    { name: 'Bangalore', available: false },
+    { name: 'Chennai', available: true },
+    { name: 'Hyderabad', available: false },
+    { name: 'Kolkata', available: true },
+  ];
 
   useEffect(() => {
     if (authLoading) return;
@@ -183,11 +193,9 @@ function ProductDetails() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Calculate the percentage position of the cursor within the image
     const xPercent = (x / rect.width) * 100;
     const yPercent = (y / rect.height) * 100;
 
-    // Ensure the cursor is within the image bounds
     if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
       setZoomPosition({ x: xPercent, y: yPercent, visible: true });
     } else {
@@ -310,27 +318,35 @@ function ProductDetails() {
     setIsShareModalOpen(false);
   };
 
-  const handlePincodeCheck = (e) => {
+  const handleAvailabilityCheck = (e) => {
     e.preventDefault();
-    if (!pincode || pincode.length !== 6 || isNaN(pincode)) {
-      toast.error('Please enter a valid 6-digit pincode.', {
+    if (!selectedCity) {
+      toast.error('Please select a city.', {
         position: 'top-right',
         autoClose: 2000,
       });
       return;
     }
 
-    setTimeout(() => {
-      setDeliveryInfo({
-        pincode,
-        available: true,
-        estimatedDelivery: '2-3 days',
+    const cityData = cities.find((city) => city.name === selectedCity);
+    if (cityData) {
+      setAvailabilityInfo({
+        city: selectedCity,
+        available: cityData.available,
+        estimatedDelivery: cityData.available ? '3-5 days' : null,
       });
-      toast.success('Delivery available for your pincode!', {
-        position: 'top-right',
-        autoClose: 2000,
-      });
-    }, 1000);
+      if (cityData.available) {
+        toast.success(`Delivery available in ${selectedCity}!`, {
+          position: 'top-right',
+          autoClose: 2000,
+        });
+      } else {
+        toast.error(`Delivery not available in ${selectedCity}.`, {
+          position: 'top-right',
+          autoClose: 2000,
+        });
+      }
+    }
   };
 
   const checkIfInCompare = () => {
@@ -476,31 +492,6 @@ function ProductDetails() {
                     }}
                   />
                 )}
-                <button
-                  className="share-btn"
-                  onClick={handleShare}
-                  title="Share this product"
-                  aria-label="Share this product"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                  </svg>
-                  <span>Share</span>
-                </button>
               </div>
               <div className="action-buttons-mobile">
                 {stockCount > 0 ? (
@@ -610,24 +601,28 @@ function ProductDetails() {
                 </button>
               )}
             </div>
-            <div className="pincode-check">
-              <form onSubmit={handlePincodeCheck}>
-                <input
-                  type="text"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                  placeholder="Enter pincode to check delivery"
-                  maxLength="6"
-                />
-                <button type="submit" className="btn-check-pincode">
-                  Check
+            <div className="availability-check">
+              <form onSubmit={handleAvailabilityCheck}>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                >
+                  <option value="">Select your city</option>
+                  {cities.map((city, index) => (
+                    <option key={index} value={city.name}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+                <button type="submit" className="btn-check-availability">
+                  Check Availability
                 </button>
               </form>
-              {deliveryInfo && (
-                <p className="delivery-info">
-                  {deliveryInfo.available
-                    ? `Delivery available to ${deliveryInfo.pincode}. Estimated delivery in ${deliveryInfo.estimatedDelivery}.`
-                    : `Delivery not available to ${deliveryInfo.pincode}.`}
+              {availabilityInfo && (
+                <p className="availability-info">
+                  {availabilityInfo.available
+                    ? `Delivery available in ${availabilityInfo.city}. Estimated delivery in ${availabilityInfo.estimatedDelivery}.`
+                    : `Delivery not available in ${availabilityInfo.city}.`}
                 </p>
               )}
             </div>
@@ -637,6 +632,31 @@ function ProductDetails() {
                 onClick={handleCompareToggle}
               >
                 {isCompareAdded ? 'Remove from Compare' : 'Add to Compare'}
+              </button>
+              <button
+                className="share-btn my-5"
+                onClick={handleShare}
+                title="Share this product"
+                aria-label="Share this product"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="18" cy="5" r="3"></circle>
+                  <circle cx="6" cy="12" r="3"></circle>
+                  <circle cx="18" cy="19" r="3"></circle>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                <span>Share</span>
               </button>
               {isCompareAdded && (
                 <button

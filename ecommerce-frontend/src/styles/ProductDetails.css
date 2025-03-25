@@ -127,30 +127,19 @@
   z-index: 10;
 }
 
-.main-image:hover .share-btn {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .share-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
+  background: none;
   border: 1px solid #e0e0e0;
   color: #212121;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  padding: 5px 10px;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  padding: 8px 15px;
   border-radius: 3px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .share-btn:hover {
@@ -350,26 +339,28 @@
   background-color: #1e62d4;
 }
 
-/* Pincode Check */
-.pincode-check {
+/* Availability Check */
+.availability-check {
   margin-bottom: 20px;
 }
 
-.pincode-check form {
+.availability-check form {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.pincode-check input {
+.availability-check select {
   padding: 8px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 3px;
   font-size: 14px;
   width: 150px;
+  background-color: #fff;
+  cursor: pointer;
 }
 
-.btn-check-pincode {
+.btn-check-availability {
   background-color: #2874f0;
   color: #fff;
   border: none;
@@ -381,14 +372,18 @@
   transition: background-color 0.3s ease;
 }
 
-.btn-check-pincode:hover {
+.btn-check-availability:hover {
   background-color: #1e62d4;
 }
 
-.delivery-info {
+.availability-info {
   margin-top: 10px;
   font-size: 14px;
   color: #388e3c;
+}
+
+.availability-info.error {
+  color: #ff6161;
 }
 
 /* Compare Section */
@@ -801,6 +796,7 @@
   gap: 10px;
 }
 
+/* Notify Modal (continued) */
 .notify-modal-content input {
   padding: 10px;
   border: 1px solid #e0e0e0;
@@ -923,13 +919,6 @@
     display: none; /* Disable zoom on mobile */
   }
 
-  .share-btn {
-    opacity: 1;
-    transform: translateY(0);
-    top: 5px;
-    right: 5px;
-  }
-
   .action-buttons-mobile {
     display: flex;
   }
@@ -970,7 +959,7 @@
     gap: 10px;
   }
 
-  .pincode-check input {
+  .availability-check select {
     width: 120px;
   }
 
@@ -978,6 +967,11 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .share-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .related-product-card,
@@ -1077,6 +1071,16 @@
     max-width: 450px;
   }
 
+  .main-image {
+    height: 450px;
+  }
+
+  .zoom-result {
+    left: 110%;
+    width: 450px;
+    height: 450px;
+  }
+
   .product-info {
     padding: 20px;
   }
@@ -1089,6 +1093,7 @@
   .recently-viewed-card {
     max-width: 200px;
   }
+  
 }
 
 /* Large Devices (Desktops, 992px and up) */
@@ -1099,6 +1104,16 @@
 
   .main-image-wrapper {
     max-width: 500px;
+  }
+
+  .main-image {
+    height: 500px;
+  }
+
+  .zoom-result {
+    left: 110%;
+    width: 500px;
+    height: 500px;
   }
 
   .product-title {
@@ -1125,8 +1140,34 @@
     max-width: 550px;
   }
 
+  .main-image {
+    height: 550px;
+  }
+
+  .zoom-result {
+    left: 110%;
+    width: 550px;
+    height: 550px;
+  }
+
   .related-product-card,
   .recently-viewed-card {
     max-width: 250px;
+  }
+}
+
+/* Ensure zoom-result is visible on smaller screens by adjusting position */
+@media (max-width: 991.98px) {
+  .zoom-result {
+    left: auto;
+    right: 0;
+    transform: translateX(110%);
+  }
+}
+
+/* Ensure zoom-result doesn't overflow the viewport */
+@media (max-width: 767.98px) {
+  .zoom-result {
+    display: none; /* Fallback for smaller screens if positioning fails */
   }
 }
