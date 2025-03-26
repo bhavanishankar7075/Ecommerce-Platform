@@ -1,4 +1,134 @@
+// ecommerce-frontend/src/pages/CartItem.js
 import React from 'react';
+import { toast } from 'react-toastify';
+import '../styles/CartItem.css';
+
+function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, onSelect }) {
+  const handleProductClick = () => {
+    navigate(`/product/${item.productId?._id || item._id}`);
+  };
+
+  const handleRemove = async () => {
+    try {
+      await removeFromCart(item._id);
+    } catch (err) {
+      toast.error('Failed to remove item.', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleIncrease = async () => {
+    try {
+      await updateQuantity(item._id, item.quantity + 1);
+    } catch (err) {
+      // Removed toast notification
+      console.error('Failed to increase quantity:', err);
+    }
+  };
+
+  const handleDecrease = async () => {
+    if (item.quantity <= 1) {
+      await handleRemove();
+      return;
+    }
+    try {
+      await updateQuantity(item._id, item.quantity - 1);
+    } catch (err) {
+      // Removed toast notification
+      console.error('Failed to decrease quantity:', err);
+    }
+  };
+
+  return (
+    <div className="cart-item">
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={onSelect}
+        className="cart-item-checkbox"
+      />
+      <div className="cart-item-image" onClick={handleProductClick}>
+        <img
+          src={item.productId?.image || 'https://placehold.co/100x100?text=No+Image'}
+          alt={item.productId?.name || 'Product'}
+          onError={(e) => {
+            e.target.src = 'https://placehold.co/100x100?text=No+Image';
+          }}
+        />
+      </div>
+      <div className="cart-item-details">
+        <h5 onClick={handleProductClick}>{item.productId?.name || 'Unknown Product'}</h5>
+        <p className="seller-info">Seller: RetailNet</p>
+        {item.inStock !== false ? (
+          <div className="price-section">
+            <span className="price">₹{Number(item.productId?.price || 0).toFixed(2)}</span>
+            <span className="original-price">₹{(Number(item.productId?.price || 0) * 1.9).toFixed(2)}</span>
+            <span className="discount">90% off</span>
+          </div>
+        ) : (
+          <p className="out-of-stock">Out of Stock</p>
+        )}
+        <div className="quantity-section">
+          <button onClick={handleDecrease} disabled={item.quantity <= 1}>-</button>
+          <span>{item.quantity}</span>
+          <button onClick={handleIncrease} disabled={item.inStock === false}>+</button>
+        </div>
+        <div className="cart-item-actions">
+          <button onClick={handleRemove} className="action-btn">
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default CartItem;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* import React from 'react';
 import { toast } from 'react-toastify';
 import '../styles/CartItem.css';
 
@@ -68,7 +198,7 @@ function CartItem({ item, removeFromCart, updateQuantity }) {
   );
 }
 
-export default CartItem;
+export default CartItem; */
 
 
 
