@@ -21,6 +21,7 @@ import 'react-toastify/dist/ReactToastify.css'; // Import Toastify CSS
 import Wishlist from './pages/Wishlist.';
 import Compare from './pages/compare.js'
 import Categories from './pages/Categories.js';
+import OrderDetails from './pages/OrderDetails';
 function App() {
   return (
     <Router>
@@ -54,6 +55,7 @@ function App() {
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/compare" element={<Compare />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/order/:orderId" element={<OrderDetails />} />
             </Routes>
           </CartProvider>
         </ProductProvider>

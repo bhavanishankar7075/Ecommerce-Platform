@@ -1,3 +1,5 @@
+
+
 import { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 
@@ -136,7 +138,7 @@ export function AuthProvider({ children }) {
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext); 
 
 
 

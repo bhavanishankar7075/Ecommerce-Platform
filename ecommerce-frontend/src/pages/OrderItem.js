@@ -1,4 +1,378 @@
+// OrderItem.js
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import '../styles/OrderItem.css';
+
+function OrderItem({
+  order,
+  item,
+  index,
+  reviewData,
+  setReviewData,
+  reviews,
+  handleReviewSubmit,
+  handleDeleteReview,
+  wishlist,
+  handleAddToWishlist,
+  handleRemoveFromWishlist,
+  wishlistMessages,
+  handleReorder,
+}) {
+  const key = `${order._id}_${item.productId}`;
+  const review = reviews ? reviews[key] : null;
+  const data = reviewData[key] || { rating: 0, comment: '', message: '', error: '', loading: false, showForm: false };
+
+  const handleRatingChange = (e) => {
+    const rating = parseInt(e.target.value, 10);
+    setReviewData({ ...reviewData, [key]: { ...data, rating, error: '' } });
+  };
+
+  const handleCommentChange = (e) => {
+    setReviewData({ ...reviewData, [key]: { ...data, comment: e.target.value, error: '' } });
+  };
+
+  const toggleReviewForm = () => {
+    setReviewData({ ...reviewData, [key]: { ...data, showForm: !data.showForm } });
+  };
+
+  const isDelivered = order.status.toLowerCase() === 'delivered';
+  const isInWishlist = wishlist.some((w) => w.productId?._id?.toString() === item.productId);
+
+  return (
+    <div className="order-item">
+      <Link to={`/order/${order._id}`} style={{ textDecoration: 'none' }}>
+        <img
+          src={item.image || '/default-product.jpg'}
+          alt={item.name}
+          className="order-item-image"
+          onError={(e) => (e.target.src = '/default-product.jpg')}
+        />
+      </Link>
+      <div className="order-item-details">
+        <Link to={`/order/${order._id}`} style={{ textDecoration: 'none' }}>
+          <h3 className="order-item-name">{item.name}</h3>
+        </Link>
+        <p className="order-item-price">₹{item.price.toFixed(2)}</p>
+        <p className="order-item-status">
+          {order.status} on{' '}
+          {new Date(order.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </p>
+        {index === 0 && (
+          <button className="reorder-btn" onClick={() => handleReorder(order)}>
+            Reorder
+          </button>
+        )}
+        <div className="wishlist-actions">
+          {isInWishlist ? (
+            <button
+              className="remove-wishlist-btn"
+              onClick={() => handleRemoveFromWishlist(item.productId)}
+            >
+              Remove from Wishlist
+            </button>
+          ) : (
+            <button
+              className="add-wishlist-btn"
+              onClick={() => handleAddToWishlist(item.productId)}
+            >
+              Add to Wishlist
+            </button>
+          )}
+          {wishlistMessages[item.productId] && (
+            <span className="wishlist-message">{wishlistMessages[item.productId]}</span>
+          )}
+        </div>
+        {isDelivered && (
+          <div className="review-section">
+            {review ? (
+              <>
+                <div className="review-display">
+                  <p>Your Rating: {review.rating} Star{review.rating !== 1 ? 's' : ''}</p>
+                  <p>{review.comment}</p>
+                </div>
+                <button onClick={toggleReviewForm}>Edit Review</button>
+                <button onClick={() => handleDeleteReview(order._id, item.productId)}>
+                  Delete Review
+                </button>
+              </>
+            ) : (
+              <button onClick={toggleReviewForm}>Write a Review</button>
+            )}
+            {data.showForm && (
+              <div className="review-form">
+                <h4>{review ? 'Edit Review' : 'Write a Review'}</h4>
+                <div className="rating">
+                  <label htmlFor={`rating-${key}`} className="rating-label">
+                    Rating:
+                  </label>
+                  <select
+                    id={`rating-${key}`}
+                    value={data.rating}
+                    onChange={handleRatingChange}
+                    className="rating-dropdown"
+                  >
+                    <option value="0" disabled>
+                      Select a rating
+                    </option>
+                    <option value="1">1 Star</option>
+                    <option value="2">2 Stars</option>
+                    <option value="3">3 Stars</option>
+                    <option value="4">4 Stars</option>
+                    <option value="5">5 Stars</option>
+                  </select>
+                </div>
+                <textarea
+                  value={data.comment}
+                  onChange={handleCommentChange}
+                  placeholder="Write your review here..."
+                />
+                {data.error && <p className="error-message">{data.error}</p>}
+                {data.message && <p className="success-message">{data.message}</p>}
+                <button
+                  onClick={() => handleReviewSubmit(order._id, item.productId, !!review)}
+                  disabled={data.loading}
+                >
+                  {data.loading ? 'Submitting...' : review ? 'Update Review' : 'Submit Review'}
+                </button>
+                <button onClick={toggleReviewForm}>Cancel</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default OrderItem;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // OrderItem.js (Updated)
 import React from 'react';
+import {  useNavigate } from 'react-router-dom'; // Added useNavigate
+import '../styles/OrderItem.css';
+
+const OrderItem = ({
+  order,
+  item,
+  handleProductClick,
+  reviewData,
+  setReviewData,
+  reviews,
+  handleReviewSubmit,
+  handleDeleteReview,
+  wishlist,
+  handleAddToWishlist,
+  handleRemoveFromWishlist,
+  wishlistMessages,
+  handleReorder,
+}) => {
+  const navigate = useNavigate(); // Added for navigation
+  const key = `${order._id}_${item.productId}`;
+  const review = reviews[key];
+  const data = reviewData[key] || { rating: 0, comment: '', message: '', error: '', loading: false, showForm: false };
+
+  const isWishlisted = wishlist.some((w) => {
+    const wishlistProductId = w.productId && w.productId._id ? w.productId._id.toString() : null;
+    const itemProductId = item.productId ? item.productId.toString() : null;
+    return wishlistProductId && itemProductId && wishlistProductId === itemProductId;
+  });
+
+  const handleRatingChange = (rating) => {
+    setReviewData({ ...reviewData, [key]: { ...data, rating, error: '' } });
+  };
+
+  const toggleReviewForm = () => {
+    setReviewData({ ...reviewData, [key]: { ...data, showForm: !data.showForm } });
+  };
+
+  const getStatusMessage = () => {
+    switch (order.status.toLowerCase()) {
+      case 'delivered':
+        return `Delivered on ${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      case 'cancelled':
+        return `Cancelled on ${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      default:
+        return `Expected by ${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+  };
+
+  // Navigate to OrderDetails page when product is clicked
+  const handleOrderClick = () => {
+    console.log('Navigating to order ID:', order._id);
+    navigate(`/order/${order._id}`);
+  };
+
+  return (
+    <div className="order-item">
+      <div className="order-item-content">
+        <img
+          src={item.image || '/default-product.jpg'}
+          alt={item.name}
+          className="item-image"
+          onError={(e) => (e.target.src = '/default-product.jpg')}
+          onClick={handleOrderClick} // Updated to navigate to OrderDetails
+        />
+        <div className="item-details">
+          <div className="item-details-main">
+            <span className="item-name">
+              <span onClick={handleOrderClick} style={{ cursor: 'pointer' }}>
+                {item.name}
+              </span>
+            </span>
+            <span className="item-price">₹{item.price.toFixed(2)}</span>
+            <div className={`status-message status-${order.status.toLowerCase()}`}>
+              {getStatusMessage()}
+            </div>
+          </div>
+          <div className="item-actions">
+            <button className="reorder-btn" onClick={() => handleReorder(order)}>
+              Reorder
+            </button>
+            <button
+              className={`wishlist-btn ${isWishlisted ? 'filled' : ''}`}
+              onClick={() =>
+                isWishlisted ? handleRemoveFromWishlist(item.productId) : handleAddToWishlist(item.productId)
+              }
+            >
+              ♥
+            </button>
+            {wishlistMessages[item.productId] && (
+              <span className="wishlist-message">{wishlistMessages[item.productId]}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {order.status === 'Delivered' && (
+        <div className="review-section">
+          {review ? (
+            <div className="submitted-review">
+              <h4>Your Review</h4>
+              <p className="review-rating">{review.rating} ★</p>
+              <p className="review-comment">{review.comment}</p>
+              <div className="review-actions">
+                <button className="edit-review-btn" onClick={toggleReviewForm}>
+                  Edit Review
+                </button>
+                <button
+                  className="delete-review-btn"
+                  onClick={() => handleDeleteReview(order._id, item.productId)}
+                >
+                  Delete Review
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="review-btn" onClick={toggleReviewForm}>
+              Write a Review
+            </button>
+          )}
+          {data.showForm && (
+            <div className="review-form">
+              <h4>{review ? 'Edit Review' : 'Write a Review'}</h4>
+              <div className="form-group">
+                <label>Rating</label>
+                <select
+                  className="rating-dropdown"
+                  value={data.rating}
+                  onChange={(e) => handleRatingChange(Number(e.target.value))}
+                >
+                  <option value={0}>Select rating</option>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <option key={star} value={star}>
+                      {star} ★
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Comment</label>
+                <textarea
+                  className="review-input"
+                  value={data.comment}
+                  onChange={(e) =>
+                    setReviewData({ ...reviewData, [key]: { ...data, comment: e.target.value, error: '' } })
+                  }
+                  placeholder="Write your review..."
+                />
+              </div>
+              <button
+                className="submit-review-btn"
+                onClick={() => handleReviewSubmit(order._id, item.productId, !!review)}
+                disabled={data.loading}
+              >
+                {data.loading ? 'Submitting...' : review ? 'Update Review' : 'Submit Review'}
+              </button>
+              {data.error && <p className="error-message">{data.error}</p>}
+              {data.message && <p className="success-message">{data.message}</p>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default OrderItem; */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* import React from 'react';
 import { Link } from 'react-router-dom';
 
 const OrderItem = ({
@@ -143,7 +517,7 @@ const OrderItem = ({
   );
 };
 
-export default OrderItem;
+export default OrderItem; */
 
 
 
