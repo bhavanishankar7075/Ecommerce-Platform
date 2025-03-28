@@ -1,4 +1,148 @@
-// ecommerce-frontend/src/pages/Login.js
+// Login.js
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import '../styles/Login.css';
+
+function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const emailRef = useRef(null);
+
+  useEffect(() => {
+    emailRef.current.focus();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const success = await login(email, password);
+      if (success) {
+       
+          navigate('/');
+        
+      }
+    } catch (err) {
+      console.error('Login submit error:', {
+        message: err.response?.data?.message || err.message,
+        status: err.response?.status,
+      });
+      const errorMessage = err.response?.data?.message || 'Failed to log in. Please try again.';
+      setError(errorMessage);
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-scrollable">
+        <div className="login-content">
+          <h1 className="login-title">Log In to Your Account</h1>
+          <div className="login-card">
+            <form className="login-form" onSubmit={handleSubmit}>
+              <div className="input-group">
+                <label htmlFor="email" className="input-label">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  ref={emailRef}
+                  className="input-field"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label htmlFor="password" className="input-label">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  className="input-field"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {error && (
+                <div className="error-message">
+                  <span>{error}</span>
+                </div>
+              )}
+              <button
+                type="submit"
+                className="login-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Logging In...' : 'Log In'}
+              </button>
+            </form>
+            <p className="signup-link">
+              New to the platform? <a href="/signup">Sign up here</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Login;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-frontend/src/pages/Login.js
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -111,4 +255,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Login; */
