@@ -501,6 +501,25 @@ router.put('/admin/:orderId', verifyAdmin, async (req, res) => {
   }
 });
 
+
+// routes/orders.js
+router.put('/:orderId/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.status = status;
+    order.statusHistory.push({ status, timestamp: new Date() });
+    await order.save();
+
+    res.json(order);
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating order status' });
+  }
+});
+
+
 module.exports = { router, verifyAdmin };
 
 

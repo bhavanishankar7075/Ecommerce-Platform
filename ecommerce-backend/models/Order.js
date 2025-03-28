@@ -50,6 +50,12 @@ const orderSchema = new mongoose.Schema({
     },
     default: 'Pending',
   },
+  statusHistory: [
+    {
+      status: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now },
+    },
+  ],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   stripeSessionId: { type: String }, // Added to store Stripe session ID
