@@ -252,7 +252,7 @@ Order Details:
               </div>
             </div>
 
-            <div className="order-actions my-5 py-5">
+            <div className="order-actions">
               <button className="share-button" onClick={handleShareOrder}>
                 Share Order Details
               </button>
