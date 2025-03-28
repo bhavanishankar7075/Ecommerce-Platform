@@ -9,11 +9,13 @@
 /* White background for Home route */
 .navbar-white {
   background-color: #fff;
+  height: 70px;
 }
 
 /* Blue background for Products, Product Details, and Orders routes */
 .navbar-blue {
-  background-color: #2874f0;
+  background-color: #b8cae7;
+  height: 70px;
 }
 
 .navbar-container {
@@ -28,6 +30,7 @@
 .navbar-logo {
   height: 24px;
   width: auto;
+  padding-right: 20px;
 }
 
 .search-container {
@@ -39,13 +42,14 @@
 .search-bar {
   display: flex;
   align-items: center;
-  background-color: transparent; /* No background */
+  color: white;
+  background-color: white; /* No background */
   border: none; /* No border */
   padding: 8px 0; /* Minimal padding */
 }
 
 .search-icon {
-  color: #2874f0;
+  color: #c7cfde;
   margin-right: 10px;
   font-size: 16px;
 }
@@ -55,8 +59,8 @@
   border: none;
   outline: none;
   font-size: 14px;
-  color: #333;
-  background-color: transparent;
+  color: #f3f3f3;
+ background-color: #f0f0f0;
 }
 
 .search-input::placeholder {
