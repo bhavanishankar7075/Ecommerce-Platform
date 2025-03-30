@@ -34,19 +34,19 @@ function Home() {
 
   // Categories with images
   const categories = [
-    { name: 'Books', image: 'https://placehold.co/100x100?text=Books' },
-    { name: 'Electronics', image: 'https://placehold.co/100x100?text=Electronics' },
-    { name: 'Toys', image: 'https://placehold.co/100x100?text=Toys' },
-    { name: 'Clothing', image: 'https://placehold.co/100x100?text=Clothing' },
-    { name: 'Accessories', image: 'https://placehold.co/100x100?text=Accessories' },
-    { name: 'Sports', image: 'https://placehold.co/100x100?text=Sports' },
-    { name: 'Beauty', image: 'https://placehold.co/100x100?text=Beauty' },
-    { name: 'Jewelry', image: 'https://placehold.co/100x100?text=Jewelry' },
-    { name: 'Automotive', image: 'https://placehold.co/100x100?text=Automotive' },
-    { name: 'Health', image: 'https://placehold.co/100x100?text=Health' },
-    { name: 'Stationery', image: 'https://placehold.co/100x100?text=Stationery' },
-    { name: 'Furniture', image: 'https://placehold.co/100x100?text=Furniture' },
-    { name: 'Footwear', image: 'https://placehold.co/100x100?text=Footwear' },
+    { name: 'Books', image: 'https://img.freepik.com/free-photo/3d-view-books-cartoon-style_52683-117189.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Electronics', image: 'https://img.freepik.com/premium-photo/household-appliances-shopping-cart-black-background-ecommerce-online-shopping-concept-3d_505080-2555.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Toys', image: 'https://img.freepik.com/free-photo/cute-plush-toys-arrangement_23-2150312316.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Clothing', image: 'https://img.freepik.com/premium-photo/pair-shoes-are-table-with-hat-table_874904-102811.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Accessories', image: 'https://img.freepik.com/free-photo/cosmetics-accessories-near-keyboard_23-2147778967.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Sports', image: 'https://img.freepik.com/premium-photo/high-angle-view-eyeglasses-table_1048944-14435092.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Beauty', image: 'https://img.freepik.com/premium-photo/digital-tablet-with-woman-s-accessories-white-wooden-table-background-top-view_392895-210870.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Jewelry', image: 'https://img.freepik.com/free-photo/traditional-indian-wedding-jewelry_8353-9762.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Automotive', image: 'https://img.freepik.com/free-vector/mobile-application-buy-car_603843-656.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Health', image: 'https://img.freepik.com/free-photo/elevated-view-stethoscope-stitched-heart-shape-wireless-keyboard-succulent-plant-yellow-backdrop_23-2148214051.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Stationery', image: 'https://img.freepik.com/free-photo/overhead-view-office-stationeries-laptop-white-background_23-2148042099.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Furniture', image: 'https://img.freepik.com/premium-photo/hotel-furniture-white-background_996135-44810.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    { name: 'Footwear', image: 'https://img.freepik.com/premium-photo/high-angle-view-mobile-phone-table_1048944-19477214.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
   ];
 
   useEffect(() => {
