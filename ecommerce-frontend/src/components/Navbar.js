@@ -63,9 +63,10 @@ function Navigation() {
       <nav className={`flipkart-navbar fixed-top ${isHomeRoute ? 'navbar-white' : 'navbar-blue'}`}>
         <div className="navbar-container">
           {/* Logo */}
-          <Link className="navbar-brand" to="/">
-            <img src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_plus-055f80.svg" alt="E-Shop" className="navbar-logo" />
-          </Link>
+          <Link className="navbar-brand " to="/">
+        
+             <img src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_plus-055f80.svg" alt="E-Shop" className="navbar-logo" />
+           </Link>
 
           {/* Search Bar */}
           <div className="search-container">
