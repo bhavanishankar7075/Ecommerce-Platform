@@ -22,6 +22,10 @@ import Wishlist from './pages/Wishlist.';
 import Compare from './pages/compare.js'
 import Categories from './pages/Categories.js';
 import OrderDetails from './pages/OrderDetails';
+import Footer from './pages/Footer.js';
+import AboutUs from './pages/AboutUs.js';
+import ContactUs from './pages/ContactUs.js';
+
 function App() {
   return (
     <Router>
@@ -31,7 +35,7 @@ function App() {
            <ToastContainer
           position="top-right"
           autoClose={3000}
-          hideProgressBar={false}
+          hideProgressBar={false} 
           newestOnTop={false}
           closeOnClick
           rtl={false}
@@ -48,7 +52,7 @@ function App() {
               <Route path="/product/:id" element={<ProductDetails />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/products" element={<Products />} /> {/* Updated route */}
+              <Route path="/products" element={<Products />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/success" element={<Success />} />
               <Route path="/failure" element={<Failure />} />
@@ -56,7 +60,10 @@ function App() {
               <Route path="/compare" element={<Compare />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/order/:orderId" element={<OrderDetails />} />
+              <Route path="/about" element={<AboutUs />} />
+            <Route path="/contact" element={<ContactUs />} />
             </Routes>
+            <Footer/>
           </CartProvider>
         </ProductProvider>
       </AuthProvider>
