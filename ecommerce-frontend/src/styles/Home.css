@@ -31,7 +31,7 @@
   height: 400px;
   object-fit: contain; /* Ensure the entire image is visible */
   object-position: center; /* Center the image */
-  background-color: #000; /* Background for images with transparent areas */
+  background-color: #ffffff; /* Background for images with transparent areas */
 }
 
 /* Carousel Indicators (Dots) */
@@ -43,14 +43,14 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: #bbb;
+  background-color: #191717;
   border: none;
   margin: 0 5px;
   transition: background-color 0.3s ease;
 }
 
 .carousel-indicators .active {
-  background-color: #2874f0;
+  background-color: #111212;
 }
 
 /* Promotional Banner */
