@@ -25,6 +25,10 @@ import OrderDetails from './pages/OrderDetails';
 import Footer from './pages/Footer.js';
 import AboutUs from './pages/AboutUs.js';
 import ContactUs from './pages/ContactUs.js';
+import Returns from './pages/Returns.js';
+import FAQ from './pages/FAQ.js';
+import Support from './pages/Support.js';
+import Terms from './pages/Terms.js';
 
 function App() {
   return (
@@ -62,6 +66,10 @@ function App() {
               <Route path="/order/:orderId" element={<OrderDetails />} />
               <Route path="/about" element={<AboutUs />} />
             <Route path="/contact" element={<ContactUs />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/returns" element={<Returns />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/terms" element={<Terms />} />
             </Routes>
             <Footer/>
           </CartProvider>
