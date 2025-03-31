@@ -68,7 +68,7 @@ function Dashboard() {
 
     const fetchActivityLog = async () => {
       try {
-        const res = await axios.get('https://backend-ps76.onrender.com/api/admin', {
+        const res = await axios.get('https://backend-ps76.onrender.com/api/admin/activity', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setActivityLog(res.data.activities || []);
