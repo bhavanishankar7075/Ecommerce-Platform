@@ -11,7 +11,7 @@ const app = express();
 
 // Configure CORS
  app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5003', 'http://localhost:5004','https://frontend-8uy4.onrender.com'],
+  origin: ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5003', 'http://localhost:5004','https://frontend-8uy4.onrender.com','https://admin-frontend-o3u7.onrender.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 })); 
