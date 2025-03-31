@@ -57,12 +57,6 @@ dotenv.config();
 const app = express();
 
 // Configure CORS
-app.use(cors({
-  origin: [process.env.FRONTEND_URL], // Use the deployed frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
 /* app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5003', 'http://localhost:5004'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
