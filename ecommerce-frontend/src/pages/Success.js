@@ -25,7 +25,7 @@ function Success() {
           return;
         }
 
-        const response = await axios.get(`http://localhost:5001/api/orders/session/${sessionId}`, {
+        const response = await axios.get(`https://backend-ps76.onrender.com/api/orders/session/${sessionId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

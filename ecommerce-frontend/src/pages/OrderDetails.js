@@ -25,7 +25,7 @@ function OrderDetails() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/orders/${orderId}`, {
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrder(res.data);
@@ -47,7 +47,7 @@ function OrderDetails() {
     const interval = setInterval(async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:5001/api/orders/${orderId}`, {
+        const res = await axios.get(`https://backend-ps76.onrender.com/api/orders/${orderId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrder(res.data);

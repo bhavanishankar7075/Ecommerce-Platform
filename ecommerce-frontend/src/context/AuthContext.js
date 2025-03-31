@@ -13,12 +13,12 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       console.log('Sending signup request with:', { email, password, username });
-      const res = await axios.post('http://localhost:5001/api/auth/register', { email, password, username });
+      const res = await axios.post('https://backend-ps76.onrender.com/api/auth/register', { email, password, username });
       console.log('Signup response:', res.data);
       const { token } = res.data;
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const profileRes = await axios.get('http://localhost:5001/api/users/profile');
+      const profileRes = await axios.get('https://backend-ps76.onrender.com/api/users/profile');
       console.log('Profile response:', profileRes.data);
       const fetchedUser = profileRes.data;
       if (!fetchedUser || !fetchedUser.id) {
@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
       const avatarUrl = fetchedUser.avatar
         ? fetchedUser.avatar.startsWith('http')
           ? fetchedUser.avatar
-          : `http://localhost:5001${fetchedUser.avatar}`
+          : `https://backend-ps76.onrender.com${fetchedUser.avatar}`
         : '';
       setUser({ ...fetchedUser, _id: fetchedUser.id, avatar: avatarUrl });
       setLoading(false);
@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
       console.log('Attempting login with:', { email, password });
-      const res = await axios.post('http://localhost:5001/api/auth/login', { email, password });
+      const res = await axios.post('https://backend-ps76.onrender.com/api/auth/login', { email, password });
       console.log('Login response:', res.data);
       const { token } = res.data;
       if (!token) {
@@ -51,7 +51,7 @@ export function AuthProvider({ children }) {
       }
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const profileRes = await axios.get('http://localhost:5001/api/users/profile');
+      const profileRes = await axios.get('https://backend-ps76.onrender.com/api/users/profile');
       console.log('Profile response:', profileRes.data);
       const fetchedUser = profileRes.data;
       if (!fetchedUser || !fetchedUser.id) {
@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
       const avatarUrl = fetchedUser.avatar
         ? fetchedUser.avatar.startsWith('http')
           ? fetchedUser.avatar
-          : `http://localhost:5001${fetchedUser.avatar}`
+          : `https://backend-ps76.onrender.com${fetchedUser.avatar}`
         : '';
       setUser({ ...fetchedUser, _id: fetchedUser.id, avatar: avatarUrl });
       setLoading(false);
@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
       const avatarUrl = updatedUser.avatar
         ? updatedUser.avatar.startsWith('http')
           ? updatedUser.avatar
-          : `http://localhost:5001${updatedUser.avatar}`
+          : `https://backend-ps76.onrender.com${updatedUser.avatar}`
         : prevUser?.avatar || '';
       return { ...prevUser, ...updatedUser, avatar: avatarUrl };
     });
@@ -101,7 +101,7 @@ export function AuthProvider({ children }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       const fetchUser = async () => {
         try {
-          const res = await axios.get('http://localhost:5001/api/users/profile');
+          const res = await axios.get('https://backend-ps76.onrender.com/api/users/profile');
           console.log('Fetch user response:', res.data);
           const fetchedUser = res.data;
           if (!fetchedUser || !fetchedUser.id) {
@@ -111,7 +111,7 @@ export function AuthProvider({ children }) {
           const avatarUrl = fetchedUser.avatar
             ? fetchedUser.avatar.startsWith('http')
               ? fetchedUser.avatar
-              : `http://localhost:5001${fetchedUser.avatar}`
+              : `https://backend-ps76.onrender.com${fetchedUser.avatar}`
             : '';
           setUser({ ...fetchedUser, _id: fetchedUser.id, avatar: avatarUrl });
         } catch (err) {

@@ -33,7 +33,7 @@ function Orders() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/orders/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log('Fetched orders:', res.data);
@@ -74,7 +74,7 @@ function Orders() {
           const key = `${order._id}_${productId}`;
           try {
             const res = await axios.get(
-              `http://localhost:5001/api/reviews/order/${order._id}/product/${productId}`,
+              `https://backend-ps76.onrender.com/api/reviews/order/${order._id}/product/${productId}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             if (res.data && res.data.rating) {
@@ -100,7 +100,7 @@ function Orders() {
   const fetchWishlist = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWishlist(res.data);
@@ -138,7 +138,7 @@ function Orders() {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        'http://localhost:5001/api/wishlist',
+        'https://backend-ps76.onrender.com/api/wishlist',
         { productId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -167,7 +167,7 @@ function Orders() {
       const token = localStorage.getItem('token');
       const wishlistItem = wishlist.find((item) => item.productId?._id?.toString() === productId);
       if (wishlistItem) {
-        await axios.delete(`http://localhost:5001/api/wishlist/${wishlistItem._id}`, {
+        await axios.delete(`https://backend-ps76.onrender.com/api/wishlist/${wishlistItem._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setWishlist(wishlist.filter((item) => item._id !== wishlistItem._id));
@@ -261,8 +261,8 @@ function Orders() {
       const token = localStorage.getItem('token');
       const method = isEdit ? 'put' : 'post';
       const url = isEdit
-        ? `http://localhost:5001/api/reviews/${localReviews[key]._id}`
-        : `http://localhost:5001/api/reviews/${orderId}/${productId}`;
+        ? `https://backend-ps76.onrender.com/api/reviews/${localReviews[key]._id}`
+        : `https://backend-ps76.onrender.com/api/reviews/${orderId}/${productId}`;
       const res = await axios[method](
         url,
         { rating: data.rating, comment: data.comment },
@@ -315,7 +315,7 @@ function Orders() {
     // Sync with backend
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5001/api/reviews/${reviewToDelete._id}`, {
+      await axios.delete(`https://backend-ps76.onrender.com/api/reviews/${reviewToDelete._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch (err) {

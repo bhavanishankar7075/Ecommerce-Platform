@@ -26,7 +26,7 @@ export function CartProvider({ children }) {
         return;
       }
 
-      const res = await axios.get('http://localhost:5001/api/cart', {
+      const res = await axios.get('https://backend-ps76.onrender.com/api/cart', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -39,7 +39,7 @@ export function CartProvider({ children }) {
         productId: {
           ...item.productId,
           image: item.productId?.image && typeof item.productId.image === 'string'
-            ? `http://localhost:5001${item.productId.image}`
+            ? `https://backend-ps76.onrender.com${item.productId.image}`
             : 'https://placehold.co/50?text=No+Image',
         },
       }));
@@ -80,7 +80,7 @@ export function CartProvider({ children }) {
 
         for (const item of items) {
           res = await axios.post(
-            'http://localhost:5001/api/cart/add',
+            'https://backend-ps76.onrender.com/api/cart/add',
             { productId: item.productId, quantity: item.quantity },
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -88,7 +88,7 @@ export function CartProvider({ children }) {
       } else {
         console.log('Adding single item to cart:', product);
         const payload = { productId: product._id, quantity: 1 };
-        res = await axios.post('http://localhost:5001/api/cart/add', payload, {
+        res = await axios.post('https://backend-ps76.onrender.com/api/cart/add', payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Add to cart response:', res.data);
@@ -101,7 +101,7 @@ export function CartProvider({ children }) {
         productId: {
           ...item.productId,
           image: item.productId?.image && typeof item.productId.image === 'string'
-            ? `http://localhost:5001${item.productId.image}`
+            ? `https://backend-ps76.onrender.com${item.productId.image}`
             : 'https://placehold.co/50?text=No+Image',
         },
       }));
@@ -146,7 +146,7 @@ export function CartProvider({ children }) {
       }
 
       console.log('Removing item with ID:', itemId);
-      const res = await axios.delete(`http://localhost:5001/api/cart/${itemId}`, {
+      const res = await axios.delete(`https://backend-ps76.onrender.com/api/cart/${itemId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -157,7 +157,7 @@ export function CartProvider({ children }) {
         productId: {
           ...item.productId,
           image: item.productId?.image && typeof item.productId.image === 'string'
-            ? `http://localhost:5001${item.productId.image}`
+            ? `https://backend-ps76.onrender.com${item.productId.image}`
             : 'https://placehold.co/50?text=No+Image',
         },
       }));
@@ -194,7 +194,7 @@ export function CartProvider({ children }) {
 
       console.log('Updating quantity for item ID:', itemId, 'to:', quantity);
       const res = await axios.put(
-        `http://localhost:5001/api/cart/${itemId}`,
+        `https://backend-ps76.onrender.com/api/cart/${itemId}`,
         { quantity },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -206,7 +206,7 @@ export function CartProvider({ children }) {
         productId: {
           ...item.productId,
           image: item.productId?.image && typeof item.productId.image === 'string'
-            ? `http://localhost:5001${item.productId.image}`
+            ? `https://backend-ps76.onrender.com${item.productId.image}`
             : 'https://placehold.co/50?text=No+Image',
         },
       }));
@@ -247,7 +247,7 @@ export function CartProvider({ children }) {
         return;
       }
 
-      const res = await axios.delete('http://localhost:5001/api/cart', {
+      const res = await axios.delete('https://backend-ps76.onrender.com/api/cart', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCart(res.data.cart?.items || []);

@@ -102,7 +102,7 @@ function Profile() {
       const fetchWishlist = async () => {
         try {
           const token = localStorage.getItem('token');
-          const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+          const res = await axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setWishlist(res.data || []);
@@ -119,7 +119,7 @@ function Profile() {
     try {
       if (!user?._id) throw new Error('User ID is undefined');
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/orders/user/${user._id}`, {
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/orders/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders(res.data || []);
@@ -150,18 +150,18 @@ function Profile() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5001/api/users/profile',
+        'https://backend-ps76.onrender.com/api/users/profile',
         { username: profileData.username, address: profileData.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedProfileRes = await axios.get('http://localhost:5001/api/users/profile', {
+      const updatedProfileRes = await axios.get('https://backend-ps76.onrender.com/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const updatedUser = updatedProfileRes.data;
       const avatarUrl = updatedUser.avatar
         ? updatedUser.avatar.startsWith('http')
           ? updatedUser.avatar
-          : `http://localhost:5001${updatedUser.avatar}`
+          : `https://backend-ps76.onrender.com${updatedUser.avatar}`
         : profileData.avatar;
       const newProfileData = {
         username: updatedUser.username || '',
@@ -195,7 +195,7 @@ function Profile() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5001/api/users/profile/shipping-address',
+        'https://backend-ps76.onrender.com/api/users/profile/shipping-address',
         {
           fullName: shippingAddressForm.fullName.trim(),
           address: shippingAddressForm.address.trim(),
@@ -206,7 +206,7 @@ function Profile() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedProfileRes = await axios.get('http://localhost:5001/api/users/profile', {
+      const updatedProfileRes = await axios.get('https://backend-ps76.onrender.com/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const updatedUser = updatedProfileRes.data;
@@ -242,11 +242,11 @@ function Profile() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5001/api/users/profile/shipping-address',
+        'https://backend-ps76.onrender.com/api/users/profile/shipping-address',
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedProfileRes = await axios.get('http://localhost:5001/api/users/profile', {
+      const updatedProfileRes = await axios.get('https://backend-ps76.onrender.com/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const updatedUser = updatedProfileRes.data;
@@ -283,7 +283,7 @@ function Profile() {
     formData.append('avatar', avatarFile);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5001/api/users/profile/avatar', formData, {
+      const res = await axios.post('https://backend-ps76.onrender.com/api/users/profile/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
@@ -293,7 +293,7 @@ function Profile() {
       const avatarUrl = updatedUser.avatar
         ? updatedUser.avatar.startsWith('http')
           ? updatedUser.avatar
-          : `http://localhost:5001${updatedUser.avatar}`
+          : `https://backend-ps76.onrender.com${updatedUser.avatar}`
         : '';
       setProfileData((prev) => ({ ...prev, avatar: avatarUrl }));
       updateUser({ ...updatedUser, _id: updatedUser.id, avatar: avatarUrl });
@@ -330,7 +330,7 @@ function Profile() {
 
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5001/api/users/profile/password',
+        'https://backend-ps76.onrender.com/api/users/profile/password',
         { currentPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );

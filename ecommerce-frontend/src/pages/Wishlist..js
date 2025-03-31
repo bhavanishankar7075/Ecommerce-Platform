@@ -29,7 +29,7 @@ function Wishlist() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log('Fetched wishlist:', res.data); // Debug the wishlist data
@@ -51,7 +51,7 @@ function Wishlist() {
   const handleRemoveFromWishlist = async (wishlistId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5001/api/wishlist/${wishlistId}`, {
+      await axios.delete(`https://backend-ps76.onrender.com/api/wishlist/${wishlistId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWishlist(wishlist.filter((item) => item._id !== wishlistId));
@@ -65,7 +65,7 @@ function Wishlist() {
   const handleClearWishlist = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5001/api/wishlist/user/${user._id}/clear`, {
+      await axios.delete(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}/clear`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWishlist([]);

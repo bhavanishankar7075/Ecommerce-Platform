@@ -17,20 +17,20 @@ export function ProductProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://localhost:5001/api/products');
+      const res = await axios.get('https://backend-ps76.onrender.com/api/products');
       console.log('Raw product data from backend:', res.data);
       const fetchedProducts = res.data.map((item) => {
         // Ensure image is a string and prepend base URL if it exists
         const image =
           item.image && typeof item.image === 'string'
-            ? `http://localhost:5001${item.image}`
+            ? `https://backend-ps76.onrender.com${item.image}`
             : 'https://placehold.co/150?text=No+Image';
 
         // Ensure images array contains valid URLs
         const images =
           item.images && Array.isArray(item.images)
             ? item.images.map((img) =>
-                typeof img === 'string' ? `http://localhost:5001${img}` : 'https://placehold.co/150?text=No+Image'
+                typeof img === 'string' ? `https://backend-ps76.onrender.com${img}` : 'https://placehold.co/150?text=No+Image'
               )
             : [];
 
@@ -69,19 +69,19 @@ export function ProductProvider({ children }) {
   // Function to fetch a single product by ID (useful for ProductDetails.js)
   const fetchProductById = async (productId) => {
     try {
-      const res = await axios.get(`http://localhost:5001/api/products/${productId}`);
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/products/${productId}`);
       console.log('Raw product data for ID', productId, ':', res.data);
       const item = res.data;
 
       const image =
         item.image && typeof item.image === 'string'
-          ? `http://localhost:5001${item.image}`
+          ? `https://backend-ps76.onrender.com${item.image}`
           : 'https://placehold.co/150?text=No+Image';
 
       const images =
         item.images && Array.isArray(item.images)
           ? item.images.map((img) =>
-              typeof img === 'string' ? `http://localhost:5001${img}` : 'https://placehold.co/150?text=No+Image'
+              typeof img === 'string' ? `https://backend-ps76.onrender.com${img}` : 'https://placehold.co/150?text=No+Image'
             )
           : [];
 

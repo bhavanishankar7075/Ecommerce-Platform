@@ -47,8 +47,8 @@ app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter); // Main orders route
 app.use('/api/users', userRoutes);
 app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
- app.use('/api/wishlist', Wishlist);
-  app.use('/api/reviews', reviewRoutes); 
+app.use('/api/wishlist', Wishlist);
+app.use('/api/reviews', reviewRoutes); 
 
  
 

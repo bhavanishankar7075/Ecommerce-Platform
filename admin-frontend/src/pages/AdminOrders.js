@@ -32,7 +32,7 @@ function AdminOrders() {
         return;
       }
       const response = await axios.get(
-        `http://localhost:5001/api/orders/admin?page=${page}&limit=10&status=${statusFilter}&sortBy=${sortBy}&order=${sortOrder}&search=${debouncedSearchTerm}`,
+        `https://backend-ps76.onrender.com/api/orders/admin?page=${page}&limit=10&status=${statusFilter}&sortBy=${sortBy}&order=${sortOrder}&search=${debouncedSearchTerm}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setOrders(response.data.orders);
@@ -62,7 +62,7 @@ function AdminOrders() {
         return;
       }
       const response = await axios.get(
-        `http://localhost:5001/api/orders/admin/details/${orderId}`,
+        `https://backend-ps76.onrender.com/api/orders/admin/details/${orderId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSelectedOrder(response.data);
@@ -81,7 +81,7 @@ function AdminOrders() {
         return;
       }
       await axios.put(
-        `http://localhost:5001/api/orders/admin/${orderId}`,
+        `https://backend-ps76.onrender.com/api/orders/admin/${orderId}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

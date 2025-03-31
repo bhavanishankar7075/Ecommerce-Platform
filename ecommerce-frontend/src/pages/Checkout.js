@@ -42,7 +42,7 @@ function Checkout() {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5001/api/users/profile', {
+        const res = await axios.get('https://backend-ps76.onrender.com/api/users/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSavedAddress(res.data.shippingAddress || null);
@@ -92,7 +92,7 @@ function Checkout() {
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No token found');
-      const res = await axios.get('http://localhost:5001/api/users/profile/payment-methods', {
+      const res = await axios.get('https://backend-ps76.onrender.com/api/users/profile/payment-methods', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPaymentMethods(res.data.paymentMethods || []);
@@ -236,7 +236,7 @@ function Checkout() {
 
       console.log('Creating session for order...');
       const sessionResponse = await axios.post(
-        'http://localhost:5001/api/orders/create-session',
+        'https://backend-ps76.onrender.com/api/orders/create-session',
         {
           userId: user._id,
           items: cart.map(item => ({
@@ -290,7 +290,7 @@ function Checkout() {
         };
 
         console.log('Placing COD order:', orderData);
-        const response = await axios.post('http://localhost:5001/api/orders', orderData, {
+        const response = await axios.post('https://backend-ps76.onrender.com/api/orders', orderData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('COD Order response:', response.data);
@@ -299,7 +299,7 @@ function Checkout() {
           try {
             console.log('Saving shipping address...');
             await axios.put(
-              'http://localhost:5001/api/users/profile/shipping-address',
+              'https://backend-ps76.onrender.com/api/users/profile/shipping-address',
               {
                 fullName: formData.fullName.trim(),
                 address: formData.address.trim(),

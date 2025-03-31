@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const WishlistItem = ({ item, handleRemoveFromWishlist }) => {
   // Define the backend base URL
-  const BACKEND_BASE_URL = 'http://localhost:5001';
+  const BACKEND_BASE_URL = 'https://backend-ps76.onrender.com';
 
   // Construct the full image URL
   const imageUrl = item.productId?.image

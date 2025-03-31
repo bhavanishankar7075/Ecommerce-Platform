@@ -81,7 +81,7 @@ function ProductList() {
       const fetchWishlist = async () => {
         try {
           const token = localStorage.getItem('token');
-          const res = await axios.get(`http://localhost:5001/api/wishlist/user/${user._id}`, {
+          const res = await axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           setWishlist(res.data);
@@ -109,7 +109,7 @@ function ProductList() {
           setIsRatingsLoading(true);
           const ratingsData = {};
           for (const product of products) {
-            const res = await axios.get(`http://localhost:5001/api/reviews/product/${product._id}`);
+            const res = await axios.get(`https://backend-ps76.onrender.com/api/reviews/product/${product._id}`);
             if (res.data && Array.isArray(res.data)) {
               const totalRating = res.data.reduce((sum, review) => sum + review.rating, 0);
               const averageRating = res.data.length > 0 ? (totalRating / res.data.length).toFixed(1) : 0;
@@ -566,7 +566,7 @@ function ProductList() {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        'http://localhost:5001/api/wishlist',
+        'https://backend-ps76.onrender.com/api/wishlist',
         { productId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -597,7 +597,7 @@ function ProductList() {
       );
       if (!wishlistItem) return;
 
-      await axios.delete(`http://localhost:5001/api/wishlist/${wishlistItem._id}`, {
+      await axios.delete(`https://backend-ps76.onrender.com/api/wishlist/${wishlistItem._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setWishlist(wishlist.filter((item) => item._id !== wishlistItem._id));
