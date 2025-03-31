@@ -93,6 +93,8 @@ router.get('/dashboard', verifyAdmin, (req, res) => {
   res.json({ message: 'Welcome to the admin dashboard', admin: req.user });
 });
 
+
+
 // Export router and verifyAdmin
 module.exports = { router, verifyAdmin };
 
