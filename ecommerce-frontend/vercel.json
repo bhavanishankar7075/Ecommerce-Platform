@@ -2,7 +2,7 @@
     "rewrites": [
       {
         "source": "/(.*)",
-        "destination": "/index.html"
+        "destination": "https://backend-six-kappa-90.vercel.app/"
       }
     ]
   }
