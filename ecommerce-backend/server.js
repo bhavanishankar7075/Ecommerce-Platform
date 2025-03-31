@@ -35,6 +35,7 @@ const productRoutes = require('./routes/products');
 const { router: orderRouter } = require('./routes/orders'); // Ensure orders router is correctly destructured
 const userRoutes = require('./routes/users');
 const reviewRoutes = require('./routes/reviews');
+const Wishlist=require('./routes/Wishlist')
 // Note: Removing or commenting out checkoutRoutes for now since it might be causing conflicts
 // const checkoutRoutes = require('./routes/checkout');
 
@@ -46,7 +47,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/orders', orderRouter); // Main orders route
 app.use('/api/users', userRoutes);
 app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
- app.use('/api/wishlist', require('./routes/wishlist'));
+ app.use('/api/wishlist', Wishlist);
   app.use('/api/reviews', reviewRoutes); 
 
  
