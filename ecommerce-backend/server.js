@@ -96,18 +96,7 @@ app.use('/api', customerRoutes); // Moved to the end to avoid conflicts
  app.use('/api/wishlist', require('./routes/wishlist'));
   app.use('/api/reviews', reviewRoutes); 
 
- /*  app.use((req, res, next) => {
-    const oldJson = res.json;
-    res.json = function (data) {
-      // Skip wrapping for GET /api/reviews/product/:productId
-      if (req.method === 'GET' && req.path.match(/\/api\/reviews\/product\/[^/]+$/)) {
-        return oldJson.call(this, data);
-      }
-      return oldJson.call(this, { message: 'Success', data });
-    };
-    next();
-  }); 
- */
+ 
 
 // Map /api/checkout to /api/orders/create-session for Stripe session creation
 app.use('/api/checkout', (req, res, next) => {
