@@ -1,50 +1,3 @@
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
  const express = require('express');
 const mongoose = require('mongoose');
@@ -57,11 +10,11 @@ dotenv.config();
 const app = express();
 
 // Configure CORS
-/* app.use(cors({
+ app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5003', 'http://localhost:5004'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-})); */
+})); 
 
 // Middleware
 app.use(express.json());
