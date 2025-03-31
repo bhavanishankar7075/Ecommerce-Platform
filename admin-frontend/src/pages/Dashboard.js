@@ -51,7 +51,7 @@ function Dashboard() {
           limit: productsPerPage,
         });
 
-        const res = await axios.get(`https://backend-ps76.onrender.com/api/admin/products?${params.toString()}`, {
+        const res = await axios.get(`http://localhost:5001/api/admin/products?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -68,7 +68,7 @@ function Dashboard() {
 
     const fetchActivityLog = async () => {
       try {
-        const res = await axios.get('https://backend-ps76.onrender.com/api/admin/activity', {
+        const res = await axios.get('http://localhost:5001/api/admin/activity', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setActivityLog(res.data.activities || []);
@@ -259,12 +259,12 @@ function Dashboard() {
                     </td>
                     <td>
                       <img
-                        src={product.image || 'https://backend-ps76.onrender.com/uploads/default-image.png'}
+                        src={product.image || 'http://localhost:5001/uploads/default-image.png'}
                         alt={product.name}
                         width="50"
                         onError={(e) => {
                           console.log('Dashboard image load failed:', e.target.src);
-                          e.target.src = 'https://backend-ps76.onrender.com/uploads/default-image.png';
+                          e.target.src = 'http://localhost:5001/uploads/default-image.png';
                         }}
                       />
                     </td>
