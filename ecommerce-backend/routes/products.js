@@ -23,7 +23,7 @@ const verifyAdmin = async (req, res, next) => {
 
   try {
     const jwt = require('jsonwebtoken');
-    const Admin = require('../models/Admin');
+    const Admin = require('../models/admin');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.admin = await Admin.findById(decoded.id).select('-password');
     if (!req.admin) return res.status(401).json({ message: 'Unauthorized: Admin not found' });

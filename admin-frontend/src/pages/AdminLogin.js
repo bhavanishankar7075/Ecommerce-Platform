@@ -15,7 +15,7 @@
      e.preventDefault();
      console.log('Login Attempt:', { email, password }); // Debug input
      try {
-       const res = await axios.post('https://backend-ps76.onrender.com/api/admin/login', { email, password });
+       const res = await axios.post(`${process.env.REACT_APP_API_URL}/api/admin/login`, { email, password });
        console.log('Login Response:', res.data); // Debug response
        if (!res.data.token) {
          throw new Error('No token received from server');

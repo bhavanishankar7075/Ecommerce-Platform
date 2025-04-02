@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -14,7 +12,6 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 function Dashboard() {
   const [products, setProducts] = useState([]);
-  const [activityLog, setActivityLog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -66,19 +63,7 @@ function Dashboard() {
       }
     };
 
-    const fetchActivityLog = async () => {
-      try {
-        const res = await axios.get('http://localhost:5001/api/admin/activity', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setActivityLog(res.data.activities || []);
-      } catch (err) {
-        console.error('Error fetching activity log:', err);
-        setActivityLog([]);
-      }
-    };
-
-    Promise.all([fetchProducts(), fetchActivityLog()]).finally(() => setLoading(false));
+    fetchProducts().finally(() => setLoading(false));
   }, [navigate, currentPage]); // Add currentPage as a dependency to refetch products when the page changes
 
   // Prepare data for category distribution chart
@@ -299,137 +284,9 @@ function Dashboard() {
             </div>
           )}
         </div>
-
-        {/* Recent Activity Log */}
-        <div className="activity-log">
-          <h3>Recent Activity</h3>
-          {activityLog.length > 0 ? (
-            <ul>
-              {activityLog.slice(0, 5).map((activity, index) => (
-                <li key={index}>
-                  {activity.action} - {new Date(activity.timestamp).toLocaleString()}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No recent activity.</p>
-          )}
-        </div>
       </div>
     </div>
   );
 }
 
 export default Dashboard;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
