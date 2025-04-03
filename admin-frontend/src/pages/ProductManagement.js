@@ -114,7 +114,7 @@ function ProductManagement() {
 
       console.log('Fetching products with params:', params.toString());
 
-      const res = await axios.get(`http://localhost:5001/api/admin/products?${params.toString()}`, {
+      const res = await axios.get(`https://backend-ps76.onrender.com/api/admin/products?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -296,8 +296,8 @@ function ProductManagement() {
     if (editingProductId) {
       // Clean the existingImages array to remove the base URL before sending to the backend
       const cleanedExistingImages = formData.existingImages.map(img => {
-        if (img.startsWith('http://localhost:5001')) {
-          return img.replace('http://localhost:5001', '');
+        if (img.startsWith('https://backend-ps76.onrender.com')) {
+          return img.replace('https://backend-ps76.onrender.com', '');
         }
         return img;
       });
@@ -313,7 +313,7 @@ function ProductManagement() {
       let updatedProduct;
       if (editingProductId) {
         const res = await axios.put(
-          `http://localhost:5001/api/admin/products/${editingProductId}`,
+          `https://backend-ps76.onrender.com/api/admin/products/${editingProductId}`,
           form,
           {
             headers: {
@@ -337,7 +337,7 @@ function ProductManagement() {
         if (!formData.mainImage) {
           throw new Error('Main image is required when adding a new product');
         }
-        const res = await axios.post('http://localhost:5001/api/admin/products', form, {
+        const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
@@ -392,7 +392,7 @@ function ProductManagement() {
         throw new Error('No authentication token found. Please log in.');
       }
 
-      await axios.delete(`http://localhost:5001/api/admin/products/${productId}`, {
+      await axios.delete(`https://backend-ps76.onrender.com/api/admin/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProducts((prev) => prev.filter((p) => p._id !== productId));
@@ -420,7 +420,7 @@ function ProductManagement() {
 
       await Promise.all(
         selectedProducts.map((p) =>
-          axios.delete(`http://localhost:5001/api/admin/products/${p._id}`, {
+          axios.delete(`https://backend-ps76.onrender.com/api/admin/products/${p._id}`, {
             headers: { Authorization: `Bearer ${token}` },
           })
         )
@@ -465,7 +465,7 @@ function ProductManagement() {
         throw new Error('No authentication token found. Please log in.');
       }
 
-      const res = await axios.post('http://localhost:5001/api/admin/products', form, {
+      const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -494,7 +494,7 @@ function ProductManagement() {
       }
 
       const res = await axios.put(
-        `http://localhost:5001/api/admin/products/${productId}/toggle-status`,
+        `https://backend-ps76.onrender.com/api/admin/products/${productId}/toggle-status`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
