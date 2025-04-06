@@ -58,10 +58,12 @@ function ProductManagement() {
   const productsPerPage = 8;
   const navigate = useNavigate();
 
+  // Reset currentPage to 1 whenever a filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterCategory, filterPriceMin, filterPriceMax, filterStock, filterOffer]);
 
+  // Fetch products whenever currentPage or filters change
   useEffect(() => {
     fetchProducts();
   }, [currentPage, searchQuery, filterCategory, filterPriceMin, filterPriceMax, filterStock, filterOffer]);
@@ -79,15 +81,28 @@ function ProductManagement() {
     }
   }, [formData.category]);
 
+  // Cleanup object URLs on unmount or when mainImage/newImages change
   useEffect(() => {
+    let mainImageUrl = null;
+    let newImageUrls = [];
+
+    // Set up cleanup for mainImage
+    if (formData.mainImage && typeof formData.mainImage === 'object' && !('preview' in formData.mainImage)) {
+      mainImageUrl = URL.createObjectURL(formData.mainImage);
+    }
+
+    // Set up cleanup for newImages
+    newImageUrls = formData.newImages
+      .filter((image) => image && typeof image === 'object' && !('preview' in image))
+      .map((image) => URL.createObjectURL(image));
+
+    // Cleanup function
     return () => {
-      if (formData.mainImage && typeof formData.mainImage !== 'string') {
-        URL.revokeObjectURL(formData.mainImage);
+      if (mainImageUrl) {
+        URL.revokeObjectURL(mainImageUrl);
       }
-      formData.newImages.forEach((image) => {
-        if (image && typeof image !== 'string') {
-          URL.revokeObjectURL(image);
-        }
+      newImageUrls.forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
       });
     };
   }, [formData.mainImage, formData.newImages]);
@@ -121,11 +136,9 @@ function ProductManagement() {
       const initializedProducts = res.data.products.map(product => ({
         ...product,
         selected: product.selected || false,
-        image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : `https://backend-ps76.onrender.com/uploads/default-product.jpg`,
-        images: product.images ? product.images.map(img => img.startsWith('http') ? img : `https://backend-ps76.onrender.com${img}`) : [],
       }));
 
-      setProducts(initializedProducts);
+      setProducts(Array.isArray(res.data.products) ? initializedProducts : []);
       setTotalPages(res.data.totalPages || 1);
       setLoading(false);
     } catch (err) {
@@ -162,10 +175,11 @@ function ProductManagement() {
         toast.error('Image size should not exceed 5MB');
         return;
       }
-      setFormData((prev) => ({
-        ...prev,
-        mainImage: file,
-      }));
+      setFormData((prev) => {
+        const updatedFormData = { ...prev, mainImage: file };
+        console.log('Updated formData after main image selection:', updatedFormData);
+        return updatedFormData;
+      });
     } else if (name === 'images') {
       const validFiles = Array.from(files).filter((file) => {
         if (!allowedTypes.includes(file.type)) {
@@ -179,10 +193,14 @@ function ProductManagement() {
         return true;
       });
       console.log('Selected additional images:', validFiles);
-      setFormData((prev) => ({
-        ...prev,
-        newImages: [...prev.newImages, ...validFiles],
-      }));
+      setFormData((prev) => {
+        const updatedFormData = {
+          ...prev,
+          newImages: [...prev.newImages, ...validFiles],
+        };
+        console.log('Updated formData after additional images selection:', updatedFormData);
+        return updatedFormData;
+      });
     }
   };
 
@@ -281,17 +299,21 @@ function ProductManagement() {
 
     form.append('model', formData.model);
     if (formData.mainImage) {
-      form.append('image', formData.mainImage); // Send main image separately
+      form.append('image', formData.mainImage);
     }
     formData.newImages.forEach((image) => {
       if (image) {
-        form.append('images', image); // Send additional images separately
+        form.append('images', image);
       }
     });
     if (editingProductId) {
-      const cleanedExistingImages = formData.existingImages.map(img =>
-        img.startsWith('https://backend-ps76.onrender.com') ? img.replace('https://backend-ps76.onrender.com', '') : img
-      );
+      // Clean the existingImages array to remove the base URL before sending to the backend
+      const cleanedExistingImages = formData.existingImages.map(img => {
+        if (img.startsWith('https://backend-ps76.onrender.com')) {
+          return img.replace('https://backend-ps76.onrender.com', '');
+        }
+        return img;
+      });
       form.append('existingImages', JSON.stringify(cleanedExistingImages));
     }
 
@@ -315,6 +337,7 @@ function ProductManagement() {
         );
         updatedProduct = res.data.product;
         console.log('Updated product from backend:', updatedProduct);
+        // Update formData.existingImages with the new images array from the backend
         setFormData((prev) => ({
           ...prev,
           existingImages: updatedProduct.images || [],
@@ -334,18 +357,14 @@ function ProductManagement() {
           },
         });
         updatedProduct = res.data.product;
-        console.log('New product from backend:', updatedProduct);
-        setFormData((prev) => ({
-          ...prev,
-          existingImages: updatedProduct.images || [],
-          newImages: [],
-        }));
         setCurrentPage(1);
         toast.success('Product added successfully!');
       }
+      // Reset the form after updating the state
+      resetForm();
       fetchProducts();
     } catch (err) {
-      console.error('Error saving product:', err.response?.data || err.message);
+      console.error('Error saving product:', err);
       toast.error(err.response?.data?.message || err.message || 'Failed to save product');
     } finally {
       setSubmitting(false);
@@ -722,8 +741,8 @@ function ProductManagement() {
                     alt="Main Preview"
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
-                      e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                      e.target.onerror = null;
+                      e.target.src = '/default-product.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
                     }}
                   />
                 </div>
@@ -731,12 +750,12 @@ function ProductManagement() {
               {editingProductId && !formData.mainImage && (
                 <div className="image-preview">
                   <img
-                    src={products.find((p) => p._id === editingProductId)?.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'}
+                    src={products.find((p) => p._id === editingProductId)?.image || '/default-product.jpg'}
                     alt="Current Main"
                     onError={(e) => {
                       console.log('Current main image load failed:', e.target.src);
-                      e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                      e.target.onerror = null;
+                      e.target.src = '/default-product.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
                     }}
                   />
                 </div>
@@ -760,8 +779,8 @@ function ProductManagement() {
                       alt={`Existing ${index}`}
                       onError={(e) => {
                         console.log('Existing image load failed:', e.target.src);
-                        e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                        e.target.onerror = null;
+                        e.target.src = '/default-product.jpg';
+                        e.target.onerror = null; // Prevent infinite loop
                       }}
                     />
                     <button
@@ -785,8 +804,8 @@ function ProductManagement() {
                       alt={`New ${index}`}
                       onError={(e) => {
                         console.log('New image load failed:', e.target.src);
-                        e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                        e.target.onerror = null;
+                        e.target.src = '/default-product.jpg';
+                        e.target.onerror = null; // Prevent infinite loop
                       }}
                     />
                     <button
@@ -909,13 +928,13 @@ function ProductManagement() {
                 />
                 <div className="image-wrapper">
                   <img
-                    src={product.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'}
+                    src={product.image || '/default-product.jpg'}
                     alt={product.name}
                     className="product-image"
                     onError={(e) => {
                       console.log('Product image load failed:', e.target.src);
-                      e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                      e.target.onerror = null;
+                      e.target.src = '/default-product.jpg';
+                      e.target.onerror = null; // Prevent infinite loop
                     }}
                   />
                 </div>
@@ -1022,13 +1041,13 @@ function ProductManagement() {
             <h2>{previewModal.name}</h2>
             <div className="image-wrapper">
               <img
-                src={previewModal.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'}
+                src={previewModal.image || '/default-product.jpg'}
                 alt={previewModal.name}
                 className="modal-image"
                 onError={(e) => {
                   console.log('Modal image load failed:', e.target.src);
-                  e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                  e.target.onerror = null;
+                  e.target.src = '/default-product.jpg';
+                  e.target.onerror = null; // Prevent infinite loop
                 }}
               />
             </div>
@@ -1071,8 +1090,8 @@ function ProductManagement() {
                         className="gallery-image"
                         onError={(e) => {
                           console.log('Gallery image load failed:', e.target.src);
-                          e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                          e.target.onerror = null;
+                          e.target.src = '/default-product.jpg';
+                          e.target.onerror = null; // Prevent infinite loop
                         }}
                       />
                     </div>
@@ -1137,9 +1156,7 @@ export default ProductManagement;
 
 
 
-
-
-/* import { useState, useEffect } from 'react';
+/*  import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { CSVLink } from 'react-csv';
@@ -2234,4 +2251,4 @@ function ProductManagement() {
   );
 }
 
-export default ProductManagement; */
+export default ProductManagement;  */

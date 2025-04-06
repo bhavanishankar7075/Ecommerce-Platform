@@ -7,7 +7,6 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { FaBox, FaExclamationTriangle, FaMoneyBillWave, FaPlus, FaDownload, FaEye } from 'react-icons/fa';
 import '../styles/Dashboard.css';
 
-// Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function Dashboard() {
@@ -28,9 +27,7 @@ function Dashboard() {
     localStorage.setItem('theme', newTheme);
   };
 
-  useEffect(() => {
-    document.body.className = theme;
-  }, [theme]);
+  useEffect(() => { document.body.className = theme; }, [theme]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -42,18 +39,14 @@ function Dashboard() {
 
     const fetchProducts = async () => {
       try {
-        const params = new URLSearchParams({
-          page: currentPage,
-          limit: productsPerPage,
-        });
-
+        const params = new URLSearchParams({ page: currentPage, limit: productsPerPage });
         const res = await axios.get(`https://backend-ps76.onrender.com/api/admin/products?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const updatedProducts = res.data.products.map(product => ({
           ...product,
-          image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : `https://backend-ps76.onrender.com/uploads/default-product.jpg`,
+          image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : null,
         }));
 
         setProducts(updatedProducts);
@@ -79,31 +72,11 @@ function Dashboard() {
 
   const chartData = {
     labels: Object.keys(categoryData),
-    datasets: [
-      {
-        data: Object.values(categoryData),
-        backgroundColor: [
-          '#FF6384',
-          '#36A2EB',
-          '#FFCE56',
-          '#4BC0C0',
-          '#9966FF',
-          '#FF9F40',
-          '#C9CB3F',
-          '#FF6F61',
-        ],
-        hoverBackgroundColor: [
-          '#FF4F6B',
-          '#2A91D8',
-          '#FFBB33',
-          '#3A9C9C',
-          '#8855EE',
-          '#FF8C26',
-          '#B5B72F',
-          '#FF5A4D',
-        ],
-      },
-    ],
+    datasets: [{
+      data: Object.values(categoryData),
+      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CB3F', '#FF6F61'],
+      hoverBackgroundColor: ['#FF4F6B', '#2A91D8', '#FFBB33', '#3A9C9C', '#8855EE', '#FF8C26', '#B5B72F', '#FF5A4D'],
+    }],
   };
 
   const totalProducts = products.length;
@@ -116,18 +89,12 @@ function Dashboard() {
     if (sortField === 'price' || sortField === 'stock') {
       return sortOrder === 'asc' ? fieldA - fieldB : fieldB - fieldA;
     }
-    return sortOrder === 'asc'
-      ? fieldA.localeCompare(fieldB)
-      : fieldB.localeCompare(fieldA);
+    return sortOrder === 'asc' ? fieldA.localeCompare(fieldB) : fieldB.localeCompare(fieldA);
   });
 
   const handleSort = (field) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
+    if (sortField === field) setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortOrder('asc'); }
   };
 
   if (loading) return <div className="loading">Loading...</div>;
@@ -141,64 +108,27 @@ function Dashboard() {
           <h2>Admin Dashboard</h2>
           <div className="header-actions">
             <label className="theme-toggle">
-              <input
-                type="checkbox"
-                checked={theme === 'dark'}
-                onChange={toggleTheme}
-              />
+              <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
               {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
             </label>
-            <button
-              className="products-btn"
-              onClick={() => navigate('/products')}
-            >
+            <button className="products-btn" onClick={() => navigate('/products')}>
               Go to Products
             </button>
           </div>
         </div>
 
         <div className="stats-grid">
-          <div className="stat-card">
-            <FaBox className="stat-icon" />
-            <div>
-              <h4>Total Products</h4>
-              <p>{totalProducts}</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <FaExclamationTriangle className="stat-icon" />
-            <div>
-              <h4>Low Stock</h4>
-              <p>{lowStockProducts}</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <FaMoneyBillWave className="stat-icon" />
-            <div>
-              <h4>Total Revenue</h4>
-              <p>₹{totalRevenue.toFixed(2)}</p>
-            </div>
-          </div>
+          <div className="stat-card"><FaBox className="stat-icon" /><div><h4>Total Products</h4><p>{totalProducts}</p></div></div>
+          <div className="stat-card"><FaExclamationTriangle className="stat-icon" /><div><h4>Low Stock</h4><p>{lowStockProducts}</p></div></div>
+          <div className="stat-card"><FaMoneyBillWave className="stat-icon" /><div><h4>Total Revenue</h4><p>₹{totalRevenue.toFixed(2)}</p></div></div>
         </div>
 
         <div className="quick-actions">
           <h3>Quick Actions</h3>
           <div className="action-buttons">
-            <button
-              className="action-btn"
-              onClick={() => navigate('/products')}
-            >
-              <FaPlus /> Add New Product
-            </button>
-            <button
-              className="action-btn"
-              onClick={() => navigate('/products?filter=lowStock')}
-            >
-              <FaEye /> View Low Stock
-            </button>
-            <button className="action-btn">
-              <FaDownload /> Export Data
-            </button>
+            <button className="action-btn" onClick={() => navigate('/products')}><FaPlus /> Add New Product</button>
+            <button className="action-btn" onClick={() => navigate('/products?filter=lowStock')}><FaEye /> View Low Stock</button>
+            <button className="action-btn"><FaDownload /> Export Data</button>
           </div>
         </div>
 
@@ -212,73 +142,27 @@ function Dashboard() {
         <div className="products-list">
           <h3>Products Overview</h3>
           <table className="products-table">
-            <thead>
-              <tr>
-                <th onClick={() => handleSort('name')}>
-                  Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
-                </th>
-                <th onClick={() => handleSort('category')}>
-                  Category {sortField === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}
-                </th>
-                <th onClick={() => handleSort('price')}>
-                  Price {sortField === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}
-                </th>
-                <th onClick={() => handleSort('stock')}>
-                  Stock {sortField === 'stock' && (sortOrder === 'asc' ? '↑' : '↓')}
-                </th>
-                <th>Image</th>
-              </tr>
-            </thead>
+            <thead><tr><th onClick={() => handleSort('name')}>Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+              <th onClick={() => handleSort('category')}>Category {sortField === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+              <th onClick={() => handleSort('price')}>Price {sortField === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+              <th onClick={() => handleSort('stock')}>Stock {sortField === 'stock' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+              <th>Image</th></tr></thead>
             <tbody>
-              {sortedProducts.length > 0 ? (
-                sortedProducts.map((product) => (
-                  <tr key={product._id} className={product.stock <= 5 ? 'low-stock' : ''}>
-                    <td>{product.name}</td>
-                    <td>{product.category}</td>
-                    <td>₹{Number(product.price).toFixed(2)}</td>
-                    <td>
-                      {product.stock}{' '}
-                      {product.stock <= 5 && <span className="low-stock-badge">Low</span>}
-                    </td>
-                    <td>
-                      <img
-                        src={product.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'}
-                        alt={product.name}
-                        width="50"
-                        onError={(e) => {
-                          console.log('Dashboard image load failed:', e.target.src);
-                          e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
-                          e.target.onerror = null;
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5">No products found.</td>
+              {sortedProducts.length > 0 ? sortedProducts.map((product) => (
+                <tr key={product._id} className={product.stock <= 5 ? 'low-stock' : ''}>
+                  <td>{product.name}</td><td>{product.category}</td><td>₹{Number(product.price).toFixed(2)}</td>
+                  <td>{product.stock} {product.stock <= 5 && <span className="low-stock-badge">Low</span>}</td>
+                  <td><img src={product.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'} alt={product.name} width="50" onError={(e) => { console.log('Dashboard image load failed:', e.target.src); e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg'; e.target.onerror = null; }} /></td>
                 </tr>
-              )}
+              )) : <tr><td colSpan="5">No products found.</td></tr>}
             </tbody>
           </table>
 
           {totalPages > 1 && (
             <div className="pagination">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </button>
-              <span>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </button>
+              <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Previous</button>
+              <span>Page {currentPage} of {totalPages}</span>
+              <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Next</button>
             </div>
           )}
         </div>
