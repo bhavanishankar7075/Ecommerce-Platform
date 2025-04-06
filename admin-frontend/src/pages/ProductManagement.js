@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -121,21 +120,27 @@ function ProductManagement() {
 
       console.log('Fetched products response (raw):', res.data);
 
-      // Robust image URL preprocessing
+      // Robust image URL preprocessing with local URL replacement
       const baseUrl = 'https://backend-ps76.onrender.com';
       const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => {
-        const processedImage = product.image
-          ? product.image.startsWith('http')
-            ? product.image
-            : `${baseUrl}${product.image.startsWith('/') ? product.image : '/' + product.image}`
-          : '/default-product.jpg'; // Relative to frontend, not backend
-        const processedImages = product.images
-          ? product.images.map(img =>
-              img.startsWith('http')
-                ? img
-                : `${baseUrl}${img.startsWith('/') ? img : '/' + img}`
-            )
-          : [];
+        let processedImage = product.image || '/default-product.jpg';
+        let processedImages = product.images || [];
+
+        // Replace local URLs with deployed baseUrl
+        if (processedImage.startsWith('http://localhost:')) {
+          processedImage = `${baseUrl}${processedImage.replace('http://localhost:5001', '')}`;
+        } else if (!processedImage.startsWith('http')) {
+          processedImage = `${baseUrl}${processedImage.startsWith('/') ? processedImage : '/' + processedImage}`;
+        }
+
+        processedImages = processedImages.map(img => {
+          if (img.startsWith('http://localhost:')) {
+            return `${baseUrl}${img.replace('http://localhost:5001', '')}`;
+          } else if (!img.startsWith('http')) {
+            return `${baseUrl}${img.startsWith('/') ? img : '/' + img}`;
+          }
+          return img;
+        });
 
         console.log(`Processing product ${product._id}: image = ${processedImage}, images = ${processedImages.join(', ')}`);
 
@@ -355,7 +360,19 @@ function ProductManagement() {
         });
         updatedProduct = res.data.product;
         console.log('New product from backend with images:', updatedProduct);
-        setProducts((prev) => [{ ...updatedProduct, image: `https://backend-ps76.onrender.com${updatedProduct.image}`, images: updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) }, ...prev].slice(0, productsPerPage));
+
+        // Ensure image URLs are correctly processed
+        const baseUrl = 'https://backend-ps76.onrender.com';
+        const processedImage = updatedProduct.image.startsWith('http://localhost:')
+          ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}`
+          : updatedProduct.image;
+        const processedImages = updatedProduct.images.map(img =>
+          img.startsWith('http://localhost:')
+            ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
+            : img
+        );
+
+        setProducts((prev) => [{ ...updatedProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
         setCurrentPage(1);
         toast.success('Product added successfully!');
       }
@@ -488,7 +505,17 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      setProducts((prev) => [{ ...newProduct, image: `https://backend-ps76.onrender.com${newProduct.image}`, images: newProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) }, ...prev].slice(0, productsPerPage));
+      const baseUrl = 'https://backend-ps76.onrender.com';
+      const processedImage = newProduct.image.startsWith('http://localhost:')
+        ? `${baseUrl}${newProduct.image.replace('http://localhost:5001', '')}`
+        : newProduct.image;
+      const processedImages = newProduct.images.map(img =>
+        img.startsWith('http://localhost:')
+          ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
+          : img
+      );
+
+      setProducts((prev) => [{ ...newProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
       setCurrentPage(1);
       toast.success('Product duplicated successfully!');
       fetchProducts();
@@ -518,8 +545,18 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
+      const baseUrl = 'https://backend-ps76.onrender.com';
+      const processedImage = updatedProduct.image.startsWith('http://localhost:')
+        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}`
+        : updatedProduct.image;
+      const processedImages = updatedProduct.images.map(img =>
+        img.startsWith('http://localhost:')
+          ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
+          : img
+      );
+
       setProducts((prev) =>
-        prev.map((p) => (p._id === productId ? { ...updatedProduct, image: `https://backend-ps76.onrender.com${updatedProduct.image}`, images: updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) } : p))
+        prev.map((p) => (p._id === productId ? { ...updatedProduct, image: processedImage, images: processedImages } : p))
       );
       toast.success(`Product ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
     } catch (err) {
@@ -740,7 +777,7 @@ function ProductManagement() {
                     alt="Main Preview"
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
-                      e.target.src = '/default-product.jpg'; // Relative to frontend
+                      e.target.src = '/default-product.jpg'; // Relative to frontend public directory
                       e.target.onerror = null;
                     }}
                   />
@@ -927,7 +964,7 @@ function ProductManagement() {
                 />
                 <div className="image-wrapper">
                   <img
-                    src={product.image || '/default-product.jpg'} // Relative to frontend
+                    src={product.image || '/default-product.jpg'} // Relative to frontend public directory
                     alt={product.name}
                     className="product-image"
                     onError={(e) => {
@@ -1040,7 +1077,7 @@ function ProductManagement() {
             <h2>{previewModal.name}</h2>
             <div className="image-wrapper">
               <img
-                src={previewModal.image || '/default-product.jpg'} // Relative to frontend
+                src={previewModal.image || '/default-product.jpg'} // Relative to frontend public directory
                 alt={previewModal.name}
                 className="modal-image"
                 onError={(e) => {
@@ -1106,6 +1143,7 @@ function ProductManagement() {
 }
 
 export default ProductManagement;
+
 
 
 
