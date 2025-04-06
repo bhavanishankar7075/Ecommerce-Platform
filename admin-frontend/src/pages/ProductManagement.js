@@ -165,11 +165,10 @@ function ProductManagement() {
         toast.error('Image size should not exceed 5MB');
         return;
       }
-      setFormData((prev) => {
-        const updatedFormData = { ...prev, mainImage: file };
-        console.log('Updated formData after main image selection:', updatedFormData);
-        return updatedFormData;
-      });
+      setFormData((prev) => ({
+        ...prev,
+        mainImage: file,
+      }));
     } else if (name === 'images') {
       const validFiles = Array.from(files).filter((file) => {
         if (!allowedTypes.includes(file.type)) {
@@ -183,14 +182,10 @@ function ProductManagement() {
         return true;
       });
       console.log('Selected additional images:', validFiles);
-      setFormData((prev) => {
-        const updatedFormData = {
-          ...prev,
-          newImages: [...prev.newImages, ...validFiles],
-        };
-        console.log('Updated formData after additional images selection:', updatedFormData);
-        return updatedFormData;
-      });
+      setFormData((prev) => ({
+        ...prev,
+        newImages: [...prev.newImages, ...validFiles],
+      }));
     }
   };
 
@@ -297,13 +292,9 @@ function ProductManagement() {
       }
     });
     if (editingProductId) {
-      // Clean the existingImages array to remove the base URL before sending to the backend
-      const cleanedExistingImages = formData.existingImages.map(img => {
-        if (img.startsWith('https://backend-ps76.onrender.com')) {
-          return img.replace('https://backend-ps76.onrender.com', '');
-        }
-        return img;
-      });
+      const cleanedExistingImages = formData.existingImages.map(img =>
+        img.startsWith('https://backend-ps76.onrender.com') ? img.replace('https://backend-ps76.onrender.com', '') : img
+      );
       form.append('existingImages', JSON.stringify(cleanedExistingImages));
     }
 
@@ -327,7 +318,6 @@ function ProductManagement() {
         );
         updatedProduct = res.data.product;
         console.log('Updated product from backend:', updatedProduct);
-        // Update formData.existingImages with the new images array from the backend
         setFormData((prev) => ({
           ...prev,
           existingImages: updatedProduct.images ? updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) : [],
@@ -347,11 +337,11 @@ function ProductManagement() {
           },
         });
         updatedProduct = res.data.product;
+        console.log('New product from backend:', updatedProduct); // Log to debug image URL
         setProducts((prev) => [updatedProduct, ...prev].slice(0, productsPerPage));
         setCurrentPage(1);
         toast.success('Product added successfully!');
       }
-      // Reset the form after updating the state
       resetForm();
       fetchProducts();
     } catch (err) {
@@ -734,20 +724,20 @@ function ProductManagement() {
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
                       e.target.src = '/default-product.jpg';
-                      e.target.onerror = null; // Prevent infinite loop
+                      e.target.onerror = null;
                     }}
                   />
                 </div>
               )}
-              {editingProductId && !formData.mainImage && (
+              {editingProductId && !formData.mainImage && formData.existingImages.length > 0 && (
                 <div className="image-preview">
                   <img
-                    src={products.find((p) => p._id === editingProductId)?.image || '/default-product.jpg'}
+                    src={formData.existingImages[0] || '/default-product.jpg'}
                     alt="Current Main"
                     onError={(e) => {
                       console.log('Current main image load failed:', e.target.src);
                       e.target.src = '/default-product.jpg';
-                      e.target.onerror = null; // Prevent infinite loop
+                      e.target.onerror = null;
                     }}
                   />
                 </div>
@@ -772,7 +762,7 @@ function ProductManagement() {
                       onError={(e) => {
                         console.log('Existing image load failed:', e.target.src);
                         e.target.src = '/default-product.jpg';
-                        e.target.onerror = null; // Prevent infinite loop
+                        e.target.onerror = null;
                       }}
                     />
                     <button
@@ -797,7 +787,7 @@ function ProductManagement() {
                       onError={(e) => {
                         console.log('New image load failed:', e.target.src);
                         e.target.src = '/default-product.jpg';
-                        e.target.onerror = null; // Prevent infinite loop
+                        e.target.onerror = null;
                       }}
                     />
                     <button
@@ -926,7 +916,7 @@ function ProductManagement() {
                     onError={(e) => {
                       console.log('Product image load failed:', e.target.src);
                       e.target.src = '/default-product.jpg';
-                      e.target.onerror = null; // Prevent infinite loop
+                      e.target.onerror = null;
                     }}
                   />
                 </div>
@@ -1039,7 +1029,7 @@ function ProductManagement() {
                 onError={(e) => {
                   console.log('Modal image load failed:', e.target.src);
                   e.target.src = '/default-product.jpg';
-                  e.target.onerror = null; // Prevent infinite loop
+                  e.target.onerror = null;
                 }}
               />
             </div>
@@ -1083,7 +1073,7 @@ function ProductManagement() {
                         onError={(e) => {
                           console.log('Gallery image load failed:', e.target.src);
                           e.target.src = '/default-product.jpg';
-                          e.target.onerror = null; // Prevent infinite loop
+                          e.target.onerror = null;
                         }}
                       />
                     </div>
