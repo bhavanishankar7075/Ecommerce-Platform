@@ -126,6 +126,14 @@ body.dark .stat-card h4 {
   font-size: 1.5em;
   font-weight: bold;
 }
+.loading{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 2em;
+  color: var(--text-light);
+}
 
 /* Quick Actions */
 .quick-actions {
