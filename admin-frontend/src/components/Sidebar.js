@@ -1,4 +1,3 @@
-// admin-frontend/src/components/Sidebar.js
 import { Link, useNavigate } from 'react-router-dom';
 import '../styles/Sidebar.css';
 
@@ -41,8 +40,8 @@ function Sidebar() {
         </li>
         <li>
           <Link to="/admin/orders">
-            <span className="icon">🔑</span>
-            <span className="text">orders</span>
+            <span className="icon">🛒</span>
+            <span className="text">Orders</span>
           </Link>
         </li>
         {isLoggedIn && (

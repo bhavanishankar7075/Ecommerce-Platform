@@ -11,6 +11,8 @@
   --accent-color: #007bff;
   --low-stock-bg: #fff3cd;
   --low-stock-text: #856404;
+  --sidebar-width: 250px; /* Sync with Sidebar.css */
+  --sidebar-mobile-width: 70px; /* Sync with Sidebar.css */
 }
 
 /* Apply theme to body */
@@ -27,12 +29,15 @@ body.dark {
 .dashboard-container {
   display: flex;
   min-height: 100vh;
+  overflow-x: hidden; /* Prevent horizontal scrolling at container level */
 }
 
 .dashboard-content {
   flex: 1;
   padding: 20px;
-  margin-left: 250px; /* Adjust based on Sidebar width */
+  margin-left: var(--sidebar-width); /* Dynamic margin based on sidebar width */
+  transition: margin-left 0.3s ease;
+  box-sizing: border-box;
 }
 
 /* Header */
@@ -142,13 +147,14 @@ body.dark .stat-card h4 {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 8px 15px;
+  padding: 10px 15px; /* Increased padding for touch */
   background: var(--accent-color);
   color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9em;
+  min-width: 150px; /* Ensure touch-friendly size */
 }
 
 .action-btn:hover {
@@ -262,11 +268,12 @@ body.dark .low-stock {
 }
 
 .pagination button {
-  padding: 8px 15px;
+  padding: 10px 15px; /* Increased padding for touch */
   border: 1px solid #ddd;
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
+  font-size: 0.9em;
 }
 
 body.dark .pagination button {
@@ -293,86 +300,141 @@ body.dark .pagination span {
   color: #e0e0e0;
 }
 
-/* Activity Log */
-.activity-log {
-  background: var(--card-bg-light);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-body.dark .activity-log {
-  background: var(--card-bg-dark);
-}
-
-.activity-log h3 {
-  font-size: 1.4em;
-  margin-bottom: 15px;
-}
-
-.activity-log ul {
-  list-style: none;
-  padding: 0;
-}
-
-.activity-log li {
-  padding: 8px 0;
-  border-bottom: 1px solid #ddd;
-}
-
-body.dark .activity-log li {
-  border-bottom: 1px solid #444;
-}
-
-.activity-log li:last-child {
-  border-bottom: none;
-}
-
-/* Loading and Error States */
-.loading,
-.error {
-  text-align: center;
-  font-size: 1.2em;
-  margin-top: 50px;
-}
-
-.error {
-  color: #dc3545;
-}
-
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1200px) { /* Large (lg) */
   .dashboard-content {
-    margin-left: 0;
     padding: 15px;
   }
-
-  .header {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .header-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
   .chart-container {
-    max-width: 100%;
+    max-width: 350px;
     height: 250px;
   }
+  .products-table th,
+  .products-table td {
+    padding: 10px;
+  }
+  .action-btn {
+    min-width: 140px;
+  }
+}
 
+@media (max-width: 992px) { /* Medium (md) */
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  .chart-container {
+    max-width: 300px;
+    height: 220px;
+  }
   .products-table th,
   .products-table td {
     padding: 8px;
     font-size: 0.9em;
   }
-
   .products-table img {
     width: 40px;
   }
+  .action-btn {
+    min-width: 130px;
+    font-size: 0.85em;
+  }
+}
+
+@media (max-width: 768px) { /* Small (sm) */
+  .dashboard-content {
+    margin-left: var(--sidebar-mobile-width); /* Adjust for collapsed sidebar */
+    padding: 10px;
+  }
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .header-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .chart-container {
+    max-width: 100%;
+    height: 200px;
+    padding: 15px;
+  }
+  .products-table {
+    display: block;
+    overflow-x: auto; /* Allow horizontal scroll for table on small screens */
+  }
+  .products-table th,
+  .products-table td {
+    min-width: 120px;
+    font-size: 0.85em;
+  }
+  .products-table img {
+    width: 35px;
+  }
+  .action-btn {
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 0.8em;
+  }
+}
+
+@media (max-width: 576px) { /* Extra Small (xs) */
+  .dashboard-content {
+    padding: 5px;
+  }
+  .header h2 {
+    font-size: 1.5em;
+  }
+  .stats-grid {
+    gap: 10px;
+  }
+  .stat-card {
+    padding: 10px;
+    gap: 10px;
+  }
+  .stat-icon {
+    font-size: 1.5em;
+  }
+  .stat-card h4 {
+    font-size: 1em;
+  }
+  .stat-card p {
+    font-size: 1.2em;
+  }
+  .quick-actions h3,
+  .chart-section h3,
+  .products-list h3 {
+    font-size: 1.2em;
+  }
+  .chart-container {
+    height: 180px;
+    padding: 10px;
+  }
+  .products-table th,
+  .products-table td {
+    min-width: 100px;
+    padding: 6px;
+    font-size: 0.8em;
+  }
+  .products-table img {
+    width: 30px;
+  }
+  .action-btn {
+    min-width: 100px;
+    padding: 6px 10px;
+    font-size: 0.75em;
+  }
+  .pagination button {
+    padding: 8px 12px;
+    font-size: 0.8em;
+  }
+}
+
+/* Ensure no extra scrolling */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }

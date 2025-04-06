@@ -1,6 +1,6 @@
 // admin-frontend/src/components/StatsPanel.js
 import '../styles/StatsPanel.css';
-
+ 
 function StatsPanel({ products }) {
   const totalProducts = products.length;
   const totalStock = products.reduce((sum, product) => sum + product.stock, 0);
