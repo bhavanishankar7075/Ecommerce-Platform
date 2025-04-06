@@ -1,5 +1,4 @@
 /* ProductDetails.css */
-
 /* General Styles */
 .product-details-container {
   font-family: 'Roboto', sans-serif;
@@ -94,14 +93,16 @@
 
 .main-image {
   position: relative;
-  width: 100%;
-  height: 400px;
+  width: 400px; /* Fixed width */
+  height: 400px; /* Fixed height */
+  max-width: 100%; /* Responsive fallback */
+  max-height: 100%; /* Responsive fallback */
 }
 
 .main-image img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: contain; /* Maintain aspect ratio within fixed size */
 }
 
 .zoom-lens {
@@ -296,6 +297,17 @@
   gap: 15px;
   margin-bottom: 20px;
   align-items: center;
+}
+/* Loading Container - Centered */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full viewport height */
+  text-align: center;
+  padding: 20px;
+  position: relative; /* Ensure proper positioning context */
 }
 
 .add-to-cart,
@@ -796,7 +808,6 @@
   gap: 10px;
 }
 
-/* Notify Modal (continued) */
 .notify-modal-content input {
   padding: 10px;
   border: 1px solid #e0e0e0;
@@ -911,7 +922,8 @@
   }
 
   .main-image {
-    height: 300px;
+    width: 300px; /* Adjusted fixed size for mobile */
+    height: 300px; /* Adjusted fixed size for mobile */
   }
 
   .zoom-lens,
@@ -1031,7 +1043,8 @@
   }
 
   .main-image {
-    height: 400px;
+    width: 400px; /* Fixed size */
+    height: 400px; /* Fixed size */
   }
 
   .action-buttons-mobile {
@@ -1072,7 +1085,8 @@
   }
 
   .main-image {
-    height: 450px;
+    width: 450px; /* Fixed size */
+    height: 450px; /* Fixed size */
   }
 
   .zoom-result {
@@ -1093,7 +1107,6 @@
   .recently-viewed-card {
     max-width: 200px;
   }
-  
 }
 
 /* Large Devices (Desktops, 992px and up) */
@@ -1107,7 +1120,8 @@
   }
 
   .main-image {
-    height: 500px;
+    width: 500px; /* Fixed size */
+    height: 500px; /* Fixed size */
   }
 
   .zoom-result {
@@ -1141,7 +1155,8 @@
   }
 
   .main-image {
-    height: 550px;
+    width: 550px; /* Fixed size */
+    height: 550px; /* Fixed size */
   }
 
   .zoom-result {
@@ -1170,4 +1185,11 @@
   .zoom-result {
     display: none; /* Fallback for smaller screens if positioning fails */
   }
+}
+
+/* Ensure no extra scrolling */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
