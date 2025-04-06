@@ -17,12 +17,11 @@ function Dashboard() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [sortField, setSortField] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [currentPage, setCurrentPage] = useState(1); // Add state for current page
-  const [totalPages, setTotalPages] = useState(1); // Add state for total pages
-  const productsPerPage = 10; // Number of products per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const productsPerPage = 10;
   const navigate = useNavigate();
 
-  // Toggle theme and save to localStorage
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
@@ -30,7 +29,7 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    document.body.className = theme; // Apply theme to body for global styling
+    document.body.className = theme;
   }, [theme]);
 
   useEffect(() => {
@@ -52,14 +51,13 @@ function Dashboard() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // Prepend backend URL to image paths if they are relative
         const updatedProducts = res.data.products.map(product => ({
           ...product,
-          image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : `https://backend-ps76.onrender.com/uploads/default-image.png`,
+          image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : `https://backend-ps76.onrender.com/uploads/default-product.jpg`,
         }));
 
         setProducts(updatedProducts);
-        setTotalPages(res.data.totalPages || 1); // Set total pages from API response
+        setTotalPages(res.data.totalPages || 1);
       } catch (err) {
         setError(err.response?.data?.message || 'Error fetching products');
         if (err.response?.status === 401) {
@@ -72,9 +70,8 @@ function Dashboard() {
     };
 
     fetchProducts();
-  }, [navigate, currentPage]); // Re-fetch products when currentPage changes
+  }, [navigate, currentPage]);
 
-  // Prepare data for category distribution chart
   const categoryData = products.reduce((acc, product) => {
     acc[product.category] = (acc[product.category] || 0) + 1;
     return acc;
@@ -109,12 +106,10 @@ function Dashboard() {
     ],
   };
 
-  // Calculate stats
   const totalProducts = products.length;
   const lowStockProducts = products.filter((p) => p.stock <= 5).length;
   const totalRevenue = products.reduce((sum, p) => sum + p.price * (p.stock || 0), 0);
 
-  // Sort products
   const sortedProducts = [...products].sort((a, b) => {
     const fieldA = a[sortField];
     const fieldB = b[sortField];
@@ -142,7 +137,6 @@ function Dashboard() {
     <div className={`dashboard-container ${theme}`}>
       <Sidebar />
       <div className="dashboard-content">
-        {/* Header */}
         <div className="header">
           <h2>Admin Dashboard</h2>
           <div className="header-actions">
@@ -163,7 +157,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="stats-grid">
           <div className="stat-card">
             <FaBox className="stat-icon" />
@@ -188,7 +181,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="quick-actions">
           <h3>Quick Actions</h3>
           <div className="action-buttons">
@@ -210,7 +202,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Category Distribution Chart */}
         <div className="chart-section">
           <h3>Category Distribution</h3>
           <div className="chart-container">
@@ -218,7 +209,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Product List */}
         <div className="products-list">
           <h3>Products Overview</h3>
           <table className="products-table">
@@ -252,13 +242,13 @@ function Dashboard() {
                     </td>
                     <td>
                       <img
-                        src={product.image || 'https://backend-ps76.onrender.com/uploads/default-image.png'}
+                        src={product.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'}
                         alt={product.name}
                         width="50"
                         onError={(e) => {
                           console.log('Dashboard image load failed:', e.target.src);
-                          e.target.src = 'https://backend-ps76.onrender.com/uploads/default-image.png';
-                          e.target.onerror = null; // Prevent infinite loop
+                          e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg';
+                          e.target.onerror = null;
                         }}
                       />
                     </td>
@@ -272,7 +262,6 @@ function Dashboard() {
             </tbody>
           </table>
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="pagination">
               <button
