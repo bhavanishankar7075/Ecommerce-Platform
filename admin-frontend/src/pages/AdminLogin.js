@@ -1,7 +1,7 @@
 
  // admin-frontend/src/pages/AdminLogin.js
  import { useState } from 'react';
- import { useNavigate } from 'react-router-dom';
+ import { useNavigate,Link } from 'react-router-dom';
  import axios from 'axios';
  import '../styles/AdminLogin.css';
  
@@ -50,6 +50,9 @@
              required
            />
            <button type="submit">Login</button>
+          <p className="login-link">
+            did not have account? <Link to="/signup">Signup</Link> {/* Updated path to /admin/login */}
+          </p>
          </form>
        </div>
      </div>

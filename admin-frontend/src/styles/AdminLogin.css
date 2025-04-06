@@ -66,6 +66,25 @@
   transform: scale(1.05);
 }
 
+ .login-link {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #e0e0e0;
+}
+
+.login-link a {
+  color: #00d4ff;
+  font-weight: bold;
+}
+
+.login-link a:hover {
+  color: #00b0cc;
+}
+.login-link{
+  margin-top: 15px;
+}
+
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-card {

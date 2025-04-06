@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -118,15 +119,33 @@ function ProductManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log('Fetched products response:', res.data);
+      console.log('Fetched products response (raw):', res.data);
 
-      // Preprocess image URLs to include the Render base URL
-      const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => ({
-        ...product,
-        selected: product.selected || false,
-        image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : '/default-product.jpg',
-        images: product.images ? product.images.map(img => img.startsWith('http') ? img : `https://backend-ps76.onrender.com${img}`) : [],
-      }));
+      // Robust image URL preprocessing
+      const baseUrl = 'https://backend-ps76.onrender.com';
+      const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => {
+        const processedImage = product.image
+          ? product.image.startsWith('http')
+            ? product.image
+            : `${baseUrl}${product.image.startsWith('/') ? product.image : '/' + product.image}`
+          : '/default-product.jpg'; // Relative to frontend, not backend
+        const processedImages = product.images
+          ? product.images.map(img =>
+              img.startsWith('http')
+                ? img
+                : `${baseUrl}${img.startsWith('/') ? img : '/' + img}`
+            )
+          : [];
+
+        console.log(`Processing product ${product._id}: image = ${processedImage}, images = ${processedImages.join(', ')}`);
+
+        return {
+          ...product,
+          selected: product.selected || false,
+          image: processedImage,
+          images: processedImages,
+        };
+      });
 
       setProducts(initializedProducts);
       setTotalPages(res.data.totalPages || 1);
@@ -156,7 +175,6 @@ function ProductManagement() {
     if (name === 'mainImage') {
       const file = files[0];
       if (!file) return;
-      console.log('Selected main image:', file);
       if (!allowedTypes.includes(file.type)) {
         toast.error('Please upload a valid image (JPEG, PNG, or WebP)');
         return;
@@ -181,7 +199,6 @@ function ProductManagement() {
         }
         return true;
       });
-      console.log('Selected additional images:', validFiles);
       setFormData((prev) => ({
         ...prev,
         newImages: [...prev.newImages, ...validFiles],
@@ -323,7 +340,7 @@ function ProductManagement() {
           existingImages: updatedProduct.images ? updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) : [],
         }));
         setProducts((prev) =>
-          prev.map((p) => (p._id === editingProductId ? updatedProduct : p))
+          prev.map((p) => (p._id === editingProductId ? { ...updatedProduct, image: `https://backend-ps76.onrender.com${updatedProduct.image}`, images: updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) } : p))
         );
         toast.success('Product updated successfully!');
       } else {
@@ -337,8 +354,8 @@ function ProductManagement() {
           },
         });
         updatedProduct = res.data.product;
-        console.log('New product from backend:', updatedProduct); // Log to debug image URL
-        setProducts((prev) => [updatedProduct, ...prev].slice(0, productsPerPage));
+        console.log('New product from backend with images:', updatedProduct);
+        setProducts((prev) => [{ ...updatedProduct, image: `https://backend-ps76.onrender.com${updatedProduct.image}`, images: updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) }, ...prev].slice(0, productsPerPage));
         setCurrentPage(1);
         toast.success('Product added successfully!');
       }
@@ -471,7 +488,7 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      setProducts((prev) => [newProduct, ...prev].slice(0, productsPerPage));
+      setProducts((prev) => [{ ...newProduct, image: `https://backend-ps76.onrender.com${newProduct.image}`, images: newProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) }, ...prev].slice(0, productsPerPage));
       setCurrentPage(1);
       toast.success('Product duplicated successfully!');
       fetchProducts();
@@ -502,7 +519,7 @@ function ProductManagement() {
       }
 
       setProducts((prev) =>
-        prev.map((p) => (p._id === productId ? updatedProduct : p))
+        prev.map((p) => (p._id === productId ? { ...updatedProduct, image: `https://backend-ps76.onrender.com${updatedProduct.image}`, images: updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) } : p))
       );
       toast.success(`Product ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
     } catch (err) {
@@ -723,7 +740,7 @@ function ProductManagement() {
                     alt="Main Preview"
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
-                      e.target.src = '/default-product.jpg';
+                      e.target.src = '/default-product.jpg'; // Relative to frontend
                       e.target.onerror = null;
                     }}
                   />
@@ -910,12 +927,12 @@ function ProductManagement() {
                 />
                 <div className="image-wrapper">
                   <img
-                    src={product.image || '/default-product.jpg'}
+                    src={product.image || '/default-product.jpg'} // Relative to frontend
                     alt={product.name}
                     className="product-image"
                     onError={(e) => {
                       console.log('Product image load failed:', e.target.src);
-                      e.target.src = '/default-product.jpg';
+                      e.target.src = '/default-product.jpg'; // Ensure relative path
                       e.target.onerror = null;
                     }}
                   />
@@ -1023,7 +1040,7 @@ function ProductManagement() {
             <h2>{previewModal.name}</h2>
             <div className="image-wrapper">
               <img
-                src={previewModal.image || '/default-product.jpg'}
+                src={previewModal.image || '/default-product.jpg'} // Relative to frontend
                 alt={previewModal.name}
                 className="modal-image"
                 onError={(e) => {
@@ -1089,7 +1106,6 @@ function ProductManagement() {
 }
 
 export default ProductManagement;
-
 
 
 
