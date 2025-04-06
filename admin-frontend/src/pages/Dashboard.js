@@ -27,7 +27,9 @@ function Dashboard() {
     localStorage.setItem('theme', newTheme);
   };
 
-  useEffect(() => { document.body.className = theme; }, [theme]);
+  useEffect(() => {
+    document.body.className = theme;
+  }, [theme]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,10 +46,27 @@ function Dashboard() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const updatedProducts = res.data.products.map(product => ({
-          ...product,
-          image: product.image ? (product.image.startsWith('http') ? product.image : `https://backend-ps76.onrender.com${product.image}`) : null,
-        }));
+        console.log('Fetched products response (raw):', res.data);
+
+        // Robust image URL preprocessing with local URL replacement
+        const baseUrl = 'https://backend-ps76.onrender.com';
+        const updatedProducts = res.data.products.map(product => {
+          let processedImage = product.image || '/default-product.jpg'; // Relative to frontend public directory
+
+          // Replace local URLs with deployed baseUrl
+          if (processedImage && processedImage.startsWith('http://localhost:')) {
+            processedImage = `${baseUrl}${processedImage.replace('http://localhost:5001', '')}`;
+          } else if (processedImage && !processedImage.startsWith('http') && !processedImage.startsWith('/')) {
+            processedImage = `${baseUrl}/${processedImage}`;
+          }
+
+          console.log(`Processing product ${product._id}: image = ${processedImage}`);
+
+          return {
+            ...product,
+            image: processedImage,
+          };
+        });
 
         setProducts(updatedProducts);
         setTotalPages(res.data.totalPages || 1);
@@ -142,17 +161,36 @@ function Dashboard() {
         <div className="products-list">
           <h3>Products Overview</h3>
           <table className="products-table">
-            <thead><tr><th onClick={() => handleSort('name')}>Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-              <th onClick={() => handleSort('category')}>Category {sortField === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-              <th onClick={() => handleSort('price')}>Price {sortField === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-              <th onClick={() => handleSort('stock')}>Stock {sortField === 'stock' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
-              <th>Image</th></tr></thead>
+            <thead>
+              <tr>
+                <th onClick={() => handleSort('name')}>Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('category')}>Category {sortField === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('price')}>Price {sortField === 'price' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+                <th onClick={() => handleSort('stock')}>Stock {sortField === 'stock' && (sortOrder === 'asc' ? '↑' : '↓')}</th>
+                <th>Image</th>
+              </tr>
+            </thead>
             <tbody>
               {sortedProducts.length > 0 ? sortedProducts.map((product) => (
                 <tr key={product._id} className={product.stock <= 5 ? 'low-stock' : ''}>
-                  <td>{product.name}</td><td>{product.category}</td><td>₹{Number(product.price).toFixed(2)}</td>
-                  <td>{product.stock} {product.stock <= 5 && <span className="low-stock-badge">Low</span>}</td>
-                  <td><img src={product.image || 'https://backend-ps76.onrender.com/uploads/default-product.jpg'} alt={product.name} width="50" onError={(e) => { console.log('Dashboard image load failed:', e.target.src); e.target.src = 'https://backend-ps76.onrender.com/uploads/default-product.jpg'; e.target.onerror = null; }} /></td>
+                  <td>{product.name}</td>
+                  <td>{product.category}</td>
+                  <td>₹{Number(product.price).toFixed(2)}</td>
+                  <td>
+                    {product.stock} {product.stock <= 5 && <span className="low-stock-badge">Low</span>}
+                  </td>
+                  <td>
+                    <img
+                      src={product.image || '/default-product.jpg'} // Relative to frontend public directory
+                      alt={product.name}
+                      width="50"
+                      onError={(e) => {
+                        console.log('Dashboard image load failed:', e.target.src);
+                        e.target.src = 'https://via.placeholder.com/150'; // Fallback to external placeholder
+                        e.target.onerror = null;
+                      }}
+                    />
+                  </td>
                 </tr>
               )) : <tr><td colSpan="5">No products found.</td></tr>}
             </tbody>
