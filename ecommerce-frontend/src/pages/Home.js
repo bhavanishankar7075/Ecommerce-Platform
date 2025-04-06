@@ -232,16 +232,15 @@ function Home() {
 
   if (authLoading || productsLoading) {
     return (
-      <div className="container my-5 text-center">
+      <div className="container-loading my-5 text-center">
         <div className="spinner"></div>
-        <p>Loading...</p>
       </div>
     );
   }
 
   if (productsError) {
     return (
-      <div className="container my-5 text-center">
+      <div className="container-loading my-5 text-center">
         <h3>Error loading products</h3>
         <p>{productsError}</p>
       </div>
@@ -442,7 +441,7 @@ function Home() {
                 Clear Filters
               </button>
             </div>
-          </div>
+          </div>  
         </div>
       </motion.section>
 
