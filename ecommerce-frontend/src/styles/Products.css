@@ -377,20 +377,7 @@
   transform: scale(1.1);
 }
 
-.share-btn {
-  position: absolute;
-  top: 40px;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  transition: transform 0.2s ease;
-}
 
-.share-btn:hover {
-  transform: scale(1.1);
-}
 
 .price-alert-btn {
   position: absolute;
@@ -1023,10 +1010,7 @@
     right: 5px;
   }
 
-  .share-btn {
-    top: 30px;
-    right: 5px;
-  }
+  
 
   .price-alert-btn {
     top: 55px;
