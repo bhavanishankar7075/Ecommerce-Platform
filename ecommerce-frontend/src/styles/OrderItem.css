@@ -60,10 +60,6 @@ a.order-item-name {
   color: #007bff;
 }
 
-.order-item-name:hover {
-  color: #007bff;
-}
-
 /* Order item price */
 .order-item-price {
   font-size: 16px;
@@ -79,6 +75,15 @@ a.order-item-name {
   margin: 0;
 }
 
+/* Actions container for Reorder and Wishlist buttons */
+.actions-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
 /* Reorder button */
 .reorder-btn {
   padding: 8px 16px;
@@ -90,7 +95,6 @@ a.order-item-name {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  align-self: flex-start;
 }
 
 .reorder-btn:hover {
@@ -100,14 +104,16 @@ a.order-item-name {
 /* Wishlist actions */
 .wishlist-actions {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 10px;
-  margin-top: 10px;
 }
 
 .add-wishlist-btn,
 .remove-wishlist-btn {
-  padding: 6px 12px;
+  padding: 8px 16px;
+  margin-top: 13px;
+  justify-content: center;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
@@ -335,20 +341,32 @@ a.order-item-name {
     font-size: 12px;
   }
 
+  .actions-container {
+    flex-direction: row;
+    gap: 8px;
+    justify-content: center;
+  }
+
   .reorder-btn {
     font-size: 12px;
     padding: 6px 12px;
   }
 
   .wishlist-actions {
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
   }
 
   .add-wishlist-btn,
   .remove-wishlist-btn {
-    font-size: 12px;
-    padding: 5px 10px;
+    font-size: 13px;
+    width: 120px;
+    height: 35px;
+    padding: 6px 12px;
+  }
+
+  .wishlist-message {
+    font-size: 10px;
   }
 
   .review-section button {
@@ -404,5 +422,26 @@ a.order-item-name {
 
   .order-item-status {
     font-size: 10px;
+  }
+
+  .actions-container {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .reorder-btn {
+    font-size: 10px;
+    padding: 5px 10px;
+  }
+
+  .wishlist-actions {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .add-wishlist-btn,
+  .remove-wishlist-btn {
+    font-size: 10px;
+    padding: 5px 10px;
   }
 }

@@ -35,6 +35,7 @@
 .orders-content {
   display: flex;
   gap: 20px;
+  position: relative; /* Ensure proper positioning of child elements */
 }
 
 /* Filters Toggle Button (Mobile) */
@@ -50,6 +51,8 @@
   cursor: pointer;
   margin-bottom: 15px;
   transition: background-color 0.3s ease;
+  width: 100%;
+  max-width: 200px;
 }
 
 .filters-toggle-btn:hover {
@@ -140,6 +143,9 @@
 /* Orders List */
 .orders-list {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 /* Search bar */
@@ -194,10 +200,9 @@
 .orders-scroll-container {
   max-height: 70vh;
   overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #ccc transparent; /* Firefox */
 }
-
-
 
 .orders-scroll-container::-webkit-scrollbar {
   width: 8px; /* Chrome, Safari, Edge */
@@ -233,17 +238,27 @@
 
 /* No Orders */
 .no-orders {
-  text-align: center;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 50px 0;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+.no-orders-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
 .no-orders p {
   font-size: 16px;
   color: #333;
-  margin-bottom: 20px;
+  margin: 0;
 }
 
 .shop-now-btn {
@@ -344,6 +359,7 @@
 
   .orders-content {
     flex-direction: column;
+    gap: 10px;
   }
 
   .filters-toggle-btn {
@@ -353,9 +369,9 @@
   .orders-filters {
     display: none;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     position: fixed;
-    top: 60px;
+    top: 0;
     left: 0;
     right: 0;
     background-color: #fff;
@@ -367,10 +383,11 @@
   .orders-filters.open {
     display: block;
     transform: translateY(0);
+    padding-top: 60px; /* Adjust for navbar height */
   }
 
   .filters-header {
-    padding-bottom: 10px;
+    padding: 10px 20px;
     border-bottom: 1px solid #e0e0e0;
   }
 
@@ -393,20 +410,25 @@
   .search-bar {
     flex-direction: column;
     gap: 10px;
+    align-items: center;
   }
 
   .search-input {
     font-size: 13px;
     padding: 10px 14px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .export-btn {
     font-size: 13px;
     padding: 10px 20px;
+    width: 100%;
+    max-width: 200px;
   }
 
   .orders-scroll-container {
-    max-height: 60vh;
+    max-height: 70vh; /* Increased for better visibility */
   }
 
   .order-card {
@@ -416,6 +438,10 @@
 
   .no-orders {
     padding: 30px 0;
+  }
+
+  .no-orders-content {
+    gap: 15px;
   }
 
   .no-orders p {
@@ -444,20 +470,45 @@
   }
 
   .orders-content {
-    flex-direction: row;
+    flex-direction: column;
+    gap: 15px;
   }
 
   .filters-toggle-btn {
-    display: none;
+    display: block;
   }
 
   .orders-filters {
+    display: none;
+    width: 100%;
+    margin-bottom: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-100%);
+  }
+
+  .orders-filters.open {
     display: block;
-    width: 200px;
+    transform: translateY(0);
+    padding-top: 60px; /* Adjust for navbar height */
+  }
+
+  .filters-header {
+    padding: 10px 20px;
+    border-bottom: 1px solid #e0e0e0;
   }
 
   .filters-title {
     font-size: 15px;
+  }
+
+  .filters-close-btn {
+    display: block;
   }
 
   .filter-heading {
@@ -470,26 +521,34 @@
 
   .search-bar {
     flex-direction: row;
+    gap: 10px;
+    align-items: center;
   }
 
   .search-input {
     font-size: 14px;
     padding: 12px 16px;
     height: 44px;
+    width: 100%;
   }
 
   .export-btn {
     font-size: 14px;
     padding: 12px 24px;
+    width: auto;
   }
 
   .orders-scroll-container {
-    max-height: 65vh;
+    max-height: 70vh;
   }
 
   .order-card {
     padding: 12px;
     margin-bottom: 12px;
+  }
+
+  .no-orders-content {
+    gap: 15px;
   }
 
   .no-orders p {
@@ -512,8 +571,24 @@
     font-size: 14px;
   }
 
+  .orders-content {
+    flex-direction: row;
+  }
+
+  .filters-toggle-btn {
+    display: none;
+  }
+
   .orders-filters {
+    display: block;
     width: 220px;
+    position: static;
+    transform: none;
+  }
+
+  .search-bar {
+    flex-direction: row;
+    gap: 15px;
   }
 
   .search-input {
@@ -534,6 +609,10 @@
   .order-card {
     padding: 15px;
   }
+
+  .no-orders-content {
+    gap: 20px;
+  }
 }
 
 /* Extra Large Devices (992px and above) */
@@ -551,8 +630,24 @@
     font-size: 14px;
   }
 
+  .orders-content {
+    flex-direction: row;
+  }
+
+  .filters-toggle-btn {
+    display: none;
+  }
+
   .orders-filters {
+    display: block;
     width: 240px;
+    position: static;
+    transform: none;
+  }
+
+  .search-bar {
+    flex-direction: row;
+    gap: 15px;
   }
 
   .search-input {
@@ -568,5 +663,9 @@
 
   .order-card {
     padding: 20px;
+  }
+
+  .no-orders-content {
+    gap: 20px;
   }
 }
