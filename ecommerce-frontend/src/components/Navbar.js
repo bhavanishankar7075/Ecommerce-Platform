@@ -58,19 +58,30 @@ function Navigation() {
     navigate('/');
   };
 
+  // Handle bottom nav click to scroll to top
+  const handleBottomNavClick = (path) => {
+    // Navigate to the path
+    navigate(path);
+    // Scroll to the top of the page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <>
       <nav className={`flipkart-navbar fixed-top ${isHomeRoute ? 'navbar-white' : 'navbar-blue'}`}>
         <div className="navbar-container">
           {/* Logo */}
-          <Link className="navbar-brand " to="/">
-        
-             <img src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_plus-055f80.svg" alt="E-Shop" className="navbar-logo" />
-           </Link>
+          <Link className="navbar-brand" to="/">
+            <img
+              src="https://static-assets-web.flixcart.com/batman-returns/batman-returns/p/images/fkheaderlogo_plus-055f80.svg"
+              alt="E-Shop"
+              className="navbar-logo"
+            />
+          </Link>
 
           {/* Search Bar */}
-          <div className="search-container">
-            <div className="search-bar">
+          <div className="search-container1">
+            <div className="search-bar1">
               {/* <i className="fas fa-search search-icon"></i> */}
               <input
                 type="text"
@@ -153,19 +164,35 @@ function Navigation() {
       {/* Bottom Navigation for Mobile */}
       {isMobile && (
         <div className="bottom-nav fixed-bottom">
-          <Link to="/" className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}>
+          <Link
+            to="/"
+            className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}
+            onClick={() => handleBottomNavClick('/')}
+          >
             <i className="fas fa-home"></i>
             <span>Home</span>
           </Link>
-          <Link to="/categories" className={`bottom-nav-item ${location.pathname === '/categories' ? 'active' : ''}`}>
+          <Link
+            to="/categories"
+            className={`bottom-nav-item ${location.pathname === '/categories' ? 'active' : ''}`}
+            onClick={() => handleBottomNavClick('/categories')}
+          >
             <i className="fas fa-th"></i>
             <span>Categories</span>
           </Link>
-          <Link to="/profile" className={`bottom-nav-item ${location.pathname === '/profile' ? 'active' : ''}`}>
+          <Link
+            to="/profile"
+            className={`bottom-nav-item ${location.pathname === '/profile' ? 'active' : ''}`}
+            onClick={() => handleBottomNavClick('/profile')}
+          >
             <i className="fas fa-user"></i>
             <span>Account</span>
           </Link>
-          <Link to="/cart" className={`bottom-nav-item ${location.pathname === '/cart' ? 'active' : ''}`}>
+          <Link
+            to="/cart"
+            className={`bottom-nav-item ${location.pathname === '/cart' ? 'active' : ''}`}
+            onClick={() => handleBottomNavClick('/cart')}
+          >
             <i className="fas fa-shopping-cart"></i>
             <span>Cart</span>
             {cartCount > 0 && <span className="bottom-nav-count">{cartCount}</span>}
