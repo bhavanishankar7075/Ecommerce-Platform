@@ -101,10 +101,10 @@ function Success() {
           <p>Loading order details...</p>
         )}
         <div className="button-group">
-          <button className="return-btn" onClick={handleReturn}>
+          <button className="return-btn1" onClick={handleReturn}>
             Back to Products
           </button>
-          <button className="return-btn" onClick={handleOrders}>
+          <button className="return-btn1" onClick={handleOrders}>
             Orders
           </button>
         </div>

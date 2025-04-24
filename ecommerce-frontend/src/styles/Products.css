@@ -23,6 +23,8 @@
   overflow: hidden;
   white-space: nowrap;
   margin-bottom: 20px;
+  border-radius: 10px;
+
 }
 
 .deals-track {
