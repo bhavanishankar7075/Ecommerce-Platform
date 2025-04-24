@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -355,12 +354,10 @@ function Checkout() {
 
   if (authLoading) {
     return (
-      <div className="checkout-wrapper py-5">
-        <div className="orbital-container">
-          <div className="loading-spinner">
-            <div className="spinner-orbit"></div>
-            <p>Loading...</p>
-          </div>
+      <div className="checkout-wrapper">
+        <div className="loading-container">
+          <div className="spinner-orbit"></div>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -369,26 +366,22 @@ function Checkout() {
   if (!user) return null;
 
   return (
-    <div className="checkout-wrapper py-5">
-      <div className="orbital-container">
-        <h1 className="checkout-title">Cosmic Checkout</h1>
-
-        <div className="progress-ring">
-          <svg className="progress-circle" width="120" height="120">
-            <circle className="progress-circle-bg" cx="60" cy="60" r="50" strokeWidth="10" />
-            <circle
-              className="progress-circle-fill"
-              cx="60"
-              cy="60"
-              r="50"
-              strokeWidth="10"
-              style={{ strokeDashoffset: `${314 - (314 * progress) / 100}` }}
-            />
-          </svg>
-          <span className="progress-text">{Math.round(progress)}%</span>
+    <div className="checkout-wrapper">
+      <div className="header-section">
+        <h1 className="checkout-title my-4">Cosmic Checkout</h1>
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div
+              className="progress-bar-fill"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <span className="progress-text">{Math.round(progress)}% Complete</span>
         </div>
+      </div>
 
-        <div className="cart-orbit">
+      <div className="checkout-content">
+        <div className="cart-section">
           {cart.length > 0 ? (
             cart.map((item) => (
               <CheckoutItem
@@ -402,214 +395,221 @@ function Checkout() {
           )}
         </div>
 
-        <form className="checkout-form" onSubmit={handleSubmit}>
-          <h3 className="form-section">Shipping Nebula</h3>
-          {savedAddress && Object.values(savedAddress).some(val => val) && (
-            <div className="saved-address-section">
-              <h4>Saved Address:</h4>
-              <ul>
-                {savedAddress.fullName && <li><strong>Full Name:</strong> {savedAddress.fullName}</li>}
-                {savedAddress.address && <li><strong>Address:</strong> {savedAddress.address}</li>}
-                {savedAddress.city && <li><strong>City:</strong> {savedAddress.city}</li>}
-                {savedAddress.postalCode && <li><strong>Postal Code:</strong> {savedAddress.postalCode}</li>}
-                {savedAddress.country && <li><strong>Country:</strong> {savedAddress.country}</li>}
-                {savedAddress.phoneNumber && <li><strong>Phone:</strong> {savedAddress.phoneNumber}</li>}
-              </ul>
-              <div className="address-options">
-                <button
-                  type="button"
-                  className={`address-option-btn ${addressOption === 'saved' ? 'active' : ''}`}
-                  onClick={() => handleAddressOptionChange('saved')}
-                >
-                  Use Saved Address
-                </button>
-                <button
-                  type="button"
-                  className={`address-option-btn ${addressOption === 'new' ? 'active' : ''}`}
-                  onClick={() => handleAddressOptionChange('new')}
-                >
-                  Add New Address
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="input-orbit">
-            <label htmlFor="fullName">Full Name</label>
-            <input
-              type="text"
-              id="fullName"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              placeholder="Full Name"
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="input-orbit">
-            <label htmlFor="address">Address</label>
-            <input
-              type="text"
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              placeholder="Address"
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="input-orbit">
-            <label htmlFor="city">City</label>
-            <input
-              type="text"
-              id="city"
-              name="city"
-              value={formData.city}
-              onChange={handleInputChange}
-              placeholder="City"
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="input-orbit">
-            <label htmlFor="postalCode">Postal Code</label>
-            <input
-              type="text"
-              id="postalCode"
-              name="postalCode"
-              value={formData.postalCode}
-              onChange={handleInputChange}
-              placeholder="Postal Code"
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="input-orbit">
-            <label htmlFor="country">Country</label>
-            <input
-              type="text"
-              id="country"
-              name="country"
-              value={formData.country}
-              onChange={handleInputChange}
-              placeholder="Country"
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="input-orbit">
-            <label htmlFor="phoneNumber">Phone Number</label>
-            <input
-              type="text"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleInputChange}
-              placeholder="Phone Number (10 digits)"
-              required
-              className="form-input"
-            />
-          </div>
-          <div className="input-orbit">
-            <label>
-              <input
-                type="checkbox"
-                checked={saveAddress}
-                onChange={(e) => setSaveAddress(e.target.checked)}
-              />
-              Save this address for future orders
-            </label>
-          </div>
-
-          <h3 className="form-section">Payment Galaxy</h3>
-          <div className="input-orbit">
-            <label htmlFor="paymentMethod">Payment Method</label>
-            <select
-              id="paymentMethod"
-              value={selectedPaymentMethod}
-              onChange={handlePaymentMethodChange}
-              className="form-input"
-            >
-              {paymentMethods.length > 0 &&
-                paymentMethods.map((method) => (
-                  <option key={method._id} value={method._id}>
-                    {method.name} - **** **** **** {method.cardNumber.slice(-4)} (Exp: {method.expiry})
-                  </option>
-                ))}
-              <option value="new">Add New Card (Online Payment)</option>
-              <option value="cod">Cash on Delivery</option>
-            </select>
-          </div>
-
-          {showNewPaymentForm && (
-            <>
-              <div className="input-orbit">
-                <label htmlFor="cardNumber">Card Number</label>
+        <form className="address-form" onSubmit={handleSubmit}>
+          <div className="form-sections">
+            <div className="shipping-section">
+              <h3 className="form-section-title">Shipping Nebula</h3>
+              {savedAddress && Object.values(savedAddress).some(val => val) && (
+                <div className="saved-address-section">
+                  <h4>Saved Address:</h4>
+                  <ul>
+                    {savedAddress.fullName && <li><strong>Full Name:</strong> {savedAddress.fullName}</li>}
+                    {savedAddress.address && <li><strong>Address:</strong> {savedAddress.address}</li>}
+                    {savedAddress.city && <li><strong>City:</strong> {savedAddress.city}</li>}
+                    {savedAddress.postalCode && <li><strong>Postal Code:</strong> {savedAddress.postalCode}</li>}
+                    {savedAddress.country && <li><strong>Country:</strong> {savedAddress.country}</li>}
+                    {savedAddress.phoneNumber && <li><strong>Phone:</strong> {savedAddress.phoneNumber}</li>}
+                  </ul>
+                  <div className="address-options">
+                    <button
+                      type="button"
+                      className={`address-option-btn ${addressOption === 'saved' ? 'active' : ''}`}
+                      onClick={() => handleAddressOptionChange('saved')}
+                    >
+                      Use Saved Address
+                    </button>
+                    <button
+                      type="button"
+                      className={`address-option-btn ${addressOption === 'new' ? 'active' : ''}`}
+                      onClick={() => handleAddressOptionChange('new')}
+                    >
+                      Add New Address
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="form-group">
+                <label htmlFor="fullName">Full Name</label>
                 <input
                   type="text"
-                  id="cardNumber"
-                  name="cardNumber"
-                  value={formData.cardNumber}
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
                   onChange={handleInputChange}
-                  placeholder="Card Number (16 digits)"
+                  placeholder="Full Name"
                   required
                   className="form-input"
                 />
               </div>
-              <div className="input-orbit dual-orbit">
-                <div className="input-orbit half">
-                  <label htmlFor="expiry">Expiry</label>
-                  <input
-                    type="text"
-                    id="expiry"
-                    name="expiry"
-                    value={formData.expiry}
-                    onChange={handleInputChange}
-                    placeholder="Expiry (MM/YY)"
-                    required
-                    className="form-input half"
-                  />
-                </div>
-                <div className="input-orbit half">
-                  <label htmlFor="cvv">CVV</label>
-                  <input
-                    type="text"
-                    id="cvv"
-                    name="cvv"
-                    value={formData.cvv}
-                    onChange={handleInputChange}
-                    placeholder="CVV (3 digits)"
-                    required
-                    className="form-input half"
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="address">Address</label>
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="Address"
+                  required
+                  className="form-input"
+                />
               </div>
-            </>
-          )}
+              <div className="form-group">
+                <label htmlFor="city">City</label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  placeholder="City"
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="postalCode">Postal Code</label>
+                <input
+                  type="text"
+                  id="postalCode"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  placeholder="Postal Code"
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="country">Country</label>
+                <input
+                  type="text"
+                  id="country"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  placeholder="Country"
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="phoneNumber">Phone Number</label>
+                <input
+                  type="text"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleInputChange}
+                  placeholder="Phone Number (10 digits)"
+                  required
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                  />
+                  Save this address for future orders
+                </label>
+              </div>
+            </div>
 
-          <div className="total-pod">
-            <p><strong>Subtotal:</strong> ₹{subtotal.toFixed(2)}</p>
-            {passedDiscount > 0 && (
-              <p><strong>Discount ({(passedDiscount * 100).toFixed(0)}%):</strong> -₹{(subtotal * passedDiscount).toFixed(2)}</p>
-            )}
-            <p><strong>Delivery Fee:</strong> ₹{deliveryFee.toFixed(2)}</p>
-            <p><strong>Total:</strong> ₹{total.toFixed(2)}</p>
+            <div className="payment-section">
+              <h3 className="form-section-title">Payment Galaxy</h3>
+              <div className="form-group">
+                <label htmlFor="paymentMethod">Payment Method</label>
+                <select
+                  id="paymentMethod"
+                  value={selectedPaymentMethod}
+                  onChange={handlePaymentMethodChange}
+                  className="payment-method-select"
+                >
+                  {paymentMethods.length > 0 &&
+                    paymentMethods.map((method) => (
+                      <option key={method._id} value={method._id}>
+                        {method.name} - **** **** **** {method.cardNumber.slice(-4)} (Exp: {method.expiry})
+                      </option>
+                    ))}
+                  <option value="new">Add New Card (Online Payment)</option>
+                  <option value="cod">Cash on Delivery</option>
+                </select>
+              </div>
+              {showNewPaymentForm && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="cardNumber">Card Number</label>
+                    <input
+                      type="text"
+                      id="cardNumber"
+                      name="cardNumber"
+                      value={formData.cardNumber}
+                      onChange={handleInputChange}
+                      placeholder="Card Number (16 digits)"
+                      required
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="dual-input">
+                    <div className="form-group">
+                      <label htmlFor="expiry">Expiry</label>
+                      <input
+                        type="text"
+                        id="expiry"
+                        name="expiry"
+                        value={formData.expiry}
+                        onChange={handleInputChange}
+                        placeholder="Expiry (MM/YY)"
+                        required
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="cvv">CVV</label>
+                      <input
+                        type="text"
+                        id="cvv"
+                        name="cvv"
+                        value={formData.cvv}
+                        onChange={handleInputChange}
+                        placeholder="CVV (3 digits)"
+                        required
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          {error && <p className="error-message">{error}</p>}
-          <button type="submit" className="submit-btn" disabled={cart.length === 0 || isSubmitted}>
-            {isSubmitted ? (
-              <span>
-                Launching... <span className="spinner-orbit small"></span>
-              </span>
-            ) : (
-              'Launch Order'
-            )}
-          </button>
-        </form>
 
-        {isSubmitted && <div className="particle-burst"></div>}
+          <div className="total-and-submit">
+            <div className="total-section">
+              <p><strong>Subtotal:</strong> ₹{subtotal.toFixed(2)}</p>
+              {passedDiscount > 0 && (
+                <p><strong>Discount ({(passedDiscount * 100).toFixed(0)}%):</strong> -₹{(subtotal * passedDiscount).toFixed(2)}</p>
+              )}
+              <p><strong>Delivery Fee:</strong> ₹{deliveryFee.toFixed(2)}</p>
+              <p><strong>Total:</strong> ₹{total.toFixed(2)}</p>
+            </div>
+            {error && <p className="error-message">{error}</p>}
+            <button type="submit" className="submit-btn" disabled={cart.length === 0 || isSubmitted}>
+              {isSubmitted ? (
+                <span>
+                  Launching... <span className="spinner-orbit"></span>
+                </span>
+              ) : (
+                'Launch Order'
+              )}
+            </button>
+          </div>
+        </form>
       </div>
+
+      {isSubmitted && <div className="particle-burst"></div>}
     </div>
   );
 }
