@@ -4,6 +4,21 @@
   --sidebar-mobile-width: 70px;
 }
 
+.sidebar-toggle {
+  display: none; /* Hidden by default on desktop */
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: #00d4ff;
+  color: #1a1a2e;
+  border: none;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 1001;
+  font-size: 1.5rem;
+}
+
 .sidebar {
   width: var(--sidebar-width);
   background: #16213e;
@@ -13,9 +28,13 @@
   top: 0;
   left: 0;
   box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   z-index: 1000;
   overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+.sidebar.open {
+  transform: translateX(0); /* Show sidebar when open */
 }
 
 .sidebar h3 {
@@ -103,6 +122,9 @@
 }
 
 @media (max-width: 768px) {
+  .sidebar-toggle {
+    display: block; /* Show toggle button on mobile */
+  }
   :root {
     --sidebar-width: var(--sidebar-mobile-width);
     --sidebar-mobile-width: 70px;
@@ -110,6 +132,10 @@
   .sidebar {
     width: var(--sidebar-mobile-width);
     padding: 10px;
+    transform: translateX(-100%); /* Hide sidebar by default on mobile */
+  }
+  .sidebar.open {
+    transform: translateX(0); /* Slide in when open */
   }
   .sidebar h3 {
     font-size: 0;
@@ -162,11 +188,22 @@
   min-height: 100vh;
   box-sizing: border-box; /* Ensure padding/margin doesn't cause overflow */
   overflow-x: hidden; /* Prevent horizontal scrolling */
+  width: calc(100% - var(--sidebar-width)); /* Ensure content fits remaining space */
+}
+
+.app-wrapper.shifted {
+  margin-left: var(--sidebar-mobile-width); /* Adjust when sidebar is open on mobile */
+  width: calc(100% - var(--sidebar-mobile-width));
 }
 
 @media (max-width: 768px) {
   .app-wrapper {
+    margin-left: 0; /* Full width when sidebar is hidden */
+    width: 100%;
+  }
+  .app-wrapper.shifted {
     margin-left: var(--sidebar-mobile-width);
+    width: calc(100% - var(--sidebar-mobile-width));
   }
 }
 

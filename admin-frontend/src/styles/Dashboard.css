@@ -35,9 +35,19 @@ body.dark {
 .dashboard-content {
   flex: 1;
   padding: 20px;
-  margin-left: var(--sidebar-width); /* Dynamic margin based on sidebar width */
-  transition: margin-left 0.3s ease;
   box-sizing: border-box;
+  width: 100%; /* Ensure it takes the full available width */
+  transition: margin-left 0.3s ease, width 0.3s ease; /* Sync with sidebar transition */
+}
+
+.dashboard-content.shifted {
+  margin-left: var(--sidebar-mobile-width); /* Adjust when sidebar is open on mobile */
+  width: calc(100% - var(--sidebar-mobile-width)); /* Adjust width dynamically */
+}
+
+.dashboard-content.full-width {
+  margin-left: 0; /* Full width when sidebar is closed on larger screens */
+  width: 100%; /* Full width when sidebar is closed */
 }
 
 /* Header */
@@ -126,7 +136,8 @@ body.dark .stat-card h4 {
   font-size: 1.5em;
   font-weight: bold;
 }
-.loading{
+
+.loading {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -210,6 +221,7 @@ body.dark .chart-container {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  table-layout: auto; /* Allow table to adjust column widths */
 }
 
 body.dark .products-table {
@@ -221,6 +233,8 @@ body.dark .products-table {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #ddd;
+  word-wrap: break-word; /* Allow long text to wrap */
+  max-width: 0; /* Prevent cells from forcing table width */
 }
 
 body.dark .products-table th,
@@ -248,6 +262,8 @@ body.dark .products-table tr:hover {
 
 .products-table img {
   border-radius: 4px;
+  max-width: 100%; /* Ensure images fit within cells */
+  height: auto;
 }
 
 .low-stock {
@@ -350,19 +366,26 @@ body.dark .pagination span {
 
 @media (max-width: 768px) { /* Small (sm) */
   .dashboard-content {
-    margin-left: var(--sidebar-mobile-width); /* Adjust for collapsed sidebar */
     padding: 10px;
   }
   .header {
     flex-direction: column;
     gap: 10px;
+    align-items: flex-start;
   }
   .header-actions {
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
+    width: 100%;
+    justify-content: space-between;
   }
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* Single column for better readability */
+    gap: 15px;
+  }
+  .stat-card {
+    padding: 12px;
+    gap: 12px;
   }
   .chart-container {
     max-width: 100%;
@@ -372,6 +395,7 @@ body.dark .pagination span {
   .products-table {
     display: block;
     overflow-x: auto; /* Allow horizontal scroll for table on small screens */
+    white-space: nowrap; /* Prevent wrapping inside table */
   }
   .products-table th,
   .products-table td {
@@ -381,10 +405,33 @@ body.dark .pagination span {
   .products-table img {
     width: 35px;
   }
+  .action-buttons {
+    justify-content: center; /* Center buttons for better appearance */
+  }
   .action-btn {
     min-width: 120px;
     padding: 8px 12px;
     font-size: 0.8em;
+  }
+}
+
+@media (min-width: 769px) { /* Above mobile (tablet/desktop) */
+  .dashboard-content {
+    margin-left: 0; /* Reset margin on larger screens when sidebar is closed */
+  }
+  .dashboard-content.shifted {
+    margin-left: var(--sidebar-width); /* Adjust when sidebar is open */
+    width: calc(100% - var(--sidebar-width)); /* Adjust width dynamically */
+  }
+  .products-table {
+    overflow-x: hidden; /* Remove horizontal scrollbar on desktop */
+    table-layout: fixed; /* Force table to fit container */
+  }
+  .products-table th,
+  .products-table td {
+    max-width: 200px; /* Cap cell width to prevent overflow */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Truncate long text */
   }
 }
 
@@ -394,6 +441,11 @@ body.dark .pagination span {
   }
   .header h2 {
     font-size: 1.5em;
+  }
+  .header-actions {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
   }
   .stats-grid {
     gap: 10px;
