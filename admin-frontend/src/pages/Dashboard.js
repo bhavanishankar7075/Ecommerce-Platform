@@ -198,7 +198,7 @@ function Dashboard() {
             <table className="products-table">
               <thead>
                 <tr>
-                  <th onClick={() => handleSort('name')}>
+                  <th  onClick={() => handleSort('name')}>
                     Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </th>
                   <th onClick={() => handleSort('category')}>

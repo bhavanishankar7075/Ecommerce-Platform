@@ -221,7 +221,7 @@ body.dark .chart-container {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  table-layout: auto; /* Allow table to adjust column widths */
+  table-layout: fixed; /* Force consistent column widths */
 }
 
 body.dark .products-table {
@@ -233,8 +233,8 @@ body.dark .products-table {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #ddd;
-  word-wrap: break-word; /* Allow long text to wrap */
-  max-width: 0; /* Prevent cells from forcing table width */
+  overflow-wrap: break-word; /* Allow long text to wrap at word boundaries */
+  max-width: none; /* Remove max-width to allow natural sizing */
 }
 
 body.dark .products-table th,
@@ -246,10 +246,15 @@ body.dark .products-table td {
   background: #f1f1f1;
   cursor: pointer;
   font-weight: bold;
+  width: 20%; /* Distribute width evenly */
 }
 
 body.dark .products-table th {
   background: #333;
+}
+
+.products-table td {
+  width: 20%; /* Distribute width evenly */
 }
 
 .products-table tr:hover {
@@ -264,6 +269,7 @@ body.dark .products-table tr:hover {
   border-radius: 4px;
   max-width: 100%; /* Ensure images fit within cells */
   height: auto;
+  width: 50px; /* Fixed image width for consistency */
 }
 
 .low-stock {
@@ -395,12 +401,13 @@ body.dark .pagination span {
   .products-table {
     display: block;
     overflow-x: auto; /* Allow horizontal scroll for table on small screens */
-    white-space: nowrap; /* Prevent wrapping inside table */
+    white-space: normal; /* Allow wrapping instead of nowrap */
   }
   .products-table th,
   .products-table td {
-    min-width: 120px;
+    min-width: 150px; /* Increased to allow more text per line */
     font-size: 0.85em;
+    padding: 8px;
   }
   .products-table img {
     width: 35px;
@@ -423,15 +430,9 @@ body.dark .pagination span {
     margin-left: var(--sidebar-width); /* Adjust when sidebar is open */
     width: calc(100% - var(--sidebar-width)); /* Adjust width dynamically */
   }
-  .products-table {
-    overflow-x: hidden; /* Remove horizontal scrollbar on desktop */
-    table-layout: fixed; /* Force table to fit container */
-  }
   .products-table th,
   .products-table td {
-    max-width: 200px; /* Cap cell width to prevent overflow */
-    overflow: hidden;
-    text-overflow: ellipsis; /* Truncate long text */
+    min-width: 150px; /* Ensure sufficient width on desktop */
   }
 }
 
@@ -474,7 +475,7 @@ body.dark .pagination span {
   }
   .products-table th,
   .products-table td {
-    min-width: 100px;
+    min-width: 120px; /* Increased from 100px */
     padding: 6px;
     font-size: 0.8em;
   }
