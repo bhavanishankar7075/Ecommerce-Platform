@@ -139,7 +139,6 @@ function ProductManagement() {
         let processedImage = product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
         let processedImages = product.images || [];
 
-        // Add cache-busting query parameter to the existing URLs
         processedImage = processedImage.includes('?') ? `${processedImage}&t=${timestamp}` : `${processedImage}?t=${timestamp}`;
         processedImages = processedImages.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
@@ -157,7 +156,7 @@ function ProductManagement() {
       setTotalPages(res.data.totalPages || 1);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching products:', err);
+      console.error('Error fetching products:', err.response?.data || err.message);
       toast.error(err.message || 'Failed to load products');
       setProducts([]);
       setTotalPages(1);
@@ -333,11 +332,11 @@ function ProductManagement() {
       const processedImage = updatedProduct.image.includes('?') ? `${updatedProduct.image}&t=${timestamp}` : `${updatedProduct.image}?t=${timestamp}`;
       const processedImages = updatedProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
-      setProducts((prev) => [{ ...updatedProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
-      setCurrentPage(1);
-      toast.success('Product added successfully!');
+      // Instead of adding to products directly, fetch the latest products to ensure correct pagination
       resetForm();
-      await fetchProducts();
+      setCurrentPage(1); // Reset to page 1 to see the new product
+      await fetchProducts(); // Fetch all products to ensure the new product appears
+      toast.success('Product added successfully!');
     } catch (err) {
       console.error('Error saving product:', err);
       console.error('Error details:', err.response?.data);
@@ -476,10 +475,9 @@ function ProductManagement() {
       const processedImage = newProduct.image.includes('?') ? `${newProduct.image}&t=${timestamp}` : `${newProduct.image}?t=${timestamp}`;
       const processedImages = newProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
-      setProducts((prev) => [{ ...newProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
-      setCurrentPage(1);
-      toast.success('Product duplicated successfully!');
+      setCurrentPage(1); // Reset to page 1 to see the new product
       await fetchProducts();
+      toast.success('Product duplicated successfully!');
     } catch (err) {
       console.error('Error duplicating product:', err);
       toast.error(err.response?.data?.message || 'Failed to duplicate product');
