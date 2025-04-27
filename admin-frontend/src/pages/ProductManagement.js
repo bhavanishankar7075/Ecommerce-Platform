@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -25,7 +24,7 @@ function ProductManagement() {
     weight: '',
     model: '',
   });
-  const [originalProduct, setOriginalProduct] = useState(null); // Store original product data
+  const [originalProduct, setOriginalProduct] = useState(null);
   const [categories] = useState([
     'Clothing',
     'Slippers',
@@ -59,6 +58,15 @@ function ProductManagement() {
   const [showForm, setShowForm] = useState(false);
   const productsPerPage = 8;
   const navigate = useNavigate();
+
+  // Redirect to login if no token
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please log in to access this page');
+      navigate('/login');
+    }
+  }, [navigate]);
 
   // Reset currentPage to 1 whenever a filter changes
   useEffect(() => {
@@ -122,24 +130,29 @@ function ProductManagement() {
 
       console.log('Fetched products response (raw):', res.data);
 
-      // Robust image URL preprocessing with local URL replacement
+      // Robust image URL preprocessing with local URL replacement and cache busting
       const baseUrl = 'https://backend-ps76.onrender.com';
+      const timestamp = new Date().getTime();
       const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => {
-        let processedImage = product.image || '/default-product.jpg';
+        let processedImage = product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
         let processedImages = product.images || [];
 
-        // Replace local URLs with deployed baseUrl
+        // Ensure correct base URL and add cache-busting query parameter
         if (processedImage.startsWith('http://localhost:')) {
-          processedImage = `${baseUrl}${processedImage.replace('http://localhost:5001', '')}`;
+          processedImage = `${baseUrl}${processedImage.replace('http://localhost:5001', '')}?t=${timestamp}`;
         } else if (!processedImage.startsWith('http') && !processedImage.startsWith('/')) {
-          processedImage = `${baseUrl}/${processedImage}`;
+          processedImage = `${baseUrl}/${processedImage}?t=${timestamp}`;
+        } else if (processedImage.startsWith(baseUrl)) {
+          processedImage = `${processedImage}?t=${timestamp}`;
         }
 
         processedImages = processedImages.map(img => {
           if (img.startsWith('http://localhost:')) {
-            return `${baseUrl}${img.replace('http://localhost:5001', '')}`;
+            return `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`;
           } else if (!img.startsWith('http') && !img.startsWith('/')) {
-            return `${baseUrl}/${img}`;
+            return `${baseUrl}/${img}?t=${timestamp}`;
+          } else if (img.startsWith(baseUrl)) {
+            return `${img}?t=${timestamp}`;
           }
           return img;
         });
@@ -195,7 +208,10 @@ function ProductManagement() {
         mainImage: file,
       }));
     } else if (name === 'images') {
-      const validFiles = Array.from(files).filter((file) => {
+      const newFiles = Array.from(files);
+      if (newFiles.length === 0) return;
+
+      const validFiles = newFiles.filter((file) => {
         if (!allowedTypes.includes(file.type)) {
           toast.error(`Invalid file type for ${file.name}. Please upload JPEG, PNG, or WebP.`);
           return false;
@@ -206,10 +222,31 @@ function ProductManagement() {
         }
         return true;
       });
+
+      // Check for duplicates by name and size
+      const existingFiles = formData.newImages.map(file => ({
+        name: file.name,
+        size: file.size,
+      }));
+
+      const uniqueFiles = validFiles.filter(file => {
+        const isDuplicate = existingFiles.some(existing => 
+          existing.name === file.name && existing.size === file.size
+        );
+        if (isDuplicate) {
+          toast.warn(`Duplicate file ${file.name} ignored.`);
+          return false;
+        }
+        return true;
+      });
+
       setFormData((prev) => ({
         ...prev,
-        newImages: [...prev.newImages, ...validFiles],
+        newImages: [...prev.newImages, ...uniqueFiles],
       }));
+
+      // Clear the file input to prevent re-selection
+      e.target.value = null;
     }
   };
 
@@ -239,7 +276,7 @@ function ProductManagement() {
       weight: '',
       model: '',
     });
-    setOriginalProduct(null); // Reset original product
+    setOriginalProduct(null);
     setEditingProductId(null);
     const mainImageInput = document.getElementById('mainImageInput');
     const additionalImagesInput = document.getElementById('additionalImagesInput');
@@ -262,9 +299,9 @@ function ProductManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-
+  
     console.log('Form data before submission:', formData);
-
+  
     const form = new FormData();
     form.append('name', formData.name);
     form.append('price', formData.price);
@@ -275,114 +312,55 @@ function ProductManagement() {
     form.append('sizes', JSON.stringify(formData.sizes));
     form.append('isActive', formData.isActive);
     form.append('brand', formData.brand);
-
-    let weightValue = formData.weight.trim();
-    let weightUnit = 'kg';
-    if (weightValue) {
-      if (weightValue.toLowerCase().endsWith('g')) {
-        const grams = parseFloat(weightValue.replace(/g/i, ''));
-        if (!isNaN(grams)) {
-          weightValue = grams / 1000;
-          weightUnit = 'g';
-        } else {
-          throw new Error('Invalid weight format');
-        }
-      } else if (weightValue.toLowerCase().endsWith('kg')) {
-        weightValue = parseFloat(weightValue.replace(/kg/i, ''));
-        if (isNaN(weightValue)) {
-          throw new Error('Invalid weight format');
-        }
-        weightUnit = 'kg';
-      } else {
-        weightValue = parseFloat(weightValue);
-        if (isNaN(weightValue)) {
-          throw new Error('Invalid weight format');
-        }
-        weightUnit = 'kg';
-      }
-      form.append('weight', weightValue);
-      form.append('weightUnit', weightUnit);
-    } else {
-      form.append('weight', '');
-      form.append('weightUnit', 'kg');
-    }
-
+    form.append('weight', formData.weight || '');
+    form.append('weightUnit', formData.weight ? (formData.weight.toLowerCase().endsWith('g') ? 'g' : 'kg') : 'kg');
     form.append('model', formData.model);
+  
     if (formData.mainImage) {
-      form.append('image', formData.mainImage);
+      form.append('mainImage', formData.mainImage);
     }
+    // Append all additional images under the same field name 'additionalImages'
     formData.newImages.forEach((image) => {
       if (image) {
-        form.append('images', image);
+        form.append('additionalImages', image);
       }
     });
-    if (editingProductId) {
-      const cleanedExistingImages = formData.existingImages.map(img =>
-        img.startsWith('https://backend-ps76.onrender.com') ? img.replace('https://backend-ps76.onrender.com', '') : img
-      );
-      form.append('existingImages', JSON.stringify(cleanedExistingImages));
-    }
-
+  
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found. Please log in.');
       }
-
-      let updatedProduct;
-      if (editingProductId) {
-        const res = await axios.put(
-          `https://backend-ps76.onrender.com/api/admin/products/${editingProductId}`,
-          form,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          }
-        );
-        updatedProduct = res.data.product;
-        console.log('Updated product from backend:', updatedProduct);
-        setFormData((prev) => ({
-          ...prev,
-          existingImages: updatedProduct.images ? updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) : [],
-        }));
-        setProducts((prev) =>
-          prev.map((p) => (p._id === editingProductId ? { ...updatedProduct, image: `https://backend-ps76.onrender.com${updatedProduct.image}`, images: updatedProduct.images.map(img => `https://backend-ps76.onrender.com${img}`) } : p))
-        );
-        toast.success('Product updated successfully!');
-      } else {
-        if (!formData.mainImage) {
-          throw new Error('Main image is required when adding a new product');
-        }
-        const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        updatedProduct = res.data.product;
-        console.log('New product from backend with images:', updatedProduct);
-
-        // Ensure image URLs are correctly processed
-        const baseUrl = 'https://backend-ps76.onrender.com';
-        const processedImage = updatedProduct.image.startsWith('http://localhost:')
-          ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}`
-          : updatedProduct.image;
-        const processedImages = updatedProduct.images.map(img =>
-          img.startsWith('http://localhost:')
-            ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
-            : img
-        );
-
-        setProducts((prev) => [{ ...updatedProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
-        setCurrentPage(1);
-        toast.success('Product added successfully!');
-      }
+  
+      console.log('Sending POST request to /api/admin/products');
+      const res = await axios.post('http://localhost:5001/api/admin/products', form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log('Add product response:', res.data);
+      const updatedProduct = res.data.product;
+  
+      const baseUrl = 'http://localhost:5001';
+      const timestamp = new Date().getTime();
+      const processedImage = updatedProduct.image.startsWith('http://localhost:')
+        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}?t=${timestamp}`
+        : `${baseUrl}${updatedProduct.image}?t=${timestamp}`;
+      const processedImages = updatedProduct.images.map(img =>
+        img.startsWith('http://localhost:')
+          ? `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`
+          : `${baseUrl}${img}?t=${timestamp}`
+      );
+  
+      setProducts((prev) => [{ ...updatedProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
+      setCurrentPage(1);
+      toast.success('Product added successfully!');
       resetForm();
-      fetchProducts();
+      await fetchProducts();
     } catch (err) {
       console.error('Error saving product:', err);
+      console.error('Error details:', err.response?.data);
       toast.error(err.response?.data?.message || err.message || 'Failed to save product');
     } finally {
       setSubmitting(false);
@@ -391,12 +369,14 @@ function ProductManagement() {
 
   const handleEdit = (product) => {
     const baseUrl = 'https://backend-ps76.onrender.com';
-    // Preprocess existing images to ensure correct URLs
+    const timestamp = new Date().getTime();
     const processedExistingImages = (product.images || []).map(img => {
       if (img.startsWith('http://localhost:')) {
-        return `${baseUrl}${img.replace('http://localhost:5001', '')}`;
+        return `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`;
       } else if (!img.startsWith('http') && !img.startsWith('/')) {
-        return `${baseUrl}/${img}`;
+        return `${baseUrl}/${img}?t=${timestamp}`;
+      } else if (img.startsWith(baseUrl)) {
+        return `${img}?t=${timestamp}`;
       }
       return img;
     });
@@ -423,7 +403,7 @@ function ProductManagement() {
         : '',
       model: product.model || '',
     });
-    setOriginalProduct(product); // Store the original product data
+    setOriginalProduct(product);
     setEditingProductId(product._id);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -442,7 +422,7 @@ function ProductManagement() {
       });
       setProducts((prev) => prev.filter((p) => p._id !== productId));
       toast.success('Product deleted successfully!');
-      fetchProducts();
+      await fetchProducts();
     } catch (err) {
       console.error('Error deleting product:', err);
       toast.error(err.response?.data?.message || 'Failed to delete product');
@@ -472,7 +452,7 @@ function ProductManagement() {
       );
       setProducts((prev) => prev.filter((p) => !p.selected));
       toast.success(`${selectedProducts.length} products deleted successfully!`);
-      fetchProducts();
+      await fetchProducts();
     } catch (err) {
       console.error('Error bulk deleting products:', err);
       toast.error(err.response?.data?.message || 'Failed to bulk delete products');
@@ -497,12 +477,12 @@ function ProductManagement() {
     try {
       const imageResponse = await fetch(product.image);
       const imageBlob = await imageResponse.blob();
-      form.append('image', imageBlob, 'image.jpg');
+      form.append('mainImage', imageBlob, 'image.jpg');
 
-      for (const img of product.images || []) {
+      for (const [index, img] of (product.images || []).entries()) {
         const imgResponse = await fetch(img);
         const imgBlob = await imgResponse.blob();
-        form.append('images', imgBlob, 'additional.jpg');
+        form.append(`additionalImages[${index}]`, imgBlob, `additional-${index}.jpg`);
       }
 
       const token = localStorage.getItem('token');
@@ -523,19 +503,20 @@ function ProductManagement() {
       }
 
       const baseUrl = 'https://backend-ps76.onrender.com';
+      const timestamp = new Date().getTime();
       const processedImage = newProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${newProduct.image.replace('http://localhost:5001', '')}`
-        : newProduct.image;
+        ? `${baseUrl}${newProduct.image.replace('http://localhost:5001', '')}?t=${timestamp}`
+        : `${baseUrl}${newProduct.image}?t=${timestamp}`;
       const processedImages = newProduct.images.map(img =>
         img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
-          : img
+          ? `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`
+          : `${baseUrl}${img}?t=${timestamp}`
       );
 
       setProducts((prev) => [{ ...newProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
       setCurrentPage(1);
       toast.success('Product duplicated successfully!');
-      fetchProducts();
+      await fetchProducts();
     } catch (err) {
       console.error('Error duplicating product:', err);
       toast.error(err.response?.data?.message || 'Failed to duplicate product');
@@ -563,13 +544,14 @@ function ProductManagement() {
       }
 
       const baseUrl = 'https://backend-ps76.onrender.com';
+      const timestamp = new Date().getTime();
       const processedImage = updatedProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}`
-        : updatedProduct.image;
+        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}?t=${timestamp}`
+        : `${baseUrl}${updatedProduct.image}?t=${timestamp}`;
       const processedImages = updatedProduct.images.map(img =>
         img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
-          : img
+          ? `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`
+          : `${baseUrl}${img}?t=${timestamp}`
       );
 
       setProducts((prev) =>
@@ -609,7 +591,7 @@ function ProductManagement() {
     sizes: p.sizes?.join(', ') || '',
     isActive: p.isActive ? 'Yes' : 'No',
     image: p.image,
-    images: p.images?.join(', ') ||'',
+    images: p.images?.join(', ') || '',
     brand: p.brand || '',
     weight: p.weight || '',
     weightUnit: p.weightUnit || 'kg',
@@ -794,7 +776,7 @@ function ProductManagement() {
                     alt="Main Preview"
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
-                      e.target.src = '/default-product.jpg'; // Relative to frontend public directory
+                      e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
                       e.target.onerror = null;
                     }}
                   />
@@ -803,11 +785,11 @@ function ProductManagement() {
               {editingProductId && !formData.mainImage && originalProduct?.image && (
                 <div className="image-preview">
                   <img
-                    src={originalProduct.image || '/default-product.jpg'}
+                    src={originalProduct.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
                     alt="Current Main"
                     onError={(e) => {
                       console.log('Current main image load failed:', e.target.src);
-                      e.target.src = '/default-product.jpg';
+                      e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
                       e.target.onerror = null;
                     }}
                   />
@@ -832,7 +814,7 @@ function ProductManagement() {
                       alt={`Existing ${index}`}
                       onError={(e) => {
                         console.log('Existing image load failed:', e.target.src);
-                        e.target.src = '/default-product.jpg'; // Relative to frontend public directory
+                        e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
                         e.target.onerror = null;
                       }}
                     />
@@ -857,7 +839,7 @@ function ProductManagement() {
                       alt={`New ${index}`}
                       onError={(e) => {
                         console.log('New image load failed:', e.target.src);
-                        e.target.src = '/default-product.jpg';
+                        e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
                         e.target.onerror = null;
                       }}
                     />
@@ -966,201 +948,200 @@ function ProductManagement() {
             filename="products.csv"
             className="export-btn"
           >
-            Export to CSV
-          </CSVLink>
-        </div>
-        <div className="product-grid">
-          {products.length > 0 ? (
-            products.map((product) => (
-              <div key={product._id} className="product-card">
-                <input
-                  type="checkbox"
-                  checked={product.selected || false}
-                  onChange={() => toggleSelectProduct(product._id)}
-                  className="select-checkbox"
-                />
-                <div className="image-wrapper">
-                  <img
-                    src={product.image || '/default-product.jpg'} // Relative to frontend public directory
-                    alt={product.name}
-                    className="product-image"
-                    onError={(e) => {
-                      console.log('Product image load failed:', e.target.src);
-                      e.target.src = '/default-product.jpg'; // Ensure relative path
-                      e.target.onerror = null;
-                    }}
-                  />
-                </div>
-                <div className="product-details">
-                  <h3>{product.name}</h3>
-                  <p>Price: ₹{product.price.toFixed(2)}</p>
-                  <p>Category: {product.category}</p>
-                  <p>
-                    Stock: {product.stock}{' '}
-                    {product.stock === 0 ? (
-                      <span className="stock-badge out-of-stock">Out of Stock</span>
-                    ) : product.stock <= 5 ? (
-                      <span className="stock-badge low-stock">Low Stock</span>
-                    ) : (
-                      <span className="stock-badge in-stock">In Stock</span>
-                    )}
-                  </p>
-                  {product.offer && <p className="offer">Offer: {product.offer}</p>}
-                  {product.sizes?.length > 0 && (
-                    <p>Sizes: {product.sizes.join(', ')}</p>
-                  )}
-                  {product.brand && <p>Brand: {product.brand}</p>}
-                  {product.weight && (
-                    <p>
-                      Weight:{' '}
-                      {product.weightUnit === 'g'
-                        ? `${product.weight * 1000} g`
-                        : `${product.weight} kg`}
-                    </p>
-                  )}
-                  {product.model && <p>Model: {product.model}</p>}
-                  <p>
-                    Status:{' '}
-                    <span className={product.isActive ? 'status-active' : 'status-inactive'}>
-                      {product.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </p>
-                </div>
-                <div className="product-actions">
-                  <button
-                    onClick={() => openPreviewModal(product)}
-                    className="preview-btn"
-                  >
-                    Preview
-                  </button>
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="edit-btn"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDuplicate(product)}
-                    className="duplicate-btn"
-                  >
-                    Duplicate
-                  </button>
-                  <button
-                    onClick={() => toggleProductStatus(product._id, product.isActive)}
-                    className={product.isActive ? 'deactivate-btn' : 'activate-btn'}
-                  >
-                    {product.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="delete-btn"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p>No products found.</p>
-          )}
-        </div>
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span>
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </section>
-
-      {previewModal && (
-        <div className="preview-modal">
-          <div className="modal-content">
-            <button className="close-modal" onClick={closePreviewModal}>
-              ✕
-            </button>
-            <h2>{previewModal.name}</h2>
+        Export to CSV
+      </CSVLink>
+    </div>
+    <div className="product-grid">
+      {products.length > 0 ? (
+        products.map((product) => (
+          <div key={product._id} className="product-card">
+            <input
+              type="checkbox"
+              checked={product.selected || false}
+              onChange={() => toggleSelectProduct(product._id)}
+              className="select-checkbox"
+            />
             <div className="image-wrapper">
               <img
-                src={previewModal.image || '/default-product.jpg'} // Relative to frontend public directory
-                alt={previewModal.name}
-                className="modal-image"
+                src={product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
+                alt={product.name}
+                className="product-image"
                 onError={(e) => {
-                  console.log('Modal image load failed:', e.target.src);
-                  e.target.src = '/default-product.jpg';
+                  console.log('Product image load failed:', e.target.src);
+                  e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
                   e.target.onerror = null;
                 }}
               />
             </div>
-            <p>Price: ₹{previewModal.price.toFixed(2)}</p>
-            <p>Category: {previewModal.category}</p>
-            <p>
-              Stock: {previewModal.stock}{' '}
-              {previewModal.stock === 0 ? (
-                <span className="stock-badge out-of-stock">Out of Stock</span>
-              ) : previewModal.stock <= 5 ? (
-                <span className="stock-badge low-stock">Low Stock</span>
-              ) : (
-                <span className="stock-badge in-stock">In Stock</span>
-              )}
-            </p>
-            {previewModal.offer && <p>Offer: {previewModal.offer}</p>}
-            {previewModal.sizes?.length > 0 && (
-              <p>Sizes: {previewModal.sizes.join(', ')}</p>
-            )}
-            {previewModal.brand && <p>Brand: {previewModal.brand}</p>}
-            {previewModal.weight && (
+            <div className="product-details">
+              <h3>{product.name}</h3>
+              <p>Price: ₹{product.price.toFixed(2)}</p>
+              <p>Category: {product.category}</p>
               <p>
-                Weight:{' '}
-                {previewModal.weightUnit === 'g'
-                  ? `${previewModal.weight * 1000} g`
-                  : `${previewModal.weight} kg`}
+                Stock: {product.stock}{' '}
+                {product.stock === 0 ? (
+                  <span className="stock-badge out-of-stock">Out of Stock</span>
+                ) : product.stock <= 5 ? (
+                  <span className="stock-badge low-stock">Low Stock</span>
+                ) : (
+                  <span className="stock-badge in-stock">In Stock</span>
+                )}
               </p>
-            )}
-            {previewModal.model && <p>Model: {previewModal.model}</p>}
-            <p>{previewModal.description}</p>
-            {previewModal.images?.length > 0 && (
-              <div className="additional-images">
-                <h3>Additional Images</h3>
-                <div className="image-gallery">
-                  {previewModal.images.map((img, index) => (
-                    <div key={index} className="image-wrapper">
-                      <img
-                        src={img || '/default-product.jpg'}
-                        alt={`Additional ${index}`}
-                        className="gallery-image"
-                        onError={(e) => {
-                          console.log('Gallery image load failed:', e.target.src);
-                          e.target.src = '/default-product.jpg';
-                          e.target.onerror = null;
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              {product.offer && <p className="offer">Offer: {product.offer}</p>}
+              {product.sizes?.length > 0 && (
+                <p>Sizes: {product.sizes.join(', ')}</p>
+              )}
+              {product.brand && <p>Brand: {product.brand}</p>}
+              {product.weight && (
+                <p>
+                  Weight:{' '}
+                  {product.weightUnit === 'g'
+                    ? `${product.weight * 1000} g`
+                    : `${product.weight} kg`}
+                </p>
+              )}
+              {product.model && <p>Model: {product.model}</p>}
+              <p>
+                Status:{' '}
+                <span className={product.isActive ? 'status-active' : 'status-inactive'}>
+                  {product.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </p>
+            </div>
+            <div className="product-actions">
+              <button
+                onClick={() => openPreviewModal(product)}
+                className="preview-btn"
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => handleEdit(product)}
+                className="edit-btn"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDuplicate(product)}
+                className="duplicate-btn"
+              >
+                Duplicate
+              </button>
+              <button
+                onClick={() => toggleProductStatus(product._id, product.isActive)}
+                className={product.isActive ? 'deactivate-btn' : 'activate-btn'}
+              >
+                {product.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button
+                onClick={() => handleDelete(product._id)}
+                className="delete-btn"
+              >
+                Delete
+              </button>
+            </div>
           </div>
-        </div>
+        ))
+      ) : (
+        <p>No products found.</p>
       )}
     </div>
-  );
+    {totalPages > 1 && (
+      <div className="pagination">
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </button>
+        <span>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+        >
+          Next
+        </button>
+      </div>
+    )}
+  </section>
+
+  {previewModal && (
+    <div className="preview-modal">
+      <div className="modal-content">
+        <button className="close-modal" onClick={closePreviewModal}>
+          ✕
+        </button>
+        <h2>{previewModal.name}</h2>
+        <div className="image-wrapper">
+          <img
+            src={previewModal.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
+            alt={previewModal.name}
+            className="modal-image"
+            onError={(e) => {
+              console.log('Modal image load failed:', e.target.src);
+              e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
+              e.target.onerror = null;
+            }}
+          />
+        </div>
+        <p>Price: ₹{previewModal.price.toFixed(2)}</p>
+        <p>Category: {previewModal.category}</p>
+        <p>
+          Stock: {previewModal.stock}{' '}
+          {previewModal.stock === 0 ? (
+            <span className="stock-badge out-of-stock">Out of Stock</span>
+          ) : previewModal.stock <= 5 ? (
+            <span className="stock-badge low-stock">Low Stock</span>
+          ) : (
+            <span className="stock-badge in-stock">In Stock</span>
+          )}
+        </p>
+        {previewModal.offer && <p>Offer: {previewModal.offer}</p>}
+        {previewModal.sizes?.length > 0 && (
+          <p>Sizes: {previewModal.sizes.join(', ')}</p>
+        )}
+        {previewModal.brand && <p>Brand: {previewModal.brand}</p>}
+        {previewModal.weight && (
+          <p>
+            Weight:{' '}
+            {previewModal.weightUnit === 'g'
+              ? `${previewModal.weight * 1000} g`
+              : `${previewModal.weight} kg`}
+          </p>
+        )}
+        {previewModal.model && <p>Model: {previewModal.model}</p>}
+        <p>{previewModal.description}</p>
+        {previewModal.images?.length > 0 && (
+          <div className="additional-images">
+            <h3>Additional Images</h3>
+            <div className="image-gallery">
+              {previewModal.images.map((img, index) => (
+                <div key={index} className="image-wrapper">
+                  <img
+                    src={img || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
+                    alt={`Additional ${index}`}
+                    className="gallery-image"
+                    onError={(e) => {
+                      console.log('Gallery image load failed:', e.target.src);
+                      e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
+                      e.target.onerror = null;
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+</div>
+);
 }
 
 export default ProductManagement;
-
 
 
 
