@@ -1,4 +1,4 @@
-const Product = require('../models/Product');
+/* const Product = require('../models/Product');
 const path = require('path');
 const fs = require('fs');
 
@@ -80,7 +80,7 @@ const addProduct = async (req, res) => {
   }
 };
 
-module.exports = { addProduct };
+module.exports = { addProduct }; */
 
 
 
@@ -102,7 +102,7 @@ module.exports = { addProduct };
 
 
 
-/* // backend/controllers/productController.js (example)
+ // backend/controllers/productController.js (example)
 const addProduct = async (req, res) => {
   const { name, price, category, stock, description, offer, sizes, isActive, brand, weight, weightUnit, model } = req.body;
   const mainImage = req.files['image'][0]; // Main image from 'image' field
@@ -127,4 +127,4 @@ const addProduct = async (req, res) => {
 
   await product.save();
   res.status(201).json({ product });
-}; */
+}; 

@@ -1,4 +1,4 @@
-const express = require('express');
+/* const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -16,7 +16,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Middleware to parse JSON and URL-encoded data
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -27,13 +27,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log(`Created upload directory: ${uploadDir}`);
 }
-console.log(`Serving static files from: ${uploadDir} - Checking accessibility...`);
-try {
-  fs.accessSync(uploadDir, fs.constants.R_OK | fs.constants.W_OK);
-  console.log(`Directory ${uploadDir} is readable and writable.`);
-} catch (err) {
-  console.error(`Directory ${uploadDir} is not accessible: ${err.message}`);
-}
+console.log(`Serving static files from: ${uploadDir}`);
 app.use('/uploads', express.static(uploadDir));
 
 // MongoDB Connection
@@ -86,6 +80,7 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+ */
 
 
 
@@ -105,8 +100,7 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-
-/* 
+ 
  const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -175,4 +169,4 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
 
- */
+ 
