@@ -1,90 +1,3 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
-const fs = require('fs');
-
-dotenv.config();
-
-const app = express();
-
-// Configure CORS
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5002', 'http://localhost:5001', 'http://localhost:5003', 'http://localhost:5004', 'https://frontend-8uy4.onrender.com', 'https://admin-frontend-o3u7.onrender.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Determine upload directory based on environment
-const isLocal = process.env.NODE_ENV === 'development' || !process.env.RENDER;
-const uploadDir = isLocal ? path.join(__dirname, 'uploads') : '/opt/render/uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log(`Created upload directory: ${uploadDir}`);
-}
-console.log(`Serving static files from: ${uploadDir}`);
-app.use('/uploads', express.static(uploadDir));
-
-// Set BASE_URL for API routing and IMAGE_BASE_URL for image URLs
-const BASE_URL = process.env.BASE_URL || (process.env.RENDER ? 'https://backend-ps76.onrender.com' : 'http://localhost:5001');
-const IMAGE_BASE_URL = 'https://backend-ps76.onrender.com'; // Always use Render URL for images
-process.env.BASE_URL = BASE_URL;
-process.env.IMAGE_BASE_URL = IMAGE_BASE_URL;
-console.log('BASE_URL set to:', BASE_URL);
-console.log('IMAGE_BASE_URL set to:', IMAGE_BASE_URL);
-
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.log('MongoDB connection error:', err));
-
-// Routes
-const authRoutes = require('./routes/auth');
-const cartRoutes = require('./routes/Cart');
-const customerRoutes = require('./routes/customer');
-const { router: adminRouter } = require('./routes/admin');
-const productRoutes = require('./routes/products');
-const { router: orderRouter } = require('./routes/orders');
-const userRoutes = require('./routes/users');
-const reviewRoutes = require('./routes/reviews');
-const wishlistRoutes = require('./routes/Wishlist');
-
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/admin/products', productRoutes);
-app.use('/api/admin', adminRouter);
-app.use('/api/orders', orderRouter);
-app.use('/api/users', userRoutes);
-app.use('/api/wishlist', wishlistRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api', customerRoutes);
-
-// Map /api/checkout to /api/orders/create-session for Stripe session creation
-app.use('/api/checkout', (req, res, next) => {
-  console.log('Received request at /api/checkout, redirecting to /create-session:', req.body);
-  req.url = '/create-session';
-  orderRouter(req, res, next);
-});
-
-// Root Route
-app.get('/', (req, res) => {
-  res.send('E-commerce Backend is running on port 5001');
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack);
-  res.status(500).json({ message: 'Internal Server Error', error: err.message });
-});
-
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
@@ -105,7 +18,8 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
-/* 
+
+
  const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -174,4 +88,4 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
 
- */
+ 
