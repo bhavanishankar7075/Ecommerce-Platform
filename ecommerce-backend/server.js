@@ -1,4 +1,4 @@
-/* const express = require('express');
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -29,6 +29,10 @@ if (!fs.existsSync(uploadDir)) {
 }
 console.log(`Serving static files from: ${uploadDir}`);
 app.use('/uploads', express.static(uploadDir));
+
+// Set BASE_URL dynamically based on environment
+process.env.BASE_URL = process.env.RENDER ? 'https://backend-ps76.onrender.com' : 'http://localhost:5001';
+console.log(`BASE_URL set to: ${process.env.BASE_URL}`);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
@@ -69,9 +73,6 @@ app.get('/', (req, res) => {
   res.send('E-commerce Backend is running on port 5001');
 });
 
-// Set BASE_URL if not provided
-process.env.BASE_URL = process.env.BASE_URL || 'http://localhost:5001';
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err.stack);
@@ -80,7 +81,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
- */
 
 
 
@@ -100,7 +100,8 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 
 
- 
+
+/* 
  const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -169,4 +170,4 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`)); 
 
- 
+ */

@@ -1,9 +1,12 @@
-/* import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { CSVLink } from 'react-csv';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ProductManagement.css';
+
+// Set BASE_URL dynamically based on environment
+const BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:5001' : 'https://backend-ps76.onrender.com';
 
 function ProductManagement() {
   const [totalPages, setTotalPages] = useState(1);
@@ -124,38 +127,21 @@ function ProductManagement() {
 
       console.log('Fetching products with params:', params.toString());
 
-      const res = await axios.get(`https://backend-ps76.onrender.com/api/admin/products?${params.toString()}`, {
+      const res = await axios.get(`${BASE_URL}/api/admin/products?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       console.log('Fetched products response (raw):', res.data);
 
-      // Robust image URL preprocessing with local URL replacement and cache busting
-      const baseUrl = 'https://backend-ps76.onrender.com';
+      // Use the image URLs as provided by the backend, with cache busting
       const timestamp = new Date().getTime();
       const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => {
         let processedImage = product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
         let processedImages = product.images || [];
 
-        // Ensure correct base URL and add cache-busting query parameter
-        if (processedImage.startsWith('http://localhost:')) {
-          processedImage = `${baseUrl}${processedImage.replace('http://localhost:5001', '')}?t=${timestamp}`;
-        } else if (!processedImage.startsWith('http') && !processedImage.startsWith('/')) {
-          processedImage = `${baseUrl}/${processedImage}?t=${timestamp}`;
-        } else if (processedImage.startsWith(baseUrl)) {
-          processedImage = `${processedImage}?t=${timestamp}`;
-        }
-
-        processedImages = processedImages.map(img => {
-          if (img.startsWith('http://localhost:')) {
-            return `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`;
-          } else if (!img.startsWith('http') && !img.startsWith('/')) {
-            return `${baseUrl}/${img}?t=${timestamp}`;
-          } else if (img.startsWith(baseUrl)) {
-            return `${img}?t=${timestamp}`;
-          }
-          return img;
-        });
+        // Add cache-busting query parameter to the existing URLs
+        processedImage = processedImage.includes('?') ? `${processedImage}&t=${timestamp}` : `${processedImage}?t=${timestamp}`;
+        processedImages = processedImages.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
         console.log(`Processing product ${product._id}: image = ${processedImage}, images = ${processedImages.join(', ')}`);
 
@@ -299,9 +285,9 @@ function ProductManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-  
-    console.log('Form data before submission:', formData);
-  
+
+    console.log('Form data before submission:', Object.fromEntries(new FormData(e.target)));
+
     const form = new FormData();
     form.append('name', formData.name);
     form.append('price', formData.price);
@@ -315,7 +301,7 @@ function ProductManagement() {
     form.append('weight', formData.weight || '');
     form.append('weightUnit', formData.weight ? (formData.weight.toLowerCase().endsWith('g') ? 'g' : 'kg') : 'kg');
     form.append('model', formData.model);
-  
+
     if (formData.mainImage) {
       form.append('mainImage', formData.mainImage);
     }
@@ -325,15 +311,15 @@ function ProductManagement() {
         form.append('additionalImages', image);
       }
     });
-  
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found. Please log in.');
       }
-  
+
       console.log('Sending POST request to /api/admin/products');
-      const res = await axios.post('http://localhost:5001/api/admin/products', form, {
+      const res = await axios.post(`${BASE_URL}/api/admin/products`, form, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -341,18 +327,12 @@ function ProductManagement() {
       });
       console.log('Add product response:', res.data);
       const updatedProduct = res.data.product;
-  
-      const baseUrl = 'http://localhost:5001';
+
+      // Use the image URLs as provided by the backend, with cache busting
       const timestamp = new Date().getTime();
-      const processedImage = updatedProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}?t=${timestamp}`
-        : `${baseUrl}${updatedProduct.image}?t=${timestamp}`;
-      const processedImages = updatedProduct.images.map(img =>
-        img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`
-          : `${baseUrl}${img}?t=${timestamp}`
-      );
-  
+      const processedImage = updatedProduct.image.includes('?') ? `${updatedProduct.image}&t=${timestamp}` : `${updatedProduct.image}?t=${timestamp}`;
+      const processedImages = updatedProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
+
       setProducts((prev) => [{ ...updatedProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
       setCurrentPage(1);
       toast.success('Product added successfully!');
@@ -368,18 +348,8 @@ function ProductManagement() {
   };
 
   const handleEdit = (product) => {
-    const baseUrl = 'https://backend-ps76.onrender.com';
-    const timestamp = new Date().getTime();
-    const processedExistingImages = (product.images || []).map(img => {
-      if (img.startsWith('http://localhost:')) {
-        return `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`;
-      } else if (!img.startsWith('http') && !img.startsWith('/')) {
-        return `${baseUrl}/${img}?t=${timestamp}`;
-      } else if (img.startsWith(baseUrl)) {
-        return `${img}?t=${timestamp}`;
-      }
-      return img;
-    });
+    // Use the existing image URLs as provided by the backend
+    const processedExistingImages = (product.images || []).map(img => img);
 
     console.log('Processing edit for product:', product._id, 'existingImages:', processedExistingImages);
 
@@ -417,7 +387,7 @@ function ProductManagement() {
         throw new Error('No authentication token found. Please log in.');
       }
 
-      await axios.delete(`https://backend-ps76.onrender.com/api/admin/products/${productId}`, {
+      await axios.delete(`${BASE_URL}/api/admin/products/${productId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProducts((prev) => prev.filter((p) => p._id !== productId));
@@ -445,7 +415,7 @@ function ProductManagement() {
 
       await Promise.all(
         selectedProducts.map((p) =>
-          axios.delete(`https://backend-ps76.onrender.com/api/admin/products/${p._id}`, {
+          axios.delete(`${BASE_URL}/api/admin/products/${p._id}`, {
             headers: { Authorization: `Bearer ${token}` },
           })
         )
@@ -490,7 +460,7 @@ function ProductManagement() {
         throw new Error('No authentication token found. Please log in.');
       }
 
-      const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
+      const res = await axios.post(`${BASE_URL}/api/admin/products`, form, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -502,16 +472,9 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      const baseUrl = 'https://backend-ps76.onrender.com';
       const timestamp = new Date().getTime();
-      const processedImage = newProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${newProduct.image.replace('http://localhost:5001', '')}?t=${timestamp}`
-        : `${baseUrl}${newProduct.image}?t=${timestamp}`;
-      const processedImages = newProduct.images.map(img =>
-        img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`
-          : `${baseUrl}${img}?t=${timestamp}`
-      );
+      const processedImage = newProduct.image.includes('?') ? `${newProduct.image}&t=${timestamp}` : `${newProduct.image}?t=${timestamp}`;
+      const processedImages = newProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
       setProducts((prev) => [{ ...newProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
       setCurrentPage(1);
@@ -531,7 +494,7 @@ function ProductManagement() {
       }
 
       const res = await axios.put(
-        `https://backend-ps76.onrender.com/api/admin/products/${productId}/toggle-status`,
+        `${BASE_URL}/api/admin/products/${productId}/toggle-status`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -543,16 +506,9 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      const baseUrl = 'https://backend-ps76.onrender.com';
       const timestamp = new Date().getTime();
-      const processedImage = updatedProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}?t=${timestamp}`
-        : `${baseUrl}${updatedProduct.image}?t=${timestamp}`;
-      const processedImages = updatedProduct.images.map(img =>
-        img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}?t=${timestamp}`
-          : `${baseUrl}${img}?t=${timestamp}`
-      );
+      const processedImage = updatedProduct.image.includes('?') ? `${updatedProduct.image}&t=${timestamp}` : `${updatedProduct.image}?t=${timestamp}`;
+      const processedImages = updatedProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
       setProducts((prev) =>
         prev.map((p) => (p._id === productId ? { ...updatedProduct, image: processedImage, images: processedImages } : p))
@@ -948,200 +904,200 @@ function ProductManagement() {
             filename="products.csv"
             className="export-btn"
           >
-        Export to CSV
-      </CSVLink>
-    </div>
-    <div className="product-grid">
-      {products.length > 0 ? (
-        products.map((product) => (
-          <div key={product._id} className="product-card">
-            <input
-              type="checkbox"
-              checked={product.selected || false}
-              onChange={() => toggleSelectProduct(product._id)}
-              className="select-checkbox"
-            />
-            <div className="image-wrapper">
-              <img
-                src={product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
-                alt={product.name}
-                className="product-image"
-                onError={(e) => {
-                  console.log('Product image load failed:', e.target.src);
-                  e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
-                  e.target.onerror = null;
-                }}
-              />
-            </div>
-            <div className="product-details">
-              <h3>{product.name}</h3>
-              <p>Price: ₹{product.price.toFixed(2)}</p>
-              <p>Category: {product.category}</p>
-              <p>
-                Stock: {product.stock}{' '}
-                {product.stock === 0 ? (
-                  <span className="stock-badge out-of-stock">Out of Stock</span>
-                ) : product.stock <= 5 ? (
-                  <span className="stock-badge low-stock">Low Stock</span>
-                ) : (
-                  <span className="stock-badge in-stock">In Stock</span>
-                )}
-              </p>
-              {product.offer && <p className="offer">Offer: {product.offer}</p>}
-              {product.sizes?.length > 0 && (
-                <p>Sizes: {product.sizes.join(', ')}</p>
-              )}
-              {product.brand && <p>Brand: {product.brand}</p>}
-              {product.weight && (
-                <p>
-                  Weight:{' '}
-                  {product.weightUnit === 'g'
-                    ? `${product.weight * 1000} g`
-                    : `${product.weight} kg`}
-                </p>
-              )}
-              {product.model && <p>Model: {product.model}</p>}
-              <p>
-                Status:{' '}
-                <span className={product.isActive ? 'status-active' : 'status-inactive'}>
-                  {product.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </p>
-            </div>
-            <div className="product-actions">
-              <button
-                onClick={() => openPreviewModal(product)}
-                className="preview-btn"
-              >
-                Preview
-              </button>
-              <button
-                onClick={() => handleEdit(product)}
-                className="edit-btn"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDuplicate(product)}
-                className="duplicate-btn"
-              >
-                Duplicate
-              </button>
-              <button
-                onClick={() => toggleProductStatus(product._id, product.isActive)}
-                className={product.isActive ? 'deactivate-btn' : 'activate-btn'}
-              >
-                {product.isActive ? 'Deactivate' : 'Activate'}
-              </button>
-              <button
-                onClick={() => handleDelete(product._id)}
-                className="delete-btn"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))
-      ) : (
-        <p>No products found.</p>
-      )}
-    </div>
-    {totalPages > 1 && (
-      <div className="pagination">
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-        <span>
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
-      </div>
-    )}
-  </section>
-
-  {previewModal && (
-    <div className="preview-modal">
-      <div className="modal-content">
-        <button className="close-modal" onClick={closePreviewModal}>
-          ✕
-        </button>
-        <h2>{previewModal.name}</h2>
-        <div className="image-wrapper">
-          <img
-            src={previewModal.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
-            alt={previewModal.name}
-            className="modal-image"
-            onError={(e) => {
-              console.log('Modal image load failed:', e.target.src);
-              e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
-              e.target.onerror = null;
-            }}
-          />
+            Export to CSV
+          </CSVLink>
         </div>
-        <p>Price: ₹{previewModal.price.toFixed(2)}</p>
-        <p>Category: {previewModal.category}</p>
-        <p>
-          Stock: {previewModal.stock}{' '}
-          {previewModal.stock === 0 ? (
-            <span className="stock-badge out-of-stock">Out of Stock</span>
-          ) : previewModal.stock <= 5 ? (
-            <span className="stock-badge low-stock">Low Stock</span>
-          ) : (
-            <span className="stock-badge in-stock">In Stock</span>
-          )}
-        </p>
-        {previewModal.offer && <p>Offer: {previewModal.offer}</p>}
-        {previewModal.sizes?.length > 0 && (
-          <p>Sizes: {previewModal.sizes.join(', ')}</p>
-        )}
-        {previewModal.brand && <p>Brand: {previewModal.brand}</p>}
-        {previewModal.weight && (
-          <p>
-            Weight:{' '}
-            {previewModal.weightUnit === 'g'
-              ? `${previewModal.weight * 1000} g`
-              : `${previewModal.weight} kg`}
-          </p>
-        )}
-        {previewModal.model && <p>Model: {previewModal.model}</p>}
-        <p>{previewModal.description}</p>
-        {previewModal.images?.length > 0 && (
-          <div className="additional-images">
-            <h3>Additional Images</h3>
-            <div className="image-gallery">
-              {previewModal.images.map((img, index) => (
-                <div key={index} className="image-wrapper">
+        <div className="product-grid">
+          {products.length > 0 ? (
+            products.map((product) => (
+              <div key={product._id} className="product-card">
+                <input
+                  type="checkbox"
+                  checked={product.selected || false}
+                  onChange={() => toggleSelectProduct(product._id)}
+                  className="select-checkbox"
+                />
+                <div className="image-wrapper">
                   <img
-                    src={img || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
-                    alt={`Additional ${index}`}
-                    className="gallery-image"
+                    src={product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
+                    alt={product.name}
+                    className="product-image"
                     onError={(e) => {
-                      console.log('Gallery image load failed:', e.target.src);
+                      console.log('Product image load failed:', e.target.src);
                       e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
                       e.target.onerror = null;
                     }}
                   />
                 </div>
-              ))}
-            </div>
+                <div className="product-details">
+                  <h3>{product.name}</h3>
+                  <p>Price: ₹{product.price.toFixed(2)}</p>
+                  <p>Category: {product.category}</p>
+                  <p>
+                    Stock: {product.stock}{' '}
+                    {product.stock === 0 ? (
+                      <span className="stock-badge out-of-stock">Out of Stock</span>
+                    ) : product.stock <= 5 ? (
+                      <span className="stock-badge low-stock">Low Stock</span>
+                    ) : (
+                      <span className="stock-badge in-stock">In Stock</span>
+                    )}
+                  </p>
+                  {product.offer && <p className="offer">Offer: {product.offer}</p>}
+                  {product.sizes?.length > 0 && (
+                    <p>Sizes: {product.sizes.join(', ')}</p>
+                  )}
+                  {product.brand && <p>Brand: {product.brand}</p>}
+                  {product.weight && (
+                    <p>
+                      Weight:{' '}
+                      {product.weightUnit === 'g'
+                        ? `${product.weight * 1000} g`
+                        : `${product.weight} kg`}
+                    </p>
+                  )}
+                  {product.model && <p>Model: {product.model}</p>}
+                  <p>
+                    Status:{' '}
+                    <span className={product.isActive ? 'status-active' : 'status-inactive'}>
+                      {product.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </p>
+                </div>
+                <div className="product-actions">
+                  <button
+                    onClick={() => openPreviewModal(product)}
+                    className="preview-btn"
+                  >
+                    Preview
+                  </button>
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="edit-btn"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDuplicate(product)}
+                    className="duplicate-btn"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={() => toggleProductStatus(product._id, product.isActive)}
+                    className={product.isActive ? 'deactivate-btn' : 'activate-btn'}
+                  >
+                    {product.isActive ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product._id)}
+                    className="delete-btn"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>No products found.</p>
+          )}
+        </div>
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
           </div>
         )}
-      </div>
+      </section>
+
+      {previewModal && (
+        <div className="preview-modal">
+          <div className="modal-content">
+            <button className="close-modal" onClick={closePreviewModal}>
+              ✕
+            </button>
+            <h2>{previewModal.name}</h2>
+            <div className="image-wrapper">
+              <img
+                src={previewModal.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
+                alt={previewModal.name}
+                className="modal-image"
+                onError={(e) => {
+                  console.log('Modal image load failed:', e.target.src);
+                  e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
+                  e.target.onerror = null;
+                }}
+              />
+            </div>
+            <p>Price: ₹{previewModal.price.toFixed(2)}</p>
+            <p>Category: {previewModal.category}</p>
+            <p>
+              Stock: {previewModal.stock}{' '}
+              {previewModal.stock === 0 ? (
+                <span className="stock-badge out-of-stock">Out of Stock</span>
+              ) : previewModal.stock <= 5 ? (
+                <span className="stock-badge low-stock">Low Stock</span>
+              ) : (
+                <span className="stock-badge in-stock">In Stock</span>
+              )}
+            </p>
+            {previewModal.offer && <p>Offer: {previewModal.offer}</p>}
+            {previewModal.sizes?.length > 0 && (
+              <p>Sizes: {previewModal.sizes.join(', ')}</p>
+            )}
+            {previewModal.brand && <p>Brand: {previewModal.brand}</p>}
+            {previewModal.weight && (
+              <p>
+                Weight:{' '}
+                {previewModal.weightUnit === 'g'
+                  ? `${previewModal.weight * 1000} g`
+                  : `${previewModal.weight} kg`}
+              </p>
+            )}
+            {previewModal.model && <p>Model: {previewModal.model}</p>}
+            <p>{previewModal.description}</p>
+            {previewModal.images?.length > 0 && (
+              <div className="additional-images">
+                <h3>Additional Images</h3>
+                <div className="image-gallery">
+                  {previewModal.images.map((img, index) => (
+                    <div key={index} className="image-wrapper">
+                      <img
+                        src={img || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'}
+                        alt={`Additional ${index}`}
+                        className="gallery-image"
+                        onError={(e) => {
+                          console.log('Gallery image load failed:', e.target.src);
+                          e.target.src = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
+                          e.target.onerror = null;
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
-  )}
-</div>
-);
+  );
 }
 
-export default ProductManagement; */
+export default ProductManagement;
 
 
 
@@ -1179,7 +1135,7 @@ export default ProductManagement; */
 
 
 
- import { useState, useEffect } from 'react';
+/* import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { CSVLink } from 'react-csv';
@@ -2323,7 +2279,7 @@ function ProductManagement() {
   );
 }
 
-export default ProductManagement; 
+export default ProductManagement; */
 
 
 
