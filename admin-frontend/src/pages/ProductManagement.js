@@ -5,7 +5,7 @@ import { CSVLink } from 'react-csv';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ProductManagement.css';
 
-// Set BASE_URL dynamically based on environment
+// Set BASE_URL dynamically based on environment for API requests
 const BASE_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:5001' : 'https://backend-ps76.onrender.com';
 
 function ProductManagement() {
@@ -326,7 +326,7 @@ function ProductManagement() {
       console.log('Add product response:', res.data);
       const updatedProduct = res.data.product;
 
-      // Fetch the latest products to ensure consistency across frontends
+      // Fetch the latest products to ensure consistency
       setCurrentPage(1); // Reset to page 1
       await fetchProducts(); // Refresh the product list
       toast.success('Product added successfully!');
@@ -463,10 +463,6 @@ function ProductManagement() {
       if (!newProduct) {
         throw new Error('Invalid response from server: Product not found');
       }
-
-      const timestamp = new Date().getTime();
-      const processedImage = newProduct.image.includes('?') ? `${newProduct.image}&t=${timestamp}` : `${newProduct.image}?t=${timestamp}`;
-      const processedImages = newProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
       setCurrentPage(1); // Reset to page 1
       await fetchProducts();
@@ -683,7 +679,7 @@ function ProductManagement() {
             <div className="form-group">
               <label>Model</label>
               <input
-                type="type"
+                type="text"
                 name="model"
                 value={formData.model}
                 onChange={handleInputChange}

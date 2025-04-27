@@ -30,9 +30,13 @@ if (!fs.existsSync(uploadDir)) {
 console.log(`Serving static files from: ${uploadDir}`);
 app.use('/uploads', express.static(uploadDir));
 
-// Set BASE_URL dynamically based on environment
-process.env.BASE_URL = process.env.RENDER ? 'https://backend-ps76.onrender.com' : 'http://localhost:5001';
-console.log(`BASE_URL set to: ${process.env.BASE_URL}`);
+// Set BASE_URL for API routing and IMAGE_BASE_URL for image URLs
+const BASE_URL = process.env.BASE_URL || (process.env.RENDER ? 'https://backend-ps76.onrender.com' : 'http://localhost:5001');
+const IMAGE_BASE_URL = 'https://backend-ps76.onrender.com'; // Always use Render URL for images
+process.env.BASE_URL = BASE_URL;
+process.env.IMAGE_BASE_URL = IMAGE_BASE_URL;
+console.log('BASE_URL set to:', BASE_URL);
+console.log('IMAGE_BASE_URL set to:', IMAGE_BASE_URL);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)

@@ -58,23 +58,23 @@ const verifyAdmin = async (req, res, next) => {
   }
 };
 
-// Format product image URL
+// Format product image URL using IMAGE_BASE_URL
 const formatProductImage = (product) => {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
-  console.log(`Formatting image URLs with BASE_URL: ${baseUrl}`);
+  const baseUrl = process.env.IMAGE_BASE_URL || 'https://backend-ps76.onrender.com';
+  console.log('Formatting image URLs with IMAGE_BASE_URL:', baseUrl);
   if (product.image) {
-    if (!product.image.startsWith(baseUrl)) {
+    if (!product.image.startsWith('http')) {
       product.image = `${baseUrl}${product.image}`;
     }
   } else {
-    product.image = 'http://localhost:5002/default-product.jpg'; // Fallback
+    product.image = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'; // Updated fallback
   }
   if (product.images && product.images.length > 0) {
     product.images = product.images.map(img => {
-      if (img && !img.startsWith(baseUrl)) {
+      if (img && !img.startsWith('http')) {
         return `${baseUrl}${img}`;
       }
-      return img || 'http://localhost:5002/default-product.jpg'; // Fallback
+      return img || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'; // Updated fallback
     });
   } else {
     product.images = [];
@@ -164,7 +164,7 @@ router.put('/:id', verifyAdmin, logFields, upload.fields([{ name: 'mainImage', m
 
     let updatedImages = product.images || [];
     if (existingImages) {
-      const newImagesList = JSON.parse(existingImages).map(img => img.replace(process.env.BASE_URL || 'http://localhost:5001', ''));
+      const newImagesList = JSON.parse(existingImages).map(img => img.replace(process.env.IMAGE_BASE_URL || 'https://backend-ps76.onrender.com', ''));
       const imagesToRemove = updatedImages.filter(img => !newImagesList.includes(img));
       for (const img of imagesToRemove) if (img.startsWith('/uploads/')) try { await fs.unlink(path.join(__dirname, '..', img)); } catch (err) { console.error('Error deleting image:', err); }
       updatedImages = newImagesList;
@@ -231,7 +231,6 @@ router.put('/:id/toggle-status', verifyAdmin, async (req, res) => {
 });
 
 module.exports = router;
-
 
 
 
