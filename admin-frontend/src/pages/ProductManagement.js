@@ -133,7 +133,7 @@ function ProductManagement() {
 
       console.log('Fetched products response (raw):', res.data);
 
-      // Use the image URLs as provided by the backend, with cache busting
+      // Use the image URLs as provided by the backend (always Render URL)
       const timestamp = new Date().getTime();
       const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => {
         let processedImage = product.image || 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg';
@@ -304,7 +304,6 @@ function ProductManagement() {
     if (formData.mainImage) {
       form.append('mainImage', formData.mainImage);
     }
-    // Append all additional images under the same field name 'additionalImages'
     formData.newImages.forEach((image) => {
       if (image) {
         form.append('additionalImages', image);
@@ -327,16 +326,11 @@ function ProductManagement() {
       console.log('Add product response:', res.data);
       const updatedProduct = res.data.product;
 
-      // Use the image URLs as provided by the backend, with cache busting
-      const timestamp = new Date().getTime();
-      const processedImage = updatedProduct.image.includes('?') ? `${updatedProduct.image}&t=${timestamp}` : `${updatedProduct.image}?t=${timestamp}`;
-      const processedImages = updatedProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
-
-      // Instead of adding to products directly, fetch the latest products to ensure correct pagination
-      resetForm();
-      setCurrentPage(1); // Reset to page 1 to see the new product
-      await fetchProducts(); // Fetch all products to ensure the new product appears
+      // Fetch the latest products to ensure consistency across frontends
+      setCurrentPage(1); // Reset to page 1
+      await fetchProducts(); // Refresh the product list
       toast.success('Product added successfully!');
+      resetForm();
     } catch (err) {
       console.error('Error saving product:', err);
       console.error('Error details:', err.response?.data);
@@ -347,7 +341,6 @@ function ProductManagement() {
   };
 
   const handleEdit = (product) => {
-    // Use the existing image URLs as provided by the backend
     const processedExistingImages = (product.images || []).map(img => img);
 
     console.log('Processing edit for product:', product._id, 'existingImages:', processedExistingImages);
@@ -475,7 +468,7 @@ function ProductManagement() {
       const processedImage = newProduct.image.includes('?') ? `${newProduct.image}&t=${timestamp}` : `${newProduct.image}?t=${timestamp}`;
       const processedImages = newProduct.images.map(img => img.includes('?') ? `${img}&t=${timestamp}` : `${img}?t=${timestamp}`);
 
-      setCurrentPage(1); // Reset to page 1 to see the new product
+      setCurrentPage(1); // Reset to page 1
       await fetchProducts();
       toast.success('Product duplicated successfully!');
     } catch (err) {
@@ -690,7 +683,7 @@ function ProductManagement() {
             <div className="form-group">
               <label>Model</label>
               <input
-                type="text"
+                type="type"
                 name="model"
                 value={formData.model}
                 onChange={handleInputChange}
