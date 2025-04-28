@@ -58,22 +58,30 @@ function ProductManagement() {
   const productsPerPage = 8;
   const navigate = useNavigate();
 
-  // Utility function to handle image sources
+  // Enhanced utility function to handle image sources
   const getImageSrc = (image) => {
     if (!image) {
       console.log('Image is null/undefined, using placeholder');
-      return 'https://via.placeholder.com/150';
+      return 'https://placehold.co/150'; // Using alternative placeholder due to via.placeholder.com issue
     }
-    if (image.startsWith('data:image/')) {
-      console.log('Image is Base64:', image.substring(0, 30) + '...');
-      return image;
+    if (typeof image === 'string') {
+      if (image.startsWith('data:image/')) {
+        console.log('Image is Base64:', image.substring(0, 30) + '...');
+        return image;
+      }
+      if (image.startsWith('http')) {
+        if (image.includes('cloudinary')) {
+          console.log('Image is Cloudinary URL:', image);
+        } else {
+          console.log('Image is other HTTP URL:', image);
+        }
+        return image;
+      }
+      console.log('Image format unrecognized, using placeholder:', image);
+      return 'https://placehold.co/150';
     }
-    if (image.startsWith('http')) {
-      console.log('Image is URL:', image);
-      return image;
-    }
-    console.log('Image is invalid, using placeholder:', image);
-    return 'https://via.placeholder.com/150';
+    console.log('Image is not a string, using placeholder:', typeof image);
+    return 'https://placehold.co/150';
   };
 
   useEffect(() => {
@@ -132,12 +140,24 @@ function ProductManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log('Raw products from backend:', res.data.products); // Log to inspect image fields
+      console.log('Raw products from backend:', res.data.products);
 
       const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => ({
         ...product,
         selected: product.selected || false,
       }));
+
+      // Validate images
+      initializedProducts.forEach(product => {
+        if (!product.image || typeof product.image !== 'string') {
+          console.log(`Invalid main image for ${product.name}, setting to placeholder`);
+          product.image = 'https://placehold.co/150';
+        }
+        if (product.images && !Array.isArray(product.images)) {
+          console.log(`Invalid images array for ${product.name}, resetting to empty`);
+          product.images = [];
+        }
+      });
 
       setProducts(initializedProducts);
       setTotalPages(res.data.totalPages || 1);
@@ -826,7 +846,7 @@ function ProductManagement() {
                     alt="Main Preview"
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
-                      e.target.src = 'https://via.placeholder.com/150';
+                      e.target.src = 'https://placehold.co/150';
                       e.target.onerror = null;
                     }}
                   />
@@ -839,7 +859,7 @@ function ProductManagement() {
                     alt="Current Main"
                     onError={(e) => {
                       console.log('Current main image load failed:', e.target.src);
-                      e.target.src = 'https://via.placeholder.com/150';
+                      e.target.src = 'https://placehold.co/150';
                       e.target.onerror = null;
                     }}
                   />
@@ -864,7 +884,7 @@ function ProductManagement() {
                       alt={`Existing ${index + 1}`}
                       onError={(e) => {
                         console.log('Existing image load failed:', e.target.src);
-                        e.target.src = 'https://via.placeholder.com/150';
+                        e.target.src = 'https://placehold.co/150';
                         e.target.onerror = null;
                       }}
                     />
@@ -889,7 +909,7 @@ function ProductManagement() {
                       alt={`New ${index + 1}`}
                       onError={(e) => {
                         console.log('New image load failed:', e.target.src);
-                        e.target.src = 'https://via.placeholder.com/150';
+                        e.target.src = 'https://placehold.co/150';
                         e.target.onerror = null;
                       }}
                     />
@@ -1018,9 +1038,10 @@ function ProductManagement() {
                     className="product-image"
                     onError={(e) => {
                       console.log('Product image load failed:', e.target.src);
-                      e.target.src = 'https://via.placeholder.com/150';
+                      e.target.src = 'https://placehold.co/150';
                       e.target.onerror = null;
                     }}
+                    onLoad={() => console.log('Product image loaded successfully:', product.image)}
                   />
                 </div>
                 <div className="product-details">
@@ -1131,9 +1152,10 @@ function ProductManagement() {
                 className="modal-image"
                 onError={(e) => {
                   console.log('Modal image load failed:', e.target.src);
-                  e.target.src = 'https://via.placeholder.com/150';
+                  e.target.src = 'https://placehold.co/150';
                   e.target.onerror = null;
                 }}
+                onLoad={() => console.log('Modal image loaded successfully:', previewModal.image)}
               />
             </div>
             <p>Price: ₹{previewModal.price.toFixed(2)}</p>
@@ -1175,9 +1197,10 @@ function ProductManagement() {
                         className="gallery-image"
                         onError={(e) => {
                           console.log('Gallery image load failed:', e.target.src);
-                          e.target.src = 'https://via.placeholder.com/150';
+                          e.target.src = 'https://placehold.co/150';
                           e.target.onerror = null;
                         }}
+                        onLoad={() => console.log('Gallery image loaded successfully:', img)}
                       />
                     </div>
                   ))}

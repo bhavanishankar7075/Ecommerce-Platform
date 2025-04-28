@@ -1,104 +1,58 @@
 const express = require('express');
 const router = express.Router();
+const Product = require('../models/Product');
+const verifyAdmin = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const Product = require('../models/Product');
 
-// Configure Cloudinary using CLOUDINARY_URL from environment
-console.log('Cloudinary URL loaded from env:', process.env.CLOUDINARY_URL ? 'Yes' : 'No');
-
-// Multer setup for in-memory storage
+// Configure Multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
+const upload = multer({ storage });
 
-// Verify admin middleware
-const verifyAdmin = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    console.log('No token provided');
-    return res.status(401).json({ message: 'Unauthorized: No token provided' });
-  }
-
-  try {
-    const jwt = require('jsonwebtoken');
-    const Admin = require('../models/admin');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decoded:', decoded);
-    req.admin = await Admin.findById(decoded.id).select('-password');
-    if (!req.admin) {
-      console.log('Admin not found for ID:', decoded.id);
-      return res.status(401).json({ message: 'Unauthorized: Admin not found' });
-    }
-    next();
-  } catch (err) {
-    console.error('Verify Admin Error:', err.message, err.stack);
-    res.status(401).json({ message: 'Unauthorized: Invalid token', error: err.message });
-  }
-};
-
-// Format product image (handle both Base64 and Cloudinary URLs)
+// Format product images (simplified post-migration)
 const formatProductImage = (product) => {
-  const fallbackImage = 'https://via.placeholder.com/150';
+  const placeholderImage = 'https://via.placeholder.com/150';
+  const formattedProduct = { ...product };
 
-  // Handle main image
-  if (product.image) {
-    if (product.image.startsWith('data:image/')) {
-      // Already a Base64 string, leave it as is
-    } else if (product.image.startsWith('http')) {
-      // Cloudinary URL, leave it as is
-    } else if (product.image.startsWith('/uploads/')) {
-      // Old file path, replace with fallback
-      product.image = fallbackImage;
-    } else {
-      // Assume it's a Base64 string without prefix (old format), add prefix
-      product.image = `data:image/jpeg;base64,${product.image}`;
-    }
-  } else {
-    product.image = fallbackImage;
+  if (!formattedProduct.image || !formattedProduct.image.startsWith('http')) {
+    console.log(`Invalid main image for product ${formattedProduct.name}: ${formattedProduct.image}`);
+    formattedProduct.image = placeholderImage;
   }
 
-  // Handle additional images
-  if (product.images && product.images.length > 0) {
-    product.images = product.images.map(img => {
-      if (img) {
-        if (img.startsWith('data:image/')) {
-          // Already a Base64 string, leave it as is
-          return img;
-        } else if (img.startsWith('http')) {
-          // Cloudinary URL, leave it as is
-          return img;
-        } else if (img.startsWith('/uploads/')) {
-          // Old file path, replace with fallback
-          return fallbackImage;
-        } else {
-          // Assume it's a Base64 string without prefix, add prefix
-          return `data:image/jpeg;base64,${img}`;
-        }
+  if (formattedProduct.images && Array.isArray(formattedProduct.images)) {
+    formattedProduct.images = formattedProduct.images.map(img => {
+      if (!img || !img.startsWith('http')) {
+        console.log(`Invalid additional image for product ${formattedProduct.name}: ${img}`);
+        return placeholderImage;
       }
-      return fallbackImage;
+      return img;
     });
   } else {
-    product.images = [];
+    formattedProduct.images = [];
   }
 
-  return product;
+  return formattedProduct;
 };
 
-// GET: Fetch all products
+// GET /api/products - Fetch all active products for frontend
+router.get('/', async (req, res) => {
+  try {
+    console.log('Fetching products for frontend');
+    const products = await Product.find({ isActive: true });
+    const formattedProducts = products.map(product => formatProductImage(product.toObject()));
+    res.status(200).json(formattedProducts);
+  } catch (err) {
+    console.error('Error fetching products for frontend:', err.message, err.stack);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// GET /api/admin/products - Fetch products for admin
 router.get('/', verifyAdmin, async (req, res) => {
   try {
-    const {
-      search = '',
-      category = '',
-      priceMin = '',
-      priceMax = '',
-      stock = '',
-      offer = '',
-      page = 1,
-      limit = 8,
-    } = req.query;
-
-    const query = {};
+    console.log('Fetching products for admin');
+    const { search, category, priceMin, priceMax, stock, offer, page = 1, limit = 10 } = req.query;
+    let query = {};
 
     if (search) {
       query.name = { $regex: search, $options: 'i' };
@@ -106,48 +60,40 @@ router.get('/', verifyAdmin, async (req, res) => {
     if (category) {
       query.category = category;
     }
-    if (priceMin || priceMax) {
-      query.price = {};
-      if (priceMin) query.price.$gte = parseFloat(priceMin);
-      if (priceMax) query.price.$lte = parseFloat(priceMax);
+    if (priceMin) {
+      query.price = { ...query.price, $gte: parseFloat(priceMin) };
+    }
+    if (priceMax) {
+      query.price = { ...query.price, $lte: parseFloat(priceMax) };
     }
     if (stock) {
-      if (stock === 'inStock') query.stock = { $gt: 0 };
+      if (stock === 'inStock') query.stock = { $gt: 5 };
+      if (stock === 'lowStock') query.stock = { $gte: 1, $lte: 5 };
       if (stock === 'outOfStock') query.stock = 0;
-      if (stock === 'lowStock') query.stock = { $gt: 0, $lte: 5 };
     }
     if (offer) {
       if (offer === 'hasOffer') query.offer = { $ne: '' };
-      if (offer === 'noOffer') query.offer = { $eq: '' };
+      if (offer === 'noOffer') query.offer = '';
     }
 
-    console.log('Backend query for fetching products:', query);
-
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
-
-    const totalProducts = await Product.countDocuments(query);
     const products = await Product.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
 
-    console.log('Fetched products from DB:', products);
+    const total = await Product.countDocuments(query);
+    const formattedProducts = products.map(product => formatProductImage(product.toObject()));
 
-    const formattedProducts = products.map(formatProductImage);
-    res.json({
+    res.status(200).json({
       products: formattedProducts,
-      totalPages: Math.ceil(totalProducts / limitNum),
-      currentPage: pageNum,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (err) {
-    console.error('Fetch Products Error:', err.message, err.stack);
+    console.error('Error fetching products for admin:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// POST: Add a new product
+// POST /api/admin/products - Add a new product
 router.post('/', verifyAdmin, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
@@ -158,27 +104,14 @@ router.post('/', verifyAdmin, upload.fields([
     console.log('Request files:', req.files);
 
     const {
-      name,
-      price,
-      category,
-      stock,
-      description,
-      offer,
-      sizes,
-      isActive,
-      brand,
-      weight,
-      weightUnit,
-      model,
+      name, price, category, stock, description, offer, sizes, isActive, brand, weight, weightUnit, model,
     } = req.body;
 
-    console.log('Validating required fields...');
     if (!name || !price || !category || !stock || !description) {
       console.log('Missing required fields:', { name, price, category, stock, description });
       return res.status(400).json({ message: 'Missing required fields: name, price, category, stock, or description' });
     }
 
-    console.log('Checking main image...');
     const mainImageFile = req.files && req.files['mainImage'] ? req.files['mainImage'][0] : null;
     if (!mainImageFile) {
       console.log('Main image missing');
@@ -268,29 +201,34 @@ router.post('/', verifyAdmin, upload.fields([
   }
 });
 
-// PUT: Update a product
+// PUT /api/admin/products/:id - Update a product
 router.put('/:id', verifyAdmin, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
 ]), async (req, res) => {
-  const {
-    name, price, stock, category, description, offer, sizes, isActive,
-    featured, brand, weight, weightUnit, model, existingImages
-  } = req.body;
-
   try {
-    console.log('Starting PUT /api/admin/products/:id');
+    console.log(`Starting PUT /api/admin/products/${req.params.id}`);
+    console.log('Request body:', req.body);
+    console.log('Request files:', req.files);
+
     const product = await Product.findById(req.params.id);
     if (!product) {
-      console.log('Product not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    let image = product.image;
-    if (req.files['mainImage']) {
+    const {
+      name, price, category, stock, description, offer, sizes, isActive, brand, weight, weightUnit, model, existingImages,
+    } = req.body;
+
+    if (!name || !price || !category || !stock || !description) {
+      return res.status(400).json({ message: 'Missing required fields: name, price, category, stock, or description' });
+    }
+
+    let mainImageUrl = product.image;
+    const mainImageFile = req.files && req.files['mainImage'] ? req.files['mainImage'][0] : null;
+    if (mainImageFile) {
       console.log('Uploading new main image to Cloudinary...');
       try {
-        const mainImageFile = req.files['mainImage'][0];
         const mainImageResult = await new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
             { resource_type: 'image', folder: 'products' },
@@ -301,117 +239,99 @@ router.put('/:id', verifyAdmin, upload.fields([
           );
           stream.end(mainImageFile.buffer);
         });
-        image = mainImageResult.secure_url;
-        console.log('Main image uploaded:', image);
+        mainImageUrl = mainImageResult.secure_url;
+        console.log('New main image uploaded:', mainImageUrl);
       } catch (uploadError) {
         console.error('Cloudinary Main Image Upload Error:', uploadError.message, uploadError.stack);
         return res.status(500).json({ message: 'Failed to upload main image to Cloudinary', error: uploadError.message });
       }
     }
 
-    let updatedImages = product.images || [];
-    console.log('Existing images from frontend:', existingImages);
-    console.log('Current product images before update:', updatedImages);
-
-    if (existingImages) {
-      updatedImages = JSON.parse(existingImages);
+    let additionalImages = existingImages ? JSON.parse(existingImages) : product.images || [];
+    const additionalImageFiles = req.files && req.files['images'] ? req.files['images'] : [];
+    const seenUrls = new Set(additionalImages);
+    for (const file of additionalImageFiles) {
+      console.log('Uploading new additional image to Cloudinary:', file.originalname);
+      try {
+        const imageResult = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', folder: 'products' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(file.buffer);
+        });
+        const imageUrl = imageResult.secure_url;
+        console.log('New additional image uploaded:', imageUrl);
+        if (!seenUrls.has(imageUrl)) {
+          seenUrls.add(imageUrl);
+          additionalImages.push(imageUrl);
+        }
+      } catch (uploadError) {
+        console.error('Cloudinary Additional Image Upload Error:', uploadError.message, uploadError.stack);
+        return res.status(500).json({ message: `Failed to upload additional image ${file.originalname} to Cloudinary`, error: uploadError.message });
+      }
     }
 
-    if (req.files['images']) {
-      console.log('Processing new additional images...');
-      const newImages = await Promise.all(
-        req.files['images'].map(async (file) => {
-          console.log('Uploading additional image to Cloudinary:', file.originalname);
-          try {
-            const imageResult = await new Promise((resolve, reject) => {
-              const stream = cloudinary.uploader.upload_stream(
-                { resource_type: 'image', folder: 'products' },
-                (error, result) => {
-                  if (error) reject(error);
-                  else resolve(result);
-                }
-              );
-              stream.end(file.buffer);
-            });
-            console.log('Additional image uploaded:', imageResult.secure_url);
-            return imageResult.secure_url;
-          } catch (uploadError) {
-            console.error('Cloudinary Additional Image Upload Error:', uploadError.message, uploadError.stack);
-            throw new Error(`Failed to upload additional image ${file.originalname} to Cloudinary: ${uploadError.message}`);
-          }
-        })
-      );
-      updatedImages = [...updatedImages, ...newImages];
-    }
+    product.name = name;
+    product.price = parseFloat(price);
+    product.category = category;
+    product.stock = parseInt(stock);
+    product.description = description;
+    product.image = mainImageUrl;
+    product.images = additionalImages;
+    product.offer = offer || '';
+    product.sizes = sizes ? JSON.parse(sizes) : [];
+    product.isActive = isActive === 'true' || isActive === true;
+    product.brand = brand || '';
+    product.weight = weight && !isNaN(parseFloat(weight)) ? parseFloat(weight) : null;
+    product.weightUnit = weightUnit || 'kg';
+    product.model = model || '';
 
-    console.log('Updated images after processing:', updatedImages);
-
-    product.name = name || product.name;
-    product.price = price ? parseFloat(price) : product.price;
-    product.stock = stock ? parseInt(stock) : product.stock;
-    product.category = category || product.category;
-    product.description = description !== undefined && description !== '' ? description : product.description;
-    product.offer = offer !== undefined ? offer : product.offer;
-    product.sizes = sizes ? JSON.parse(sizes) : product.sizes;
-    product.isActive = isActive !== undefined ? (isActive === 'true' || isActive === true) : product.isActive;
-    product.featured = featured !== undefined ? (featured === 'true') : product.featured;
-    product.brand = brand !== undefined && brand !== '' ? brand : product.brand;
-    product.weight = weight && !isNaN(parseFloat(weight)) ? parseFloat(weight) : product.weight;
-    product.weightUnit = weightUnit || product.weightUnit || 'kg';
-    product.model = model !== undefined && model !== '' ? model : product.model;
-    product.image = image;
-    product.images = updatedImages;
-
-    console.log('Saving updated product...');
-    try {
-      const updatedProduct = await product.save();
-      const formattedProduct = formatProductImage(updatedProduct.toObject());
-      console.log('Formatted product after update:', formattedProduct);
-      res.json({ message: 'Product updated successfully', product: formattedProduct });
-    } catch (dbError) {
-      console.error('Database Save Error:', dbError.message, dbError.stack);
-      res.status(500).json({ message: 'Failed to save product to database', error: dbError.message });
-    }
+    console.log('Saving updated product to database...');
+    const updatedProduct = await product.save();
+    console.log('Product updated:', updatedProduct);
+    const formattedProduct = formatProductImage(updatedProduct.toObject());
+    res.status(200).json({ message: 'Product updated successfully', product: formattedProduct });
   } catch (err) {
     console.error('Update Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// DELETE: Delete a product
+// DELETE /api/admin/products/:id - Delete a product
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
-    console.log('Starting DELETE /api/admin/products/:id');
-    const product = await Product.findById(req.params.id);
+    console.log(`Deleting product with ID: ${req.params.id}`);
+    const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) {
-      console.log('Product not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Product not found' });
     }
-
-    await Product.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Product deleted successfully' });
+    console.log('Product deleted:', product);
+    res.status(200).json({ message: 'Product deleted successfully' });
   } catch (err) {
     console.error('Delete Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// PUT: Toggle product status
+// PUT /api/admin/products/:id/toggle-status - Toggle product status
 router.put('/:id/toggle-status', verifyAdmin, async (req, res) => {
   try {
-    console.log('Starting PUT /api/admin/products/:id/toggle-status');
+    console.log(`Toggling status for product with ID: ${req.params.id}`);
     const product = await Product.findById(req.params.id);
     if (!product) {
-      console.log('Product not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Product not found' });
     }
-
     product.isActive = !product.isActive;
     const updatedProduct = await product.save();
+    console.log('Product status updated:', updatedProduct);
     const formattedProduct = formatProductImage(updatedProduct.toObject());
-    res.json({ message: 'Product status updated successfully', product: formattedProduct });
+    res.status(200).json({ message: 'Product status updated', product: formattedProduct });
   } catch (err) {
-    console.error('Toggle Product Status Error:', err.message, err.stack);
+    console.error('Toggle Status Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });

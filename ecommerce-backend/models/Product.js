@@ -1,4 +1,44 @@
+const mongoose = require('mongoose');
 
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  category: { type: String, required: true },
+  stock: { type: Number, required: true },
+  description: { type: String, required: true },
+  image: { type: String, required: true }, // Now only Cloudinary URLs
+  images: [{ type: String }], // Now only Cloudinary URLs
+  offer: { type: String, default: '' },
+  sizes: [{ type: String }],
+  isActive: { type: Boolean, default: true },
+  brand: { type: String, default: '' },
+  weight: { type: Number },
+  weightUnit: { type: String, default: 'kg' },
+  model: { type: String, default: '' },
+});
+
+module.exports = mongoose.model('Product', productSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 
 const mongoose = require('mongoose');
 
 // models/Product.js (hypothetical)
@@ -23,7 +63,7 @@ const productSchema = new mongoose.Schema({
 
 
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model('Product', productSchema); */
 
 
 
