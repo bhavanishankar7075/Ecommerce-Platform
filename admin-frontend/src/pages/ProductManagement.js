@@ -58,11 +58,10 @@ function ProductManagement() {
   const productsPerPage = 8;
   const navigate = useNavigate();
 
-  // Enhanced utility function to handle image sources
   const getImageSrc = (image) => {
     if (!image) {
       console.log('Image is null/undefined, using placeholder');
-      return 'https://placehold.co/150'; // Using alternative placeholder due to via.placeholder.com issue
+      return 'https://placehold.co/150';
     }
     if (typeof image === 'string') {
       if (image.startsWith('data:image/')) {
@@ -140,9 +139,11 @@ function ProductManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log('Raw products from backend:', res.data.products);
+      console.log('Raw response from backend:', res.data);
 
-      const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => ({
+      // Handle both array and paginated object response formats
+      const fetchedProducts = Array.isArray(res.data) ? res.data : res.data.products || [];
+      const initializedProducts = fetchedProducts.map(product => ({
         ...product,
         selected: product.selected || false,
       }));
@@ -160,7 +161,7 @@ function ProductManagement() {
       });
 
       setProducts(initializedProducts);
-      setTotalPages(res.data.totalPages || 1);
+      setTotalPages(res.data.totalPages || Math.ceil(fetchedProducts.length / productsPerPage) || 1);
       setLoading(false);
     } catch (err) {
       console.error('Error fetching products:', err.response ? err.response.data : err.message);
@@ -224,7 +225,7 @@ function ProductManagement() {
 
   const handleFileChange = async (e) => {
     const { name, files } = e.target;
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
     if (name === 'mainImage') {
@@ -1215,7 +1216,6 @@ function ProductManagement() {
 }
 
 export default ProductManagement;
-
 
 
 
