@@ -1,4 +1,481 @@
- const express = require('express');
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+const Product = require('../models/Product');
+
+// Multer setup for image uploads with validation
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '..', 'uploads');
+    try {
+      await fs.access(uploadDir);
+    } catch {
+      await fs.mkdir(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Only JPEG, PNG, and WebP images are allowed'), false);
+    }
+    cb(null, true);
+  },
+});
+
+// Verify admin middleware
+const verifyAdmin = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Unauthorized: No token provided' });
+
+  try {
+    const jwt = require('jsonwebtoken');
+    const Admin = require('../models/admin');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await Admin.findById(decoded.id).select('-password');
+    if (!admin || !admin.isAdmin) {
+      return res.status(403).json({ message: 'Forbidden: Admin role required' });
+    }
+    req.admin = admin;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Unauthorized: Invalid token', error: err.message });
+  }
+};
+
+// Format product image URL
+const formatProductImage = (product) => {
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
+  if (product.image) {
+    if (!product.image.startsWith('http')) {
+      product.image = `${baseUrl}${product.image}`;
+    }
+  } else {
+    product.image = `${baseUrl}/default-product.jpg`;
+  }
+  if (product.images && product.images.length > 0) {
+    product.images = product.images.map((img) => {
+      if (img && !img.startsWith('http')) {
+        return `${baseUrl}${img}`;
+      }
+      return img || `${baseUrl}/default-product.jpg`;
+    });
+  } else {
+    product.images = [];
+  }
+  return product;
+};
+
+// GET: Fetch all active products (public)
+router.get('/products', async (req, res) => {
+  try {
+    const products = await Product.find({ isActive: true });
+    const formattedProducts = products.map((product) => formatProductImage(product.toObject()));
+    res.json(formattedProducts);
+  } catch (err) {
+    console.error('Fetch Products Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// GET: Fetch products for admin with filters
+router.get('/', verifyAdmin, async (req, res) => {
+  try {
+    const {
+      search = '',
+      category = '',
+      priceMin = '',
+      priceMax = '',
+      stock = '',
+      offer = '',
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const query = {};
+
+    if (search) {
+      query.name = { $regex: search, $options: 'i' };
+    }
+    if (category) {
+      query.category = category;
+    }
+    if (priceMin || priceMax) {
+      query.price = {};
+      if (priceMin) {
+        const min = parseFloat(priceMin);
+        if (isNaN(min) || min < 0) return res.status(400).json({ message: 'Invalid priceMin value' });
+        query.price.$gte = min;
+      }
+      if (priceMax) {
+        const max = parseFloat(priceMax);
+        if (isNaN(max) || max < 0) return res.status(400).json({ message: 'Invalid priceMax value' });
+        query.price.$lte = max;
+      }
+    }
+    if (stock) {
+      if (stock === 'inStock') query.stock = { $gt: 0 };
+      if (stock === 'outOfStock') query.stock = 0;
+      if (stock === 'lowStock') query.stock = { $gt: 0, $lte: 5 };
+    }
+    if (offer) {
+      if (offer === 'hasOffer') query.offer = { $ne: '', $ne: null };
+      if (offer === 'noOffer') query.offer = { $in: ['', null] };
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1) {
+      return res.status(400).json({ message: 'Invalid page or limit value' });
+    }
+    const skip = (pageNum - 1) * limitNum;
+
+    const totalProducts = await Product.countDocuments(query);
+    const products = await Product.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const formattedProducts = products.map((product) => formatProductImage(product.toObject()));
+    res.json({
+      products: formattedProducts,
+      totalPages: Math.ceil(totalProducts / limitNum),
+      currentPage: pageNum,
+    });
+  } catch (err) {
+    console.error('Fetch Products Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// POST: Add a new product
+router.post('/', verifyAdmin, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 10 },
+]), async (req, res) => {
+  const {
+    name, price, stock, category, description, offer, sizes, isActive,
+    featured, brand, weight, weightUnit, model,
+  } = req.body;
+
+  try {
+    if (!req.files['image']) {
+      return res.status(400).json({ message: 'Main image is required' });
+    }
+
+    const priceNum = parseFloat(price);
+    const stockNum = parseInt(stock);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      return res.status(400).json({ message: 'Price must be a positive number' });
+    }
+    if (isNaN(stockNum) || stockNum < 0) {
+      return res.status(400).json({ message: 'Stock must be a non-negative integer' });
+    }
+
+    let parsedSizes = [];
+    if (sizes) {
+      try {
+        parsedSizes = JSON.parse(sizes);
+        if (!Array.isArray(parsedSizes)) {
+          return res.status(400).json({ message: 'Sizes must be an array' });
+        }
+      } catch (err) {
+        return res.status(400).json({ message: 'Invalid sizes format' });
+      }
+    }
+
+    const image = `/uploads/${req.files['image'][0].filename}`;
+    const images = req.files['images'] ? req.files['images'].map((file) => `/uploads/${file.filename}`) : [];
+
+    const product = new Product({
+      name,
+      price: priceNum,
+      stock: stockNum,
+      category,
+      description,
+      offer: offer || '',
+      sizes: parsedSizes,
+      isActive: isActive === 'true' || isActive === true,
+      featured: featured === 'true' || featured === true,
+      brand: brand || '',
+      weight: weight && !isNaN(parseFloat(weight)) ? parseFloat(weight) : null,
+      weightUnit: weightUnit || 'kg',
+      model: model || '',
+      image,
+      images,
+    });
+
+    const savedProduct = await product.save();
+    const formattedProduct = formatProductImage(savedProduct.toObject());
+    res.status(201).json({ message: 'Product added successfully', product: formattedProduct });
+  } catch (err) {
+    console.error('Add Product Error:', err);
+    // Clean up uploaded files on failure
+    if (req.files['image']) {
+      const imagePath = path.join(__dirname, '..', `/uploads/${req.files['image'][0].filename}`);
+      try {
+        await fs.unlink(imagePath);
+      } catch (deleteErr) {
+        console.error('Failed to clean up main image:', deleteErr.message);
+      }
+    }
+    if (req.files['images']) {
+      for (const file of req.files['images']) {
+        const imagePath = path.join(__dirname, '..', `/uploads/${file.filename}`);
+        try {
+          await fs.unlink(imagePath);
+        } catch (deleteErr) {
+          console.error('Failed to clean up additional image:', deleteErr.message);
+        }
+      }
+    }
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// PUT: Update a product
+router.put('/:id', verifyAdmin, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'images', maxCount: 10 },
+]), async (req, res) => {
+  const {
+    name, price, stock, category, description, offer, sizes, isActive,
+    featured, brand, weight, weightUnit, model, existingImages,
+  } = req.body;
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const priceNum = price ? parseFloat(price) : product.price;
+    const stockNum = stock ? parseInt(stock) : product.stock;
+    if (isNaN(priceNum) || priceNum <= 0) {
+      return res.status(400).json({ message: 'Price must be a positive number' });
+    }
+    if (isNaN(stockNum) || stockNum < 0) {
+      return res.status(400).json({ message: 'Stock must be a non-negative integer' });
+    }
+
+    let parsedSizes = product.sizes;
+    if (sizes) {
+      try {
+        parsedSizes = JSON.parse(sizes);
+        if (!Array.isArray(parsedSizes)) {
+          return res.status(400).json({ message: 'Sizes must be an array' });
+        }
+      } catch (err) {
+        return res.status(400).json({ message: 'Invalid sizes format' });
+      }
+    }
+
+    let image = product.image;
+    const oldImage = product.image;
+    if (req.files['image']) {
+      if (oldImage && oldImage.startsWith('/uploads/')) {
+        const oldImagePath = path.join(__dirname, '..', oldImage);
+        try {
+          await fs.access(oldImagePath);
+          await fs.unlink(oldImagePath);
+          console.log('Old main image deleted:', oldImagePath);
+        } catch (err) {
+          console.error('Error deleting old main image:', err.message);
+        }
+      }
+      image = `/uploads/${req.files['image'][0].filename}`;
+    }
+
+    let updatedImages = [...product.images]; // Start with current images
+    console.log('Received existingImages:', existingImages);
+    if (existingImages) {
+      try {
+        const retainedImages = JSON.parse(existingImages).map((img) =>
+          img.startsWith('http://localhost:5001') || img.startsWith(process.env.BASE_URL || 'http://localhost:5001')
+            ? img.replace(`${process.env.BASE_URL || 'http://localhost:5001'}`, '')
+            : img
+        );
+        console.log('Parsed retainedImages:', retainedImages);
+        const imagesToRemove = product.images.filter((img) => !retainedImages.includes(img));
+        for (const img of imagesToRemove) {
+          if (img && img.startsWith('/uploads/')) {
+            const imagePath = path.join(__dirname, '..', img);
+            try {
+              await fs.access(imagePath);
+              await fs.unlink(imagePath);
+              console.log('Removed image deleted:', imagePath);
+            } catch (err) {
+              console.error('Error deleting removed image:', err.message);
+            }
+          }
+        }
+        updatedImages = retainedImages.length > 0 ? retainedImages : product.images; // Default to current images if empty
+      } catch (parseErr) {
+        console.error('Error parsing existingImages:', parseErr.message);
+        updatedImages = [...product.images]; // Fallback to current images if parsing fails
+      }
+    }
+    if (req.files['images']) {
+      const newImages = req.files['images'].map((file) => `/uploads/${file.filename}`);
+      updatedImages = [...updatedImages, ...newImages]; // Append new images
+    }
+    console.log('Final updatedImages:', updatedImages);
+
+    product.name = name || product.name;
+    product.price = priceNum;
+    product.stock = stockNum;
+    product.category = category || product.category;
+    product.description = description !== undefined && description !== '' ? description : product.description;
+    product.offer = offer !== undefined ? offer : product.offer;
+    product.sizes = parsedSizes;
+    product.isActive = isActive !== undefined ? (isActive === 'true' || isActive === true) : product.isActive;
+    product.featured = featured !== undefined ? (featured === 'true' || featured === true) : product.featured;
+    product.brand = brand !== undefined && brand !== '' ? brand : product.brand;
+    product.weight = weight !== undefined && weight !== '' ? parseFloat(weight) : product.weight;
+    product.weightUnit = weightUnit || product.weightUnit || 'kg';
+    product.model = model !== undefined && model !== '' ? model : product.model;
+    product.image = image;
+    product.images = updatedImages;
+
+    const updatedProduct = await product.save();
+    const formattedProduct = formatProductImage(updatedProduct.toObject());
+    res.json({ message: 'Product updated successfully', product: formattedProduct });
+  } catch (err) {
+    console.error('Update Product Error:', err);
+    // Clean up new files on failure
+    if (req.files['image']) {
+      const newImagePath = path.join(__dirname, '..', `/uploads/${req.files['image'][0].filename}`);
+      try {
+        await fs.unlink(newImagePath);
+      } catch (deleteErr) {
+        console.error('Failed to clean up new main image:', deleteErr.message);
+      }
+    }
+    if (req.files['images']) {
+      for (const file of req.files['images']) {
+        const imagePath = path.join(__dirname, '..', `/uploads/${file.filename}`);
+        try {
+          await fs.unlink(imagePath);
+        } catch (deleteErr) {
+          console.error('Failed to clean up new additional image:', deleteErr.message);
+        }
+      }
+    }
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// DELETE: Delete a product
+router.delete('/:id', verifyAdmin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    if (product.image && product.image.startsWith('/uploads/')) {
+      const imagePath = path.join(__dirname, '..', product.image);
+      try {
+        await fs.access(imagePath);
+        await fs.unlink(imagePath);
+        console.log('Main image deleted:', imagePath);
+      } catch (err) {
+        console.error('Error deleting main image:', err.message);
+      }
+    }
+
+    if (product.images && product.images.length > 0) {
+      for (const img of product.images) {
+        if (img && img.startsWith('/uploads/')) {
+          const imagePath = path.join(__dirname, '..', img);
+          try {
+            await fs.access(imagePath);
+            await fs.unlink(imagePath);
+            console.log('Additional image deleted:', imagePath);
+          } catch (err) {
+            console.error('Error deleting additional image:', err.message);
+          }
+        }
+      }
+    }
+
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Product deleted successfully' });
+  } catch (err) {
+    console.error('Delete Product Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// PUT: Toggle product status
+router.put('/:id/toggle-status', verifyAdmin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    product.isActive = !product.isActive;
+    const updatedProduct = await product.save();
+    const formattedProduct = formatProductImage(updatedProduct.toObject());
+    res.json({ message: 'Product status updated successfully', product: formattedProduct });
+  } catch (err) {
+    console.error('Toggle Product Status Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*  const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
@@ -425,7 +902,7 @@ router.put('/:id/toggle-status', verifyAdmin, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;  */
 
 
 
