@@ -13,7 +13,8 @@ const productSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   featured: { type: Boolean, default: false },
   brand: { type: String },
-  weight: { type: Number },
+  weight: { type: Number,default: null },
+  weightUnit: { type: String, default: 'kg' },
   model: { type: String },
   image: { type: String, required: true }, // This makes the image field mandatory
   images: { type: [String], default: [] },

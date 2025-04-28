@@ -4,12 +4,8 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const Product = require('../models/Product');
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Configure Cloudinary using CLOUDINARY_URL from environment
+console.log('Cloudinary URL loaded from env:', process.env.CLOUDINARY_URL ? 'Yes' : 'No');
 
 // Multer setup for in-memory storage
 const storage = multer.memoryStorage();
@@ -40,11 +36,51 @@ const verifyAdmin = async (req, res, next) => {
   }
 };
 
-// Format product image (handle URLs from Cloudinary)
+// Format product image (handle both Base64 and Cloudinary URLs)
 const formatProductImage = (product) => {
   const fallbackImage = 'https://via.placeholder.com/150';
-  product.image = product.image || fallbackImage;
-  product.images = product.images && product.images.length > 0 ? product.images : [];
+
+  // Handle main image
+  if (product.image) {
+    if (product.image.startsWith('data:image/')) {
+      // Already a Base64 string, leave it as is
+    } else if (product.image.startsWith('http')) {
+      // Cloudinary URL, leave it as is
+    } else if (product.image.startsWith('/uploads/')) {
+      // Old file path, replace with fallback
+      product.image = fallbackImage;
+    } else {
+      // Assume it's a Base64 string without prefix (old format), add prefix
+      product.image = `data:image/jpeg;base64,${product.image}`;
+    }
+  } else {
+    product.image = fallbackImage;
+  }
+
+  // Handle additional images
+  if (product.images && product.images.length > 0) {
+    product.images = product.images.map(img => {
+      if (img) {
+        if (img.startsWith('data:image/')) {
+          // Already a Base64 string, leave it as is
+          return img;
+        } else if (img.startsWith('http')) {
+          // Cloudinary URL, leave it as is
+          return img;
+        } else if (img.startsWith('/uploads/')) {
+          // Old file path, replace with fallback
+          return fallbackImage;
+        } else {
+          // Assume it's a Base64 string without prefix, add prefix
+          return `data:image/jpeg;base64,${img}`;
+        }
+      }
+      return fallbackImage;
+    });
+  } else {
+    product.images = [];
+  }
+
   return product;
 };
 
@@ -150,26 +186,9 @@ router.post('/', verifyAdmin, upload.fields([
     }
 
     console.log('Uploading main image to Cloudinary...');
-    const mainImageResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { resource_type: 'image', folder: 'products' },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(mainImageFile.buffer);
-    });
-    const mainImageUrl = mainImageResult.secure_url;
-    console.log('Main image uploaded:', mainImageUrl);
-
-    console.log('Processing additional images...');
-    const additionalImageFiles = req.files && req.files['images'] ? req.files['images'] : [];
-    const uniqueAdditionalImages = [];
-    const seenUrls = new Set();
-    for (const file of additionalImageFiles) {
-      console.log('Uploading additional image to Cloudinary:', file.originalname);
-      const imageResult = await new Promise((resolve, reject) => {
+    let mainImageUrl;
+    try {
+      const mainImageResult = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { resource_type: 'image', folder: 'products' },
           (error, result) => {
@@ -177,13 +196,41 @@ router.post('/', verifyAdmin, upload.fields([
             else resolve(result);
           }
         );
-        stream.end(file.buffer);
+        stream.end(mainImageFile.buffer);
       });
-      const imageUrl = imageResult.secure_url;
-      console.log('Additional image uploaded:', imageUrl);
-      if (!seenUrls.has(imageUrl)) {
-        seenUrls.add(imageUrl);
-        uniqueAdditionalImages.push(imageUrl);
+      mainImageUrl = mainImageResult.secure_url;
+      console.log('Main image uploaded:', mainImageUrl);
+    } catch (uploadError) {
+      console.error('Cloudinary Main Image Upload Error:', uploadError.message, uploadError.stack);
+      return res.status(500).json({ message: 'Failed to upload main image to Cloudinary', error: uploadError.message });
+    }
+
+    console.log('Processing additional images...');
+    const additionalImageFiles = req.files && req.files['images'] ? req.files['images'] : [];
+    const uniqueAdditionalImages = [];
+    const seenUrls = new Set();
+    for (const file of additionalImageFiles) {
+      console.log('Uploading additional image to Cloudinary:', file.originalname);
+      try {
+        const imageResult = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', folder: 'products' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(file.buffer);
+        });
+        const imageUrl = imageResult.secure_url;
+        console.log('Additional image uploaded:', imageUrl);
+        if (!seenUrls.has(imageUrl)) {
+          seenUrls.add(imageUrl);
+          uniqueAdditionalImages.push(imageUrl);
+        }
+      } catch (uploadError) {
+        console.error('Cloudinary Additional Image Upload Error:', uploadError.message, uploadError.stack);
+        return res.status(500).json({ message: `Failed to upload additional image ${file.originalname} to Cloudinary`, error: uploadError.message });
       }
     }
 
@@ -206,11 +253,15 @@ router.post('/', verifyAdmin, upload.fields([
     });
 
     console.log('Saving product to database...');
-    const savedProduct = await product.save();
-    console.log('Product saved:', savedProduct);
-
-    const formattedProduct = formatProductImage(savedProduct.toObject());
-    res.status(201).json({ message: 'Product added successfully', product: formattedProduct });
+    try {
+      const savedProduct = await product.save();
+      console.log('Product saved:', savedProduct);
+      const formattedProduct = formatProductImage(savedProduct.toObject());
+      res.status(201).json({ message: 'Product added successfully', product: formattedProduct });
+    } catch (dbError) {
+      console.error('Database Save Error:', dbError.message, dbError.stack);
+      res.status(500).json({ message: 'Failed to save product to database', error: dbError.message });
+    }
   } catch (err) {
     console.error('Add Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -238,19 +289,24 @@ router.put('/:id', verifyAdmin, upload.fields([
     let image = product.image;
     if (req.files['mainImage']) {
       console.log('Uploading new main image to Cloudinary...');
-      const mainImageFile = req.files['mainImage'][0];
-      const mainImageResult = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { resource_type: 'image', folder: 'products' },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        stream.end(mainImageFile.buffer);
-      });
-      image = mainImageResult.secure_url;
-      console.log('Main image uploaded:', image);
+      try {
+        const mainImageFile = req.files['mainImage'][0];
+        const mainImageResult = await new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'image', folder: 'products' },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          stream.end(mainImageFile.buffer);
+        });
+        image = mainImageResult.secure_url;
+        console.log('Main image uploaded:', image);
+      } catch (uploadError) {
+        console.error('Cloudinary Main Image Upload Error:', uploadError.message, uploadError.stack);
+        return res.status(500).json({ message: 'Failed to upload main image to Cloudinary', error: uploadError.message });
+      }
     }
 
     let updatedImages = product.images || [];
@@ -266,18 +322,23 @@ router.put('/:id', verifyAdmin, upload.fields([
       const newImages = await Promise.all(
         req.files['images'].map(async (file) => {
           console.log('Uploading additional image to Cloudinary:', file.originalname);
-          const imageResult = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { resource_type: 'image', folder: 'products' },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }
-            );
-            stream.end(file.buffer);
-          });
-          console.log('Additional image uploaded:', imageResult.secure_url);
-          return imageResult.secure_url;
+          try {
+            const imageResult = await new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                { resource_type: 'image', folder: 'products' },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              stream.end(file.buffer);
+            });
+            console.log('Additional image uploaded:', imageResult.secure_url);
+            return imageResult.secure_url;
+          } catch (uploadError) {
+            console.error('Cloudinary Additional Image Upload Error:', uploadError.message, uploadError.stack);
+            throw new Error(`Failed to upload additional image ${file.originalname} to Cloudinary: ${uploadError.message}`);
+          }
         })
       );
       updatedImages = [...updatedImages, ...newImages];
@@ -302,10 +363,15 @@ router.put('/:id', verifyAdmin, upload.fields([
     product.images = updatedImages;
 
     console.log('Saving updated product...');
-    const updatedProduct = await product.save();
-    const formattedProduct = formatProductImage(updatedProduct.toObject());
-    console.log('Formatted product after update:', formattedProduct);
-    res.json({ message: 'Product updated successfully', product: formattedProduct });
+    try {
+      const updatedProduct = await product.save();
+      const formattedProduct = formatProductImage(updatedProduct.toObject());
+      console.log('Formatted product after update:', formattedProduct);
+      res.json({ message: 'Product updated successfully', product: formattedProduct });
+    } catch (dbError) {
+      console.error('Database Save Error:', dbError.message, dbError.stack);
+      res.status(500).json({ message: 'Failed to save product to database', error: dbError.message });
+    }
   } catch (err) {
     console.error('Update Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
