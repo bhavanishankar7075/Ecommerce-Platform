@@ -58,12 +58,22 @@ function ProductManagement() {
   const productsPerPage = 8;
   const navigate = useNavigate();
 
-  // NEW: Utility function to handle image sources
+  // Utility function to handle image sources
   const getImageSrc = (image) => {
-    if (!image) return 'https://via.placeholder.com/150'; // Fallback if image is null/undefined
-    if (image.startsWith('data:image/')) return image; // Base64 string
-    if (image.startsWith('http')) return image; // Cloudinary URL
-    return 'https://via.placeholder.com/150'; // Fallback for invalid paths
+    if (!image) {
+      console.log('Image is null/undefined, using placeholder');
+      return 'https://via.placeholder.com/150';
+    }
+    if (image.startsWith('data:image/')) {
+      console.log('Image is Base64:', image.substring(0, 30) + '...');
+      return image;
+    }
+    if (image.startsWith('http')) {
+      console.log('Image is URL:', image);
+      return image;
+    }
+    console.log('Image is invalid, using placeholder:', image);
+    return 'https://via.placeholder.com/150';
   };
 
   useEffect(() => {
@@ -122,8 +132,7 @@ function ProductManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // NEW: Log raw products to inspect image fields
-      console.log('Raw products from backend:', res.data.products);
+      console.log('Raw products from backend:', res.data.products); // Log to inspect image fields
 
       const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => ({
         ...product,
@@ -210,7 +219,7 @@ function ProductManagement() {
         return;
       }
       try {
-        const compressedFile = await compressImage(file, 800, 800, 0.7); // 800x800, 70% quality
+        const compressedFile = await compressImage(file, 800, 800, 0.7);
         setFormData((prev) => ({
           ...prev,
           mainImage: compressedFile,
@@ -411,7 +420,7 @@ function ProductManagement() {
         };
         console.log('Sending POST request to:', 'https://backend-ps76.onrender.com/api/admin/products');
         const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, config);
-        console.log('Server response:', res.data); // NEW: Log full response
+        console.log('Server response:', res.data);
 
         updatedProduct = res.data.product;
         setProducts((prev) => [updatedProduct, ...prev].slice(0, productsPerPage));
@@ -421,7 +430,6 @@ function ProductManagement() {
       resetForm();
       fetchProducts();
     } catch (err) {
-      // NEW: Enhanced error logging
       console.error('Error saving product:', {
         message: err.message,
         status: err.response?.status,
@@ -818,7 +826,7 @@ function ProductManagement() {
                     alt="Main Preview"
                     onError={(e) => {
                       console.log('Main image load failed:', e.target.src);
-                      e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                      e.target.src = 'https://via.placeholder.com/150';
                       e.target.onerror = null;
                     }}
                   />
@@ -827,11 +835,11 @@ function ProductManagement() {
               {editingProductId && !formData.mainImage && formData.existingImages.length > 0 && (
                 <div className="image-preview">
                   <img
-                    src={getImageSrc(formData.existingImages[0])} // NEW: Use getImageSrc
+                    src={getImageSrc(formData.existingImages[0])}
                     alt="Current Main"
                     onError={(e) => {
                       console.log('Current main image load failed:', e.target.src);
-                      e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                      e.target.src = 'https://via.placeholder.com/150';
                       e.target.onerror = null;
                     }}
                   />
@@ -852,11 +860,11 @@ function ProductManagement() {
                 {formData.existingImages.slice(1).map((image, index) => (
                   <div key={`existing-${index}`} className="image-preview-item">
                     <img
-                      src={getImageSrc(image)} // NEW: Use getImageSrc
+                      src={getImageSrc(image)}
                       alt={`Existing ${index + 1}`}
                       onError={(e) => {
                         console.log('Existing image load failed:', e.target.src);
-                        e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                        e.target.src = 'https://via.placeholder.com/150';
                         e.target.onerror = null;
                       }}
                     />
@@ -881,7 +889,7 @@ function ProductManagement() {
                       alt={`New ${index + 1}`}
                       onError={(e) => {
                         console.log('New image load failed:', e.target.src);
-                        e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                        e.target.src = 'https://via.placeholder.com/150';
                         e.target.onerror = null;
                       }}
                     />
@@ -1005,12 +1013,12 @@ function ProductManagement() {
                 />
                 <div className="image-wrapper">
                   <img
-                    src={getImageSrc(product.image)} // NEW: Use getImageSrc
+                    src={getImageSrc(product.image)}
                     alt={product.name}
                     className="product-image"
                     onError={(e) => {
                       console.log('Product image load failed:', e.target.src);
-                      e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                      e.target.src = 'https://via.placeholder.com/150';
                       e.target.onerror = null;
                     }}
                   />
@@ -1118,12 +1126,12 @@ function ProductManagement() {
             <h2>{previewModal.name}</h2>
             <div className="image-wrapper">
               <img
-                src={getImageSrc(previewModal.image)} // NEW: Use getImageSrc
+                src={getImageSrc(previewModal.image)}
                 alt={previewModal.name}
                 className="modal-image"
                 onError={(e) => {
                   console.log('Modal image load failed:', e.target.src);
-                  e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                  e.target.src = 'https://via.placeholder.com/150';
                   e.target.onerror = null;
                 }}
               />
@@ -1162,12 +1170,12 @@ function ProductManagement() {
                   {previewModal.images.map((img, index) => (
                     <div key={index} className="image-wrapper">
                       <img
-                        src={getImageSrc(img)} // NEW: Use getImageSrc
+                        src={getImageSrc(img)}
                         alt={`Additional ${index}`}
                         className="gallery-image"
                         onError={(e) => {
                           console.log('Gallery image load failed:', e.target.src);
-                          e.target.src = 'https://via.placeholder.com/150'; // NEW: Use remote placeholder
+                          e.target.src = 'https://via.placeholder.com/150';
                           e.target.onerror = null;
                         }}
                       />
