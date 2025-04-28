@@ -58,10 +58,6 @@ function ProductManagement() {
   const productsPerPage = 8;
   const navigate = useNavigate();
 
-  const baseUrl = window.location.hostname.includes('localhost')
-    ? 'http://localhost:5001'
-    : 'https://backend-ps76.onrender.com';
-
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterCategory, filterPriceMin, filterPriceMax, filterStock, filterOffer]);
@@ -118,43 +114,64 @@ function ProductManagement() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => {
-        let processedImage = product.image || '/default-product.jpg';
-        let processedImages = product.images || [];
-
-        if (processedImage.startsWith('http://localhost:')) {
-          processedImage = `${baseUrl}${processedImage.replace('http://localhost:5001', '')}`;
-        } else if (!processedImage.startsWith('http')) {
-          processedImage = `${baseUrl}${processedImage.startsWith('/') ? processedImage : '/' + processedImage}`;
-        }
-
-        processedImages = processedImages.map(img => {
-          if (img.startsWith('http://localhost:')) {
-            return `${baseUrl}${img.replace('http://localhost:5001', '')}`;
-          } else if (!img.startsWith('http')) {
-            return `${baseUrl}${img.startsWith('/') ? img : '/' + img}`;
-          }
-          return img;
-        });
-
-        return {
-          ...product,
-          selected: product.selected || false,
-          image: processedImage,
-          images: processedImages,
-        };
-      });
+      const initializedProducts = (Array.isArray(res.data.products) ? res.data.products : []).map(product => ({
+        ...product,
+        selected: product.selected || false,
+      }));
 
       setProducts(initializedProducts);
       setTotalPages(res.data.totalPages || 1);
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching products:', err);
+      console.error('Error fetching products:', err.response ? err.response.data : err.message);
       toast.error(err.message || 'Failed to load products');
       setProducts([]);
       setTotalPages(1);
       setLoading(false);
     }
+  };
+
+  const compressImage = (file, maxWidth, maxHeight, quality) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Image compression failed'));
+              return;
+            }
+            const compressedFile = new File([blob], file.name, { type: file.type });
+            resolve(compressedFile);
+          },
+          file.type,
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+    });
   };
 
   const handleInputChange = (e) => {
@@ -165,7 +182,7 @@ function ProductManagement() {
     }));
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const { name, files } = e.target;
     const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -181,25 +198,37 @@ function ProductManagement() {
         toast.error('Image size should not exceed 5MB');
         return;
       }
-      setFormData((prev) => ({
-        ...prev,
-        mainImage: file,
-      }));
+      try {
+        const compressedFile = await compressImage(file, 800, 800, 0.7); // 800x800, 70% quality
+        setFormData((prev) => ({
+          ...prev,
+          mainImage: compressedFile,
+        }));
+      } catch (err) {
+        toast.error('Failed to compress image: ' + err.message);
+      }
     } else if (name === 'images') {
-      const validFiles = Array.from(files).filter((file) => {
-        if (!allowedTypes.includes(file.type)) {
-          toast.error(`Invalid file type for ${file.name}. Please upload JPEG, PNG, or WebP.`);
-          return false;
-        }
-        if (file.size > maxSize) {
-          toast.error(`File ${file.name} exceeds 5MB limit.`);
-          return false;
-        }
-        return true;
-      });
+      const validFiles = await Promise.all(
+        Array.from(files).map(async (file) => {
+          if (!allowedTypes.includes(file.type)) {
+            toast.error(`Invalid file type for ${file.name}. Please upload JPEG, PNG, or WebP.`);
+            return null;
+          }
+          if (file.size > maxSize) {
+            toast.error(`File ${file.name} exceeds 5MB limit.`);
+            return null;
+          }
+          try {
+            return await compressImage(file, 800, 800, 0.7);
+          } catch (err) {
+            toast.error(`Failed to compress ${file.name}: ${err.message}`);
+            return null;
+          }
+        })
+      );
       setFormData((prev) => ({
         ...prev,
-        newImages: [...prev.newImages, ...validFiles],
+        newImages: [...prev.newImages, ...validFiles.filter(file => file !== null)],
       }));
     }
   };
@@ -253,7 +282,21 @@ function ProductManagement() {
     e.preventDefault();
     setSubmitting(true);
 
-    console.log('Submitting form data:', formData); // Log form data for debugging
+    console.log('Submitting form data:', {
+      name: formData.name,
+      price: formData.price,
+      category: formData.category,
+      stock: formData.stock,
+      description: formData.description,
+      offer: formData.offer,
+      sizes: formData.sizes,
+      isActive: formData.isActive,
+      brand: formData.brand,
+      weight: formData.weight,
+      model: formData.model,
+      mainImage: formData.mainImage ? `File: ${formData.mainImage.name}` : null,
+      newImages: formData.newImages.map(file => file.name),
+    });
 
     const form = new FormData();
     form.append('name', formData.name);
@@ -307,11 +350,14 @@ function ProductManagement() {
       }
     });
     if (editingProductId) {
-      const cleanedExistingImages = formData.existingImages.map(img =>
-        img.startsWith(baseUrl) ? img.replace(baseUrl, '') : img
-      );
-      form.append('existingImages', JSON.stringify(cleanedExistingImages));
+      form.append('existingImages', JSON.stringify(formData.existingImages));
     }
+
+    const formDataEntries = {};
+    for (const [key, value] of form.entries()) {
+      formDataEntries[key] = value instanceof File ? `File: ${value.name}` : value;
+    }
+    console.log('FormData entries:', formDataEntries);
 
     try {
       const token = localStorage.getItem('token');
@@ -335,44 +381,46 @@ function ProductManagement() {
         setFormData((prev) => ({
           ...prev,
           mainImage: null,
-          existingImages: updatedProduct.images ? updatedProduct.images.map(img => `${baseUrl}${img}`) : [],
+          existingImages: updatedProduct.images || [],
           newImages: [],
         }));
         setProducts((prev) =>
-          prev.map((p) => (p._id === editingProductId ? { ...updatedProduct, image: `${baseUrl}${updatedProduct.image}`, images: updatedProduct.images.map(img => `${baseUrl}${img}`) } : p))
+          prev.map((p) => (p._id === editingProductId ? updatedProduct : p))
         );
         toast.success('Product updated successfully!');
       } else {
         if (!formData.mainImage) {
           throw new Error('Main image is required when adding a new product');
         }
-        const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
+        const config = {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
-        });
+        };
+        console.log('Sending POST request to:', 'https://backend-ps76.onrender.com/api/admin/products');
+        const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, config);
+        console.log('Server response:', res.data);
+
         updatedProduct = res.data.product;
-        console.log('Server response:', res.data); // Log server response
-
-        const processedImage = updatedProduct.image.startsWith('http://localhost:')
-          ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}`
-          : updatedProduct.image;
-        const processedImages = updatedProduct.images.map(img =>
-          img.startsWith('http://localhost:')
-            ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
-            : img
-        );
-
-        setProducts((prev) => [{ ...updatedProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
+        setProducts((prev) => [updatedProduct, ...prev].slice(0, productsPerPage));
         setCurrentPage(1);
         toast.success('Product added successfully!');
       }
       resetForm();
       fetchProducts();
     } catch (err) {
-      console.error('Error saving product:', err.response ? err.response.data : err.message);
-      toast.error(err.response?.data?.message || 'Server error: Failed to save product. Check console for details.');
+      console.error('Error saving product:', {
+        message: err.message,
+        response: err.response ? {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers,
+        } : null,
+        request: err.request ? err.request : null,
+        config: err.config ? err.config : null,
+      });
+      toast.error('Failed to save product. Please check backend logs at https://backend-ps76.onrender.com for more details.');
     } finally {
       setSubmitting(false);
     }
@@ -386,7 +434,7 @@ function ProductManagement() {
       stock: product.stock,
       description: product.description,
       mainImage: null,
-      existingImages: product.images ? [product.image, ...product.images.filter(img => img !== product.image)].map(img => `${baseUrl}${img}`) : [],
+      existingImages: product.images ? [product.image, ...product.images.filter(img => img !== product.image)] : [],
       newImages: [],
       offer: product.offer || '',
       sizes: product.sizes || [],
@@ -419,7 +467,7 @@ function ProductManagement() {
       toast.success('Product deleted successfully!');
       fetchProducts();
     } catch (err) {
-      console.error('Error deleting product:', err);
+      console.error('Error deleting product:', err.response ? err.response.data : err.message);
       toast.error(err.response?.data?.message || 'Failed to delete product');
     }
   };
@@ -449,7 +497,7 @@ function ProductManagement() {
       toast.success(`${selectedProducts.length} products deleted successfully!`);
       fetchProducts();
     } catch (err) {
-      console.error('Error bulk deleting products:', err);
+      console.error('Error bulk deleting products:', err.response ? err.response.data : err.message);
       toast.error(err.response?.data?.message || 'Failed to bulk delete products');
     }
   };
@@ -470,19 +518,31 @@ function ProductManagement() {
     form.append('model', product.model || '');
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found. Please log in.');
+      }
+
       const imageResponse = await fetch(product.image);
       const imageBlob = await imageResponse.blob();
-      form.append('mainImage', imageBlob, 'image.jpg');
+      const compressedImage = await compressImage(
+        new File([imageBlob], 'image.jpg', { type: imageBlob.type }),
+        800,
+        800,
+        0.7
+      );
+      form.append('mainImage', compressedImage, 'image.jpg');
 
       for (const img of product.images || []) {
         const imgResponse = await fetch(img);
         const imgBlob = await imgResponse.blob();
-        form.append('images', imgBlob, 'additional.jpg');
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found. Please log in.');
+        const compressedImg = await compressImage(
+          new File([imgBlob], 'additional.jpg', { type: imgBlob.type }),
+          800,
+          800,
+          0.7
+        );
+        form.append('images', compressedImg, 'additional.jpg');
       }
 
       const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
@@ -497,16 +557,7 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      const processedImage = newProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${newProduct.image.replace('http://localhost:5001', '')}`
-        : newProduct.image;
-      const processedImages = newProduct.images.map(img =>
-        img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
-          : img
-      );
-
-      setProducts((prev) => [{ ...newProduct, image: processedImage, images: processedImages }, ...prev].slice(0, productsPerPage));
+      setProducts((prev) => [newProduct, ...prev].slice(0, productsPerPage));
       setCurrentPage(1);
       toast.success('Product duplicated successfully!');
       fetchProducts();
@@ -536,17 +587,8 @@ function ProductManagement() {
         throw new Error('Invalid response from server: Product not found');
       }
 
-      const processedImage = updatedProduct.image.startsWith('http://localhost:')
-        ? `${baseUrl}${updatedProduct.image.replace('http://localhost:5001', '')}`
-        : updatedProduct.image;
-      const processedImages = updatedProduct.images.map(img =>
-        img.startsWith('http://localhost:')
-          ? `${baseUrl}${img.replace('http://localhost:5001', '')}`
-          : img
-      );
-
       setProducts((prev) =>
-        prev.map((p) => (p._id === productId ? { ...updatedProduct, image: processedImage, images: processedImages } : p))
+        prev.map((p) => (p._id === productId ? updatedProduct : p))
       );
       toast.success(`Product ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
     } catch (err) {

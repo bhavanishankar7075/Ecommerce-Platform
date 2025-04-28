@@ -1,62 +1,50 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs').promises;
+const cloudinary = require('cloudinary').v2;
 const Product = require('../models/Product');
 
-// Multer setup for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-const upload = multer({ storage });
+
+// Multer setup for in-memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
 
 // Verify admin middleware
 const verifyAdmin = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ message: 'Unauthorized: No token provided' });
+  }
 
   try {
     const jwt = require('jsonwebtoken');
     const Admin = require('../models/admin');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token decoded:', decoded);
     req.admin = await Admin.findById(decoded.id).select('-password');
-    if (!req.admin) return res.status(401).json({ message: 'Unauthorized: Admin not found' });
+    if (!req.admin) {
+      console.log('Admin not found for ID:', decoded.id);
+      return res.status(401).json({ message: 'Unauthorized: Admin not found' });
+    }
     next();
   } catch (err) {
+    console.error('Verify Admin Error:', err.message, err.stack);
     res.status(401).json({ message: 'Unauthorized: Invalid token', error: err.message });
   }
 };
 
-// Format product image URL
+// Format product image (handle URLs from Cloudinary)
 const formatProductImage = (product) => {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
-  const fallbackImage = 'https://res.cloudinary.com/demo/image/upload/w_150,h_150,c_fill/sample.jpg'; // Publicly accessible fallback
-  if (product.image) {
-    if (!product.image.startsWith(baseUrl) && !product.image.startsWith('http')) {
-      product.image = `${baseUrl}${product.image}`;
-    }
-  } else {
-    product.image = fallbackImage;
-  }
-  if (product.images && product.images.length > 0) {
-    product.images = product.images.map(img => {
-      if (img) {
-        if (!img.startsWith(baseUrl) && !img.startsWith('http')) {
-          return `${baseUrl}${img}`;
-        }
-        return img;
-      }
-      return fallbackImage;
-    });
-  } else {
-    product.images = [];
-  }
+  const fallbackImage = 'https://via.placeholder.com/150';
+  product.image = product.image || fallbackImage;
+  product.images = product.images && product.images.length > 0 ? product.images : [];
   return product;
 };
 
@@ -118,62 +106,120 @@ router.get('/', verifyAdmin, async (req, res) => {
       currentPage: pageNum,
     });
   } catch (err) {
-    console.error('Fetch Products Error:', err);
+    console.error('Fetch Products Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
 // POST: Add a new product
 router.post('/', verifyAdmin, upload.fields([
-  { name: 'image', maxCount: 1 },
+  { name: 'mainImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
 ]), async (req, res) => {
-  const {
-    name, price, stock, category, description, offer, sizes, isActive,
-    featured, brand, weight, weightUnit, model
-  } = req.body;
-
   try {
-    console.log('Received files:', req.files);
+    console.log('Starting POST /api/admin/products');
+    console.log('Request body:', req.body);
+    console.log('Request files:', req.files);
 
-    if (!req.files['image']) {
-      return res.status(400).json({ message: 'Main image is required when adding a new product' });
+    const {
+      name,
+      price,
+      category,
+      stock,
+      description,
+      offer,
+      sizes,
+      isActive,
+      brand,
+      weight,
+      weightUnit,
+      model,
+    } = req.body;
+
+    console.log('Validating required fields...');
+    if (!name || !price || !category || !stock || !description) {
+      console.log('Missing required fields:', { name, price, category, stock, description });
+      return res.status(400).json({ message: 'Missing required fields: name, price, category, stock, or description' });
     }
 
-    const image = req.files['image'] ? `/uploads/${req.files['image'][0].filename}` : '';
-    const images = req.files['images'] ? req.files['images'].map(file => `/uploads/${file.filename}`) : [];
+    console.log('Checking main image...');
+    const mainImageFile = req.files && req.files['mainImage'] ? req.files['mainImage'][0] : null;
+    if (!mainImageFile) {
+      console.log('Main image missing');
+      return res.status(400).json({ message: 'Main image is required' });
+    }
 
+    console.log('Uploading main image to Cloudinary...');
+    const mainImageResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'products' },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(mainImageFile.buffer);
+    });
+    const mainImageUrl = mainImageResult.secure_url;
+    console.log('Main image uploaded:', mainImageUrl);
+
+    console.log('Processing additional images...');
+    const additionalImageFiles = req.files && req.files['images'] ? req.files['images'] : [];
+    const uniqueAdditionalImages = [];
+    const seenUrls = new Set();
+    for (const file of additionalImageFiles) {
+      console.log('Uploading additional image to Cloudinary:', file.originalname);
+      const imageResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'image', folder: 'products' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(file.buffer);
+      });
+      const imageUrl = imageResult.secure_url;
+      console.log('Additional image uploaded:', imageUrl);
+      if (!seenUrls.has(imageUrl)) {
+        seenUrls.add(imageUrl);
+        uniqueAdditionalImages.push(imageUrl);
+      }
+    }
+
+    console.log('Creating new product...');
     const product = new Product({
       name,
       price: parseFloat(price),
-      stock: parseInt(stock),
       category,
+      stock: parseInt(stock),
       description,
+      image: mainImageUrl,
+      images: uniqueAdditionalImages,
       offer: offer || '',
       sizes: sizes ? JSON.parse(sizes) : [],
       isActive: isActive === 'true' || isActive === true,
-      featured: featured === 'true',
-      brand,
-      weight: weight ? parseFloat(weight) : null,
+      brand: brand || '',
+      weight: weight && !isNaN(parseFloat(weight)) ? parseFloat(weight) : null,
       weightUnit: weightUnit || 'kg',
-      model,
-      image,
-      images,
+      model: model || '',
     });
 
+    console.log('Saving product to database...');
     const savedProduct = await product.save();
+    console.log('Product saved:', savedProduct);
+
     const formattedProduct = formatProductImage(savedProduct.toObject());
-    console.log('Saved product:', formattedProduct);
     res.status(201).json({ message: 'Product added successfully', product: formattedProduct });
   } catch (err) {
-    console.error('Add Product Error:', err);
+    console.error('Add Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
 // PUT: Update a product
 router.put('/:id', verifyAdmin, upload.fields([
-  { name: 'image', maxCount: 1 },
+  { name: 'mainImage', maxCount: 1 },
   { name: 'images', maxCount: 10 },
 ]), async (req, res) => {
   const {
@@ -182,24 +228,29 @@ router.put('/:id', verifyAdmin, upload.fields([
   } = req.body;
 
   try {
+    console.log('Starting PUT /api/admin/products/:id');
     const product = await Product.findById(req.params.id);
     if (!product) {
+      console.log('Product not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Product not found' });
     }
 
     let image = product.image;
-    if (req.files['image']) {
-      if (product.image && product.image.startsWith('/uploads/')) {
-        const oldImagePath = path.join(__dirname, '..', product.image);
-        try {
-          await fs.access(oldImagePath);
-          await fs.unlink(oldImagePath);
-          console.log('Old image deleted successfully:', oldImagePath);
-        } catch (err) {
-          console.error('Error deleting old image:', err.message);
-        }
-      }
-      image = `/uploads/${req.files['image'][0].filename}`;
+    if (req.files['mainImage']) {
+      console.log('Uploading new main image to Cloudinary...');
+      const mainImageFile = req.files['mainImage'][0];
+      const mainImageResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'image', folder: 'products' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(mainImageFile.buffer);
+      });
+      image = mainImageResult.secure_url;
+      console.log('Main image uploaded:', image);
     }
 
     let updatedImages = product.images || [];
@@ -207,31 +258,28 @@ router.put('/:id', verifyAdmin, upload.fields([
     console.log('Current product images before update:', updatedImages);
 
     if (existingImages) {
-      const newImagesList = JSON.parse(existingImages);
-      const cleanedImagesList = newImagesList.map(img => {
-        if (img.startsWith('http://localhost:5001')) {
-          return img.replace('http://localhost:5001', '');
-        }
-        return img;
-      });
-      const imagesToRemove = updatedImages.filter(img => !cleanedImagesList.includes(img));
-      for (const img of imagesToRemove) {
-        if (img && img.startsWith('/uploads/')) {
-          const imagePath = path.join(__dirname, '..', img);
-          try {
-            await fs.access(imagePath);
-            await fs.unlink(imagePath);
-            console.log('Removed image deleted successfully:', imagePath);
-          } catch (err) {
-            console.error('Error deleting removed image:', err.message);
-          }
-        }
-      }
-      updatedImages = cleanedImagesList;
+      updatedImages = JSON.parse(existingImages);
     }
 
     if (req.files['images']) {
-      const newImages = req.files['images'].map(file => `/uploads/${file.filename}`);
+      console.log('Processing new additional images...');
+      const newImages = await Promise.all(
+        req.files['images'].map(async (file) => {
+          console.log('Uploading additional image to Cloudinary:', file.originalname);
+          const imageResult = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { resource_type: 'image', folder: 'products' },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            stream.end(file.buffer);
+          });
+          console.log('Additional image uploaded:', imageResult.secure_url);
+          return imageResult.secure_url;
+        })
+      );
       updatedImages = [...updatedImages, ...newImages];
     }
 
@@ -247,18 +295,19 @@ router.put('/:id', verifyAdmin, upload.fields([
     product.isActive = isActive !== undefined ? (isActive === 'true' || isActive === true) : product.isActive;
     product.featured = featured !== undefined ? (featured === 'true') : product.featured;
     product.brand = brand !== undefined && brand !== '' ? brand : product.brand;
-    product.weight = weight !== undefined && weight !== '' ? parseFloat(weight) : product.weight;
+    product.weight = weight && !isNaN(parseFloat(weight)) ? parseFloat(weight) : product.weight;
     product.weightUnit = weightUnit || product.weightUnit || 'kg';
     product.model = model !== undefined && model !== '' ? model : product.model;
     product.image = image;
     product.images = updatedImages;
 
+    console.log('Saving updated product...');
     const updatedProduct = await product.save();
     const formattedProduct = formatProductImage(updatedProduct.toObject());
     console.log('Formatted product after update:', formattedProduct);
     res.json({ message: 'Product updated successfully', product: formattedProduct });
   } catch (err) {
-    console.error('Update Product Error:', err);
+    console.error('Update Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
@@ -266,41 +315,17 @@ router.put('/:id', verifyAdmin, upload.fields([
 // DELETE: Delete a product
 router.delete('/:id', verifyAdmin, async (req, res) => {
   try {
+    console.log('Starting DELETE /api/admin/products/:id');
     const product = await Product.findById(req.params.id);
     if (!product) {
+      console.log('Product not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Product not found' });
-    }
-
-    if (product.image && product.image.startsWith('/uploads/')) {
-      const imagePath = path.join(__dirname, '..', product.image);
-      try {
-        await fs.access(imagePath);
-        await fs.unlink(imagePath);
-        console.log('Image deleted successfully:', imagePath);
-      } catch (err) {
-        console.error('Error deleting image:', err.message);
-      }
-    }
-
-    if (product.images && product.images.length > 0) {
-      for (const img of product.images) {
-        if (img.startsWith('/uploads/')) {
-          const imagePath = path.join(__dirname, '..', img);
-          try {
-            await fs.access(imagePath);
-            await fs.unlink(imagePath);
-            console.log('Additional image deleted successfully:', imagePath);
-          } catch (err) {
-            console.error('Error deleting additional image:', err.message);
-          }
-        }
-      }
     }
 
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
-    console.error('Delete Product Error:', err);
+    console.error('Delete Product Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
@@ -308,8 +333,10 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
 // PUT: Toggle product status
 router.put('/:id/toggle-status', verifyAdmin, async (req, res) => {
   try {
+    console.log('Starting PUT /api/admin/products/:id/toggle-status');
     const product = await Product.findById(req.params.id);
     if (!product) {
+      console.log('Product not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Product not found' });
     }
 
@@ -318,7 +345,7 @@ router.put('/:id/toggle-status', verifyAdmin, async (req, res) => {
     const formattedProduct = formatProductImage(updatedProduct.toObject());
     res.json({ message: 'Product status updated successfully', product: formattedProduct });
   } catch (err) {
-    console.error('Toggle Product Status Error:', err);
+    console.error('Toggle Product Status Error:', err.message, err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });

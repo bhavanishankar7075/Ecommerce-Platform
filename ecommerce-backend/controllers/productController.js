@@ -1,4 +1,4 @@
-const Product = require('../models/Product');
+/* const Product = require('../models/Product');
 const path = require('path');
 const fs = require('fs');
 
@@ -80,7 +80,7 @@ const addProduct = async (req, res) => {
   }
 };
 
-module.exports = { addProduct };
+module.exports = { addProduct }; */
 
 
 
