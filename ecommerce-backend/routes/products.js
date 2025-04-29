@@ -1,25 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs').promises;
 const Product = require('../models/Product');
+const cloudinary = require('cloudinary').v2;
 
-// Multer setup for image uploads with validation
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
-    try {
-      await fs.access(uploadDir);
-    } catch {
-      await fs.mkdir(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
+const storage = multer.memoryStorage(); // Use memory storage for Cloudinary upload
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -30,6 +15,14 @@ const upload = multer({
     }
     cb(null, true);
   },
+});
+
+// Configure Cloudinary from environment variables
+const cloudinaryUrl = process.env.CLOUDINARY_URL || `cloudinary://${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}@${process.env.CLOUDINARY_CLOUD_NAME}`;
+cloudinary.config(cloudinaryUrl ? { url: cloudinaryUrl } : {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // Verify admin middleware
@@ -57,7 +50,7 @@ const formatProductImage = (product) => {
   const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
   if (product.image) {
     if (!product.image.startsWith('http')) {
-      product.image = `${baseUrl}${product.image}`;
+      product.image = product.image; // Cloudinary URLs are already full URLs
     }
   } else {
     product.image = `${baseUrl}/default-product.jpg`;
@@ -65,7 +58,7 @@ const formatProductImage = (product) => {
   if (product.images && product.images.length > 0) {
     product.images = product.images.map((img) => {
       if (img && !img.startsWith('http')) {
-        return `${baseUrl}${img}`;
+        return img; // Cloudinary URLs are already full URLs
       }
       return img || `${baseUrl}/default-product.jpg`;
     });
@@ -193,8 +186,27 @@ router.post('/', verifyAdmin, upload.fields([
       }
     }
 
-    const image = `/uploads/${req.files['image'][0].filename}`;
-    const images = req.files['images'] ? req.files['images'].map((file) => `/uploads/${file.filename}`) : [];
+    // Upload main image to Cloudinary
+    const mainImageResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }).end(req.files['image'][0].buffer);
+    });
+    const image = mainImageResult.secure_url;
+
+    // Upload additional images to Cloudinary
+    const images = req.files['images'] ? await Promise.all(
+      req.files['images'].map(async (file) => {
+        const result = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }).end(file.buffer);
+        });
+        return result.secure_url;
+      })
+    ) : [];
 
     const product = new Product({
       name,
@@ -219,25 +231,6 @@ router.post('/', verifyAdmin, upload.fields([
     res.status(201).json({ message: 'Product added successfully', product: formattedProduct });
   } catch (err) {
     console.error('Add Product Error:', err);
-    // Clean up uploaded files on failure
-    if (req.files['image']) {
-      const imagePath = path.join(__dirname, '..', `/uploads/${req.files['image'][0].filename}`);
-      try {
-        await fs.unlink(imagePath);
-      } catch (deleteErr) {
-        console.error('Failed to clean up main image:', deleteErr.message);
-      }
-    }
-    if (req.files['images']) {
-      for (const file of req.files['images']) {
-        const imagePath = path.join(__dirname, '..', `/uploads/${file.filename}`);
-        try {
-          await fs.unlink(imagePath);
-        } catch (deleteErr) {
-          console.error('Failed to clean up additional image:', deleteErr.message);
-        }
-      }
-    }
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
@@ -280,53 +273,41 @@ router.put('/:id', verifyAdmin, upload.fields([
     }
 
     let image = product.image;
-    const oldImage = product.image;
     if (req.files['image']) {
-      if (oldImage && oldImage.startsWith('/uploads/')) {
-        const oldImagePath = path.join(__dirname, '..', oldImage);
-        try {
-          await fs.access(oldImagePath);
-          await fs.unlink(oldImagePath);
-          console.log('Old main image deleted:', oldImagePath);
-        } catch (err) {
-          console.error('Error deleting old main image:', err.message);
-        }
-      }
-      image = `/uploads/${req.files['image'][0].filename}`;
+      const mainImageResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }).end(req.files['image'][0].buffer);
+      });
+      image = mainImageResult.secure_url;
     }
 
-    let updatedImages = [...product.images]; // Start with current images
+    let updatedImages = [...product.images];
     console.log('Received existingImages:', existingImages);
     if (existingImages) {
       try {
-        const retainedImages = JSON.parse(existingImages).map((img) =>
-          img.startsWith('http://localhost:5001') || img.startsWith(process.env.BASE_URL || 'http://localhost:5001')
-            ? img.replace(`${process.env.BASE_URL || 'http://localhost:5001'}`, '')
-            : img
-        );
+        const retainedImages = JSON.parse(existingImages);
         console.log('Parsed retainedImages:', retainedImages);
-        const imagesToRemove = product.images.filter((img) => !retainedImages.includes(img));
-        for (const img of imagesToRemove) {
-          if (img && img.startsWith('/uploads/')) {
-            const imagePath = path.join(__dirname, '..', img);
-            try {
-              await fs.access(imagePath);
-              await fs.unlink(imagePath);
-              console.log('Removed image deleted:', imagePath);
-            } catch (err) {
-              console.error('Error deleting removed image:', err.message);
-            }
-          }
-        }
-        updatedImages = retainedImages.length > 0 ? retainedImages : product.images; // Default to current images if empty
+        updatedImages = retainedImages.length > 0 ? retainedImages : product.images;
       } catch (parseErr) {
         console.error('Error parsing existingImages:', parseErr.message);
-        updatedImages = [...product.images]; // Fallback to current images if parsing fails
+        updatedImages = [...product.images];
       }
     }
     if (req.files['images']) {
-      const newImages = req.files['images'].map((file) => `/uploads/${file.filename}`);
-      updatedImages = [...updatedImages, ...newImages]; // Append new images
+      const newImages = await Promise.all(
+        req.files['images'].map(async (file) => {
+          const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }).end(file.buffer);
+          });
+          return result.secure_url;
+        })
+      );
+      updatedImages = [...updatedImages, ...newImages];
     }
     console.log('Final updatedImages:', updatedImages);
 
@@ -351,25 +332,6 @@ router.put('/:id', verifyAdmin, upload.fields([
     res.json({ message: 'Product updated successfully', product: formattedProduct });
   } catch (err) {
     console.error('Update Product Error:', err);
-    // Clean up new files on failure
-    if (req.files['image']) {
-      const newImagePath = path.join(__dirname, '..', `/uploads/${req.files['image'][0].filename}`);
-      try {
-        await fs.unlink(newImagePath);
-      } catch (deleteErr) {
-        console.error('Failed to clean up new main image:', deleteErr.message);
-      }
-    }
-    if (req.files['images']) {
-      for (const file of req.files['images']) {
-        const imagePath = path.join(__dirname, '..', `/uploads/${file.filename}`);
-        try {
-          await fs.unlink(imagePath);
-        } catch (deleteErr) {
-          console.error('Failed to clean up new additional image:', deleteErr.message);
-        }
-      }
-    }
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
@@ -382,32 +344,7 @@ router.delete('/:id', verifyAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    if (product.image && product.image.startsWith('/uploads/')) {
-      const imagePath = path.join(__dirname, '..', product.image);
-      try {
-        await fs.access(imagePath);
-        await fs.unlink(imagePath);
-        console.log('Main image deleted:', imagePath);
-      } catch (err) {
-        console.error('Error deleting main image:', err.message);
-      }
-    }
-
-    if (product.images && product.images.length > 0) {
-      for (const img of product.images) {
-        if (img && img.startsWith('/uploads/')) {
-          const imagePath = path.join(__dirname, '..', img);
-          try {
-            await fs.access(imagePath);
-            await fs.unlink(imagePath);
-            console.log('Additional image deleted:', imagePath);
-          } catch (err) {
-            console.error('Error deleting additional image:', err.message);
-          }
-        }
-      }
-    }
-
+    // No local file cleanup needed since images are on Cloudinary
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
