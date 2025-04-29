@@ -17,13 +17,12 @@ const upload = multer({
   },
 });
 
-// Configure Cloudinary from environment variables
-const cloudinaryUrl = process.env.CLOUDINARY_URL || `cloudinary://${process.env.CLOUDINARY_API_KEY}:${process.env.CLOUDINARY_API_SECRET}@${process.env.CLOUDINARY_CLOUD_NAME}`;
-cloudinary.config(cloudinaryUrl ? { url: cloudinaryUrl } : {
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Configure Cloudinary using only CLOUDINARY_URL
+if (!process.env.CLOUDINARY_URL) {
+  throw new Error('CLOUDINARY_URL environment variable is required');
+}
+console.log('CLOUDINARY_URL:', process.env.CLOUDINARY_URL);
+cloudinary.config({ url: process.env.CLOUDINARY_URL });
 
 // Verify admin middleware
 const verifyAdmin = async (req, res, next) => {
