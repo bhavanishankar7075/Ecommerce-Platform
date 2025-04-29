@@ -15,7 +15,8 @@ const productSchema = new mongoose.Schema({
   weight: { type: Number },
   weightUnit: { type: String, default: 'kg' },
   model: { type: String, default: '' },
-});
+createdAt: { type: Date, default: Date.now }
+},{timestamps: true});
 
 module.exports = mongoose.model('Product', productSchema);
 
