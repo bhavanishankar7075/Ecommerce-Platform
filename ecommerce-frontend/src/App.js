@@ -29,6 +29,7 @@ import Returns from './pages/Returns.js';
 import FAQ from './pages/FAQ.js';
 import Support from './pages/Support.js';
 import Terms from './pages/Terms.js';
+import SearchPage from './pages/SearchPage.js';
 
 function App() {
   return (
@@ -70,6 +71,7 @@ function App() {
             <Route path="/returns" element={<Returns />} />
             <Route path="/support" element={<Support />} />
             <Route path="/terms" element={<Terms />} />
+            <Route path="/search" element={<SearchPage />} />
             </Routes>
             <Footer/>
           </CartProvider>

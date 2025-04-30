@@ -1,3 +1,4 @@
+
 // ecommerce-frontend/src/pages/Home.js
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -24,29 +25,159 @@ function Home() {
   const [sortFilter, setSortFilter] = useState('');
   const [ratingFilter, setRatingFilter] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [selectedNestedCategory, setSelectedNestedCategory] = useState(null);
   const [selectedTopCategory, setSelectedTopCategory] = useState(null);
   const [filteredCategoryProducts, setFilteredCategoryProducts] = useState([]);
   const [filteredTopCategoryProducts, setFilteredTopCategoryProducts] = useState([]);
   const [currentPageCategory, setCurrentPageCategory] = useState(1);
   const [currentPageTopCategory, setCurrentPageTopCategory] = useState(1);
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState({ size: '', color: '' });
   const productsPerPage = 4;
   const navigate = useNavigate();
 
-  // Categories with images
+  // Admin-defined categories with subcategories and nested categories
   const categories = [
-    { name: 'Books', image: 'https://img.freepik.com/free-photo/3d-view-books-cartoon-style_52683-117189.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Electronics', image: 'https://img.freepik.com/premium-photo/household-appliances-shopping-cart-black-background-ecommerce-online-shopping-concept-3d_505080-2555.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Toys', image: 'https://img.freepik.com/free-photo/cute-plush-toys-arrangement_23-2150312316.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Clothing', image: 'https://img.freepik.com/premium-photo/pair-shoes-are-table-with-hat-table_874904-102811.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Accessories', image: 'https://img.freepik.com/free-photo/cosmetics-accessories-near-keyboard_23-2147778967.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Sports', image: 'https://img.freepik.com/premium-photo/high-angle-view-eyeglasses-table_1048944-14435092.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Beauty', image: 'https://img.freepik.com/premium-photo/digital-tablet-with-woman-s-accessories-white-wooden-table-background-top-view_392895-210870.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Jewelry', image: 'https://img.freepik.com/free-photo/traditional-indian-wedding-jewelry_8353-9762.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Automotive', image: 'https://img.freepik.com/free-vector/mobile-application-buy-car_603843-656.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Health', image: 'https://img.freepik.com/free-photo/elevated-view-stethoscope-stitched-heart-shape-wireless-keyboard-succulent-plant-yellow-backdrop_23-2148214051.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Stationery', image: 'https://img.freepik.com/free-photo/overhead-view-office-stationeries-laptop-white-background_23-2148042099.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Furniture', image: 'https://img.freepik.com/premium-photo/hotel-furniture-white-background_996135-44810.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
-    { name: 'Footwear', image: 'https://img.freepik.com/premium-photo/high-angle-view-mobile-phone-table_1048944-19477214.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid' },
+    {
+      name: 'Fashion',
+      image: 'https://img.freepik.com/premium-photo/pair-shoes-are-table-with-hat-table_874904-102811.jpg',
+      subcategories: [
+        {
+          name: 'Men',
+          nestedCategories: ['Shirts', 'T-Shirts', 'Jeans', 'Shoes'],
+        },
+        {
+          name: 'Women',
+          nestedCategories: ['Dresses', 'Tops', 'Sarees', 'Sandals'],
+        },
+        {
+          name: 'Kids',
+          nestedCategories: ['T-Shirts', 'Dresses', 'Shoes'],
+        },
+      ],
+    },
+    {
+      name: 'Electronics',
+      image: 'https://img.freepik.com/premium-photo/household-appliances-shopping-cart-black-background-ecommerce-online-shopping-concept-3d_505080-2555.jpg',
+      subcategories: [
+        {
+          name: 'Audio',
+          nestedCategories: ['Headphones', 'Speakers', 'Earbuds'],
+        },
+        {
+          name: 'Cameras',
+          nestedCategories: ['DSLR', 'Point & Shoot', 'Accessories'],
+        },
+        {
+          name: 'Gaming',
+          nestedCategories: ['Consoles', 'Controllers', 'Games'],
+        },
+      ],
+    },
+    {
+      name: 'Furniture',
+      image: 'https://img.freepik.com/premium-photo/hotel-furniture-white-background_996135-44810.jpg',
+      subcategories: [
+        {
+          name: 'Living Room',
+          nestedCategories: ['Sofas', 'Tables', 'Chairs'],
+        },
+        {
+          name: 'Bedroom',
+          nestedCategories: ['Beds', 'Wardrobes', 'Dressers'],
+        },
+        {
+          name: 'Office',
+          nestedCategories: ['Desks', 'Chairs', 'Shelves'],
+        },
+      ],
+    },
+    {
+      name: 'Mobiles',
+      image: 'https://img.freepik.com/premium-photo/high-angle-view-mobile-phone-table_1048944-19477214.jpg',
+      subcategories: [
+        {
+          name: 'Smartphones',
+          nestedCategories: ['Android', 'iOS', 'Feature Phones'],
+        },
+        {
+          name: 'Accessories',
+          nestedCategories: ['Cases', 'Chargers', 'Screen Protectors'],
+        },
+      ],
+    },
+    {
+      name: 'Appliances',
+      image: 'https://img.freepik.com/free-photo/overhead-view-office-stationeries-laptop-white-background_23-2148042099.jpg',
+      subcategories: [
+        {
+          name: 'Kitchen',
+          nestedCategories: ['Microwaves', 'Mixers', 'Toasters'],
+        },
+        {
+          name: 'Home',
+          nestedCategories: ['Washing Machines', 'Refrigerators', 'ACs'],
+        },
+      ],
+    },
+    {
+      name: 'Beauty',
+      image: 'https://img.freepik.com/premium-photo/digital-tablet-with-woman-s-accessories-white-wooden-table-background-top-view_392895-210870.jpg',
+      subcategories: [
+        {
+          name: 'Skincare',
+          nestedCategories: ['Moisturizers', 'Cleansers', 'Serums'],
+        },
+        {
+          name: 'Makeup',
+          nestedCategories: ['Lipsticks', 'Foundations', 'Eyeliners'],
+        },
+      ],
+    },
+    {
+      name: 'Home',
+      image: 'https://img.freepik.com/free-photo/elevated-view-stethoscope-stitched-heart-shape-wireless-keyboard-succulent-plant-yellow-backdrop_23-2148214051.jpg',
+      subcategories: [
+        {
+          name: 'Decor',
+          nestedCategories: ['Wall Art', 'Vases', 'Candles'],
+        },
+        {
+          name: 'Kitchen',
+          nestedCategories: ['Cookware', 'Utensils', 'Storage'],
+        },
+      ],
+    },
+    {
+      name: 'Toys & Baby',
+      image: 'https://img.freepik.com/free-photo/cute-plush-toys-arrangement_23-2150312316.jpg',
+      subcategories: [
+        {
+          name: 'Toys',
+          nestedCategories: ['Action Figures', 'Board Games', 'Dolls'],
+        },
+        {
+          name: 'Baby Products',
+          nestedCategories: ['Diapers', 'Strollers', 'Feeding'],
+        },
+      ],
+    },
+    {
+      name: 'Sports',
+      image: 'https://img.freepik.com/premium-photo/high-angle-view-eyeglasses-table_1048944-14435092.jpg',
+      subcategories: [
+        {
+          name: 'Fitness',
+          nestedCategories: ['Dumbbells', 'Yoga Mats', 'Treadmills'],
+        },
+        {
+          name: 'Outdoor',
+          nestedCategories: ['Cricket', 'Football', 'Camping Gear'],
+        },
+      ],
+    },
   ];
 
   useEffect(() => {
@@ -54,7 +185,7 @@ function Home() {
       // Featured Products (for carousel)
       const featured = products.filter((product) => product.featured);
       const selectedFeatured = featured.length > 0 ? featured : products.slice(0, 3);
-      setFeaturedProducts(selectedFeatured); // Directly use the product data, including its image field
+      setFeaturedProducts(selectedFeatured);
 
       // Trending Products (for "Suggested for You")
       const sortedByPrice = [...products].sort((a, b) => Number(b.price) - Number(a.price));
@@ -66,7 +197,7 @@ function Home() {
 
       // Top Selling Smartphones (filter by category or price)
       const smartphones = products
-        .filter((product) => product.category.toLowerCase().includes('electronics'))
+        .filter((product) => product.category.toLowerCase().includes('mobiles'))
         .sort((a, b) => Number(b.price) - Number(a.price));
       setTopSellingSmartphones(smartphones.slice(0, 3));
 
@@ -81,7 +212,7 @@ function Home() {
       // Recently Viewed Products (from local storage or context)
       const viewed = JSON.parse(localStorage.getItem('recentlyViewed')) || [];
       const viewedProducts = products.filter((product) => viewed.includes(product._id));
-      setRecentlyViewed(viewedProducts.slice(0, 10)); // Limit to 10 items
+      setRecentlyViewed(viewedProducts.slice(0, 10));
 
       // Best Sellers (sort by rating or sales)
       const best = [...products].sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -91,9 +222,9 @@ function Home() {
 
   // Filter products for "Shop by Category"
   useEffect(() => {
-    if (selectedCategory) {
+    if (selectedNestedCategory) {
       let filtered = products.filter((product) =>
-        product.category.toLowerCase() === selectedCategory.toLowerCase()
+        product.category.toLowerCase() === selectedNestedCategory.toLowerCase()
       );
       filtered = filtered.filter((product) => {
         const price = Number(product.price);
@@ -111,7 +242,7 @@ function Home() {
     } else {
       setFilteredCategoryProducts([]);
     }
-  }, [selectedCategory, products, priceFilter, sortFilter, ratingFilter]);
+  }, [selectedNestedCategory, products, priceFilter, sortFilter, ratingFilter]);
 
   // Filter products for "Top Categories"
   useEffect(() => {
@@ -146,7 +277,7 @@ function Home() {
     return matchesPrice && matchesCategory && matchesRating;
   }).sort((a, b) => {
     if (sortFilter === 'price-low-high') {
-      return Number(a.price) - Number(b.price);
+      return Number(a.price) - Number(a.price);
     } else if (sortFilter === 'price-high-low') {
       return Number(b.price) - Number(a.price);
     }
@@ -228,6 +359,40 @@ function Home() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle variant selection and Add to Cart
+  const handleAddToCart = (product, e) => {
+    e.stopPropagation();
+    if (product.variants && product.variants.length > 0) {
+      setSelectedProduct(product);
+      setShowSizeModal(true);
+    } else {
+      // Add to cart logic for non-variant products
+      console.log('Added to cart:', product);
+      // Add your add-to-cart logic here (e.g., update context or API call)
+    }
+  };
+
+  const handleVariantChange = (e) => {
+    const { name, value } = e.target;
+    setSelectedVariant((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const confirmAddToCart = () => {
+    if (selectedVariant.size && selectedVariant.color) {
+      console.log('Added to cart with variant:', selectedProduct, selectedVariant);
+      // Add your add-to-cart logic here (e.g., update context or API call)
+      setShowSizeModal(false);
+      setSelectedProduct(null);
+      setSelectedVariant({ size: '', color: '' });
+    }
+  };
+
+  const closeModal = () => {
+    setShowSizeModal(false);
+    setSelectedProduct(null);
+    setSelectedVariant({ size: '', color: '' });
   };
 
   if (authLoading || productsLoading) {
@@ -319,9 +484,19 @@ function Home() {
           <div className="category-container">
             {categories.map((category) => (
               <div
-                className="category-item"
+                className={`category-item ${selectedCategory === category.name ? 'active' : ''}`}
                 key={category.name}
-                onClick={() => setSelectedCategory(category.name)}
+                onMouseEnter={() => window.innerWidth >= 768 && setSelectedCategory(category.name)} // Hover for desktop
+                onMouseLeave={() => window.innerWidth >= 768 && setSelectedCategory(null)} // Reset on leave
+                onClick={() => {
+                  // For mobile: toggle category on click
+                  if (window.innerWidth < 768) {
+                    console.log('Clicked category:', category.name); // Debug log
+                    setSelectedCategory((prev) => (prev === category.name ? null : category.name));
+                    setSelectedSubcategory(null); // Reset subcategory
+                    setSelectedNestedCategory(null); // Reset nested category
+                  }
+                }}
               >
                 <img
                   src={category.image}
@@ -331,6 +506,40 @@ function Home() {
                   }}
                 />
                 <p>{category.name}</p>
+                {(selectedCategory === category.name || window.innerWidth < 768) && (
+                  <div className="subcategory-list">
+                    {category.subcategories.map((subcategory) => (
+                      <div
+                        className={`subcategory-item ${selectedSubcategory === subcategory.name ? 'active' : ''}`}
+                        key={subcategory.name}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSubcategory((prev) => (prev === subcategory.name ? null : subcategory.name));
+                          setSelectedNestedCategory(null);
+                          console.log('Selected subcategory:', subcategory.name); // Debug log
+                        }}
+                      >
+                        {subcategory.name}
+                        {(selectedSubcategory === subcategory.name || window.innerWidth < 768) && (
+                          <div className="nested-category-list">
+                            {subcategory.nestedCategories.map((nestedCategory) => (
+                              <span
+                                key={nestedCategory}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedNestedCategory(nestedCategory);
+                                  console.log('Selected nested category:', nestedCategory); // Debug log
+                                }}
+                              >
+                                {nestedCategory}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -338,10 +547,10 @@ function Home() {
       </motion.section>
 
       {/* Filtered Products by Category (Shop by Category) */}
-      {selectedCategory && filteredCategoryProducts.length > 0 && (
+      {selectedNestedCategory && filteredCategoryProducts.length > 0 && (
         <motion.section initial="hidden" animate="visible" variants={fadeIn} className="filtered-category-products-section">
           <div className="container">
-            <h2>{selectedCategory} Products</h2>
+            <h2>{selectedNestedCategory} Products</h2>
             <div className="product-list">
               {currentCategoryProducts.map((product) => (
                 <div
@@ -359,7 +568,18 @@ function Home() {
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                    {product.variants && product.variants.length > 0 && (
+                      <p className="variants">
+                        Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                      </p>
+                    )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
+                    <button
+                      className="add-to-cart-btn"
+                      onClick={(e) => handleAddToCart(product, e)}
+                    >
+                      Add to Cart
+                    </button>
                   </div>
                 </div>
               ))}
@@ -441,7 +661,7 @@ function Home() {
                 Clear Filters
               </button>
             </div>
-          </div>  
+          </div>
         </div>
       </motion.section>
 
@@ -466,7 +686,18 @@ function Home() {
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                  {product.variants && product.variants.length > 0 && (
+                    <p className="variants">
+                      Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                    </p>
+                  )}
                   <p className="discount">{product.offer || '10% OFF'}</p>
+                  <button
+                    className="add-to-cart-btn"
+                    onClick={(e) => handleAddToCart(product, e)}
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
@@ -496,7 +727,18 @@ function Home() {
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                    {product.variants && product.variants.length > 0 && (
+                      <p className="variants">
+                        Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                      </p>
+                    )}
                     <p className="discount">{product.offer || '15% OFF'}</p>
+                    <button
+                      className="add-to-cart-btn"
+                      onClick={(e) => handleAddToCart(product, e)}
+                    >
+                      Add to Cart
+                    </button>
                   </div>
                 </div>
               ))}
@@ -527,6 +769,11 @@ function Home() {
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                  {product.variants && product.variants.length > 0 && (
+                    <p className="variants">
+                      Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                    </p>
+                  )}
                   <p className="discount">{product.offer || '20% OFF'}</p>
                   <button
                     className="btn btn-primary"
@@ -566,7 +813,18 @@ function Home() {
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                  {product.variants && product.variants.length > 0 && (
+                    <p className="variants">
+                      Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                    </p>
+                  )}
                   <p className="discount">{product.offer || '25% OFF'}</p>
+                  <button
+                    className="add-to-cart-btn"
+                    onClick={(e) => handleAddToCart(product, e)}
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
@@ -612,7 +870,7 @@ function Home() {
                 <div
                   className="product-item"
                   key={product._id}
-                  onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                  onClick={() => navigate(user ? `/ facemask/${product._id}` : '/login')}
                 >
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
@@ -624,7 +882,18 @@ function Home() {
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                    {product.variants && product.variants.length > 0 && (
+                      <p className="variants">
+                        Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                      </p>
+                    )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
+                    <button
+                      className="add-to-cart-btn"
+                      onClick={(e) => handleAddToCart(product, e)}
+                    >
+                      Add to Cart
+                    </button>
                   </div>
                 </div>
               ))}
@@ -672,7 +941,18 @@ function Home() {
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                  {product.variants && product.variants.length > 0 && (
+                    <p className="variants">
+                      Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                    </p>
+                  )}
                   <p className="discount">{product.offer || '15% OFF'}</p>
+                  <button
+                    className="add-to-cart-btn"
+                    onClick={(e) => handleAddToCart(product, e)}
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
@@ -722,7 +1002,18 @@ function Home() {
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                  {product.variants && product.variants.length > 0 && (
+                    <p className="variants">
+                      Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                    </p>
+                  )}
                   <p className="discount">{product.offer || '10% OFF'}</p>
+                  <button
+                    className="add-to-cart-btn"
+                    onClick={(e) => handleAddToCart(product, e)}
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
@@ -751,7 +1042,18 @@ function Home() {
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                  {product.variants && product.variants.length > 0 && (
+                    <p className="variants">
+                      Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                    </p>
+                  )}
                   <p className="discount">{product.offer || '15% OFF'}</p>
+                  <button
+                    className="add-to-cart-btn"
+                    onClick={(e) => handleAddToCart(product, e)}
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               </div>
             ))}
@@ -781,12 +1083,60 @@ function Home() {
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                    {product.variants && product.variants.length > 0 && (
+                      <p className="variants">
+                        Variants: {product.variants.map((v) => `${v.size}/${v.color}`).join(', ')}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </motion.section>
+      )}
+
+      {/* Size Selection Modal */}
+      {showSizeModal && selectedProduct && (
+        <div className="size-modal">
+          <div className="size-modal-content">
+            <h3>Select Variant for {selectedProduct.name}</h3>
+            <div className="size-selection">
+              <label>Size:</label>
+              <select name="size" value={selectedVariant.size} onChange={handleVariantChange}>
+                <option value="">Select Size</option>
+                {[...new Set(selectedProduct.variants.map((v) => v.size))].map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="variant-selection">
+              <label>Color:</label>
+              <select name="color" value={selectedVariant.color} onChange={handleVariantChange}>
+                <option value="">Select Color</option>
+                {[...new Set(selectedProduct.variants.map((v) => v.color))].map((color) => (
+                  <option key={color} value={color}>
+                    {color}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-primary"
+                onClick={confirmAddToCart}
+                disabled={!selectedVariant.size || !selectedVariant.color}
+              >
+                Add to Cart
+              </button>
+              <button className="btn btn-secondary" onClick={closeModal}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Back to Top Button */}
@@ -797,4 +1147,4 @@ function Home() {
   );
 }
 
-export default Home; 
+export default Home;

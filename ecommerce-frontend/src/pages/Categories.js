@@ -1,4 +1,462 @@
-// ecommerce-frontend/src/pages/Categories.js
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useProducts } from '../context/ProductContext';
+import { motion } from 'framer-motion';
+import '../styles/Categories.css';
+
+function Categories() {
+  const { user } = useAuth();
+  const { products, loading: productsLoading, error: productsError } = useProducts();
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [selectedNestedCategory, setSelectedNestedCategory] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 8;
+  const navigate = useNavigate();
+
+  // Define category hierarchy
+  const categoryHierarchy = {
+    Fashion: {
+      Men: [
+        'Top Wear', 'Bottom Wear', 'Casual Shoes', 'Watches', 'Ethnic', 'Sports Shoes',
+        'Luggage', 'Trimmers', 'Essentials', 'Men Grooming'
+      ],
+      Women: ['Dresses', 'Tops', 'Footwear', 'Jewelry', 'Handbags', 'Accessories'],
+      Beauty: ['Skincare', 'Makeup', 'Haircare', 'Fragrances']
+    },
+    Gadgets: {
+      Accessories: ['Phone Cases', 'Chargers', 'Headphones'],
+      SmartDevices: ['Smartwatches', 'Speakers', 'Cameras']
+    },
+    Electronics: {
+      Audio: ['Headphones', 'Speakers', 'Earphones'],
+      Computing: ['Laptops', 'Desktops', 'Monitors']
+    },
+    Home: {
+      Decor: ['Wall Art', 'Rugs', 'Lighting'],
+      Kitchen: ['Appliances', 'Utensils', 'Cookware']
+    },
+    Mobiles: {
+      Brands: ['Samsung', 'Apple', 'Xiaomi', 'OnePlus']
+    },
+    Appliances: {
+      Small: ['Microwave', 'Toaster', 'Blender'],
+      Large: ['Refrigerator', 'Washing Machine', 'Air Conditioner']
+    },
+    Furniture: {
+      Living: ['Sofas', 'Tables', 'Chairs'],
+      Bedroom: ['Beds', 'Wardrobes', 'Mattresses']
+    }
+  };
+
+  const mainCategories = Object.keys(categoryHierarchy);
+
+  // Filter products based on selected nested category and search query
+  useEffect(() => {
+    let filtered = products;
+    if (selectedNestedCategory) {
+      filtered = filtered.filter(
+        (product) => product.category.toLowerCase() === selectedNestedCategory.toLowerCase()
+      );
+    } else if (selectedSubcategory) {
+      // No filtering yet, just show nested category buttons
+      filtered = [];
+    } else if (selectedCategory) {
+      // No filtering yet, just show subcategory buttons
+      filtered = [];
+    }
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((product) =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    setFilteredProducts(filtered);
+    setCurrentPage(1);
+  }, [selectedCategory, selectedSubcategory, selectedNestedCategory, searchQuery, products]);
+
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+  // Mock related products (replace with actual logic if needed)
+  const relatedProducts = products.slice(0, 4);
+  const topPicks = products.slice(4, 8);
+  const bestDeals = products.slice(8, 12);
+  const recentlyViewed = products.slice(12, 16);
+
+  if (productsLoading) {
+    return (
+      <div className="container my-5 text-center">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (productsError) {
+    return (
+      <div className="container my-5 text-center">
+        <h3>Error loading products</h3>
+        <p>{productsError}</p>
+      </div>
+    );
+  }
+
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+  };
+
+  return (
+    <div className="categories-wrapper">
+      <div className="categories-container">
+        {/* Left Sidebar: Categories */}
+        <motion.aside initial="hidden" animate="visible" variants={fadeIn} className="category-sidebar">
+          <h2>Categories</h2>
+          <div className="category-list">
+            <div
+              className={`category-item ${!selectedCategory && !selectedSubcategory && !selectedNestedCategory ? 'active' : ''}`}
+              onClick={() => {
+                setSelectedCategory(null);
+                setSelectedSubcategory(null);
+                setSelectedNestedCategory(null);
+              }}
+            >
+              <img
+                src="https://placehold.co/50x50?text=All"
+                alt="All Categories"
+                onError={(e) => {
+                  e.target.src = 'https://placehold.co/50x50?text=All';
+                }}
+              />
+              <span>All Categories</span>
+            </div>
+            {mainCategories.map((category) => (
+              <div
+                key={category}
+                className={`category-item ${selectedCategory === category && !selectedSubcategory && !selectedNestedCategory ? 'active' : ''}`}
+                onClick={() => {
+                  if (selectedCategory === category) {
+                    setSelectedCategory(null);
+                    setSelectedSubcategory(null);
+                    setSelectedNestedCategory(null);
+                  } else {
+                    setSelectedCategory(category);
+                    setSelectedSubcategory(null);
+                    setSelectedNestedCategory(null);
+                  }
+                }}
+              >
+                <img
+                  src={categoryHierarchy[category]?.Men?.[0] ? 'https://placehold.co/50x50?text=Men' : 'https://placehold.co/50x50?text=' + category}
+                  alt={category}
+                  onError={(e) => {
+                    e.target.src = 'https://placehold.co/50x50?text=Category';
+                  }}
+                />
+                <span>{category}</span>
+              </div>
+            ))}
+          </div>
+        </motion.aside>
+
+        {/* Right Content: Subcategories, Nested Categories, and Products */}
+        <div className="categories-content">
+          {/* Header: Search */}
+          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="categories-header">
+            <div className="search-bar">
+              <i className="fas fa-search search-icon"></i>
+              <input
+                type="text"
+                placeholder="Search within this category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </motion.div>
+
+          {/* Display Subcategories when a main category is selected */}
+          {selectedCategory && !selectedSubcategory && !selectedNestedCategory && (
+            <motion.section initial="hidden" animate="visible" variants={fadeIn} className="subcategory-section">
+              <h2>{selectedCategory} Subcategories</h2>
+              <div className="category-button-list">
+                {Object.keys(categoryHierarchy[selectedCategory]).map((subcategory) => (
+                  <button
+                    key={subcategory}
+                    className={`category-button ${selectedSubcategory === subcategory ? 'active' : ''}`}
+                    onClick={() => {
+                      if (selectedSubcategory === subcategory) {
+                        setSelectedSubcategory(null);
+                      } else {
+                        setSelectedSubcategory(subcategory);
+                        setSelectedNestedCategory(null);
+                      }
+                    }}
+                  >
+                    {subcategory}
+                  </button>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          {/* Display Nested Categories when a subcategory is selected */}
+          {selectedSubcategory && !selectedNestedCategory && (
+            <motion.section initial="hidden" animate="visible" variants={fadeIn} className="nested-category-section">
+              <h2>{selectedSubcategory} Categories</h2>
+              <div className="category-button-list">
+                {categoryHierarchy[selectedCategory][selectedSubcategory].map((nestedCategory) => (
+                  <button
+                    key={nestedCategory}
+                    className={`category-button ${selectedNestedCategory === nestedCategory ? 'active' : ''}`}
+                    onClick={() => {
+                      if (selectedNestedCategory === nestedCategory) {
+                        setSelectedNestedCategory(null);
+                      } else {
+                        setSelectedNestedCategory(nestedCategory);
+                      }
+                    }}
+                  >
+                    {nestedCategory}
+                  </button>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          {/* Display Filtered Products when a nested category is selected */}
+          {selectedNestedCategory && (
+            <motion.section initial="hidden" animate="visible" variants={fadeIn} className="filtered-products-section">
+              <h2>{selectedNestedCategory} Products</h2>
+              <div className="product-list">
+                {currentProducts.map((product) => (
+                  <div
+                    key={product._id}
+                    className="product-item"
+                    onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                  >
+                    <img
+                      src={product.image || 'https://placehold.co/100x100?text=Product'}
+                      alt={product.name}
+                      onError={(e) => {
+                        e.target.src = 'https://placehold.co/100x100?text=Product';
+                      }}
+                    />
+                    <div className="product-details">
+                      <h5>{product.name}</h5>
+                      <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                      <p className="discount">{product.offer || '10% OFF'}</p>
+                      {product.stock !== undefined && (
+                        <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
+                          {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pagination">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </motion.section>
+          )}
+
+          {/* No Products Message when no nested category is selected but search yields no results */}
+          {!selectedNestedCategory && filteredProducts.length === 0 && searchQuery.trim() && (
+            <motion.div initial="hidden" animate="visible" variants={fadeIn} className="no-products">
+              <p>No products found. Try a different category or search term.</p>
+            </motion.div>
+          )}
+
+          {/* Related Products, Top Picks, Best Deals, Recently Viewed (shown only when no specific category is selected) */}
+          {!selectedCategory && !selectedSubcategory && !selectedNestedCategory && (
+            <>
+              <motion.section initial="hidden" animate="visible" variants={fadeIn} className="related-products-section">
+                <h2>Related Products</h2>
+                <div className="product-list">
+                  {relatedProducts.map((product) => (
+                    <div
+                      key={product._id}
+                      className="product-item"
+                      onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                    >
+                      <img
+                        src={product.image || 'https://placehold.co/100x100?text=Product'}
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = 'https://placehold.co/100x100?text=Product';
+                        }}
+                      />
+                      <div className="product-details">
+                        <h5>{product.name}</h5>
+                        <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                        <p className="discount">{product.offer || '10% OFF'}</p>
+                        {product.stock !== undefined && (
+                          <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
+                            {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.section>
+
+              <motion.section initial="hidden" animate="visible" variants={fadeIn} className="top-picks-section">
+                <h2>Top Picks</h2>
+                <div className="product-list">
+                  {topPicks.map((product) => (
+                    <div
+                      key={product._id}
+                      className="product-item"
+                      onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                    >
+                      <img
+                        src={product.image || 'https://placehold.co/100x100?text=Product'}
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = 'https://placehold.co/100x100?text=Product';
+                        }}
+                      />
+                      <div className="product-details">
+                        <h5>{product.name}</h5>
+                        <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                        <p className="discount">{product.offer || '10% OFF'}</p>
+                        {product.stock !== undefined && (
+                          <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
+                            {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.section>
+
+              <motion.section initial="hidden" animate="visible" variants={fadeIn} className="best-deals-section">
+                <h2>Best Deals</h2>
+                <div className="product-list">
+                  {bestDeals.map((product) => (
+                    <div
+                      key={product._id}
+                      className="product-item"
+                      onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                    >
+                      <img
+                        src={product.image || 'https://placehold.co/100x100?text=Product'}
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = 'https://placehold.co/100x100?text=Product';
+                        }}
+                      />
+                      <div className="product-details">
+                        <h5>{product.name}</h5>
+                        <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                        <p className="discount">{product.offer || '10% OFF'}</p>
+                        {product.stock !== undefined && (
+                          <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
+                            {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.section>
+
+              <motion.section initial="hidden" animate="visible" variants={fadeIn} className="recently-viewed-section">
+                <h2>Recently Viewed</h2>
+                <div className="product-list">
+                  {recentlyViewed.map((product) => (
+                    <div
+                      key={product._id}
+                      className="product-item"
+                      onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                    >
+                      <img
+                        src={product.image || 'https://placehold.co/100x100?text=Product'}
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = 'https://placehold.co/100x100?text=Product';
+                        }}
+                      />
+                      <div className="product-details">
+                        <h5>{product.name}</h5>
+                        <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                        <p className="discount">{product.offer || '10% OFF'}</p>
+                        {product.stock !== undefined && (
+                          <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
+                            {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.section>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Categories;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // ecommerce-frontend/src/pages/Categories.js
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -89,7 +547,6 @@ function Categories() {
   return (
     <div className="categories-wrapper">
       <div className="categories-container">
-        {/* Left Sidebar: Categories */}
         <motion.aside initial="hidden" animate="visible" variants={fadeIn} className="category-sidebar">
           <h2>Categories</h2>
           <div className="category-list">
@@ -125,9 +582,7 @@ function Categories() {
           </div>
         </motion.aside>
 
-        {/* Right Content: Products and Sections */}
         <div className="categories-content">
-          {/* Header: Search */}
           <motion.div initial="hidden" animate="visible" variants={fadeIn} className="categories-header">
             <div className="search-bar">
               <i className="fas fa-search search-icon"></i>
@@ -140,7 +595,6 @@ function Categories() {
             </div>
           </motion.div>
 
-          {/* Filtered Products */}
           {filteredProducts.length > 0 ? (
             <motion.section initial="hidden" animate="visible" variants={fadeIn} className="filtered-products-section">
               <h2>{selectedCategory ? `${selectedCategory} Products` : 'All Products'}</h2>
@@ -190,7 +644,6 @@ function Categories() {
             </motion.div>
           )}
 
-          {/* Related Products */}
           <motion.section initial="hidden" animate="visible" variants={fadeIn} className="related-products-section">
             <h2>Related Products</h2>
             <div className="product-list">
@@ -217,7 +670,6 @@ function Categories() {
             </div>
           </motion.section>
 
-          {/* Top Picks */}
           <motion.section initial="hidden" animate="visible" variants={fadeIn} className="top-picks-section">
             <h2>Top Picks</h2>
             <div className="product-list">
@@ -244,7 +696,6 @@ function Categories() {
             </div>
           </motion.section>
 
-          {/* Best Deals */}
           <motion.section initial="hidden" animate="visible" variants={fadeIn} className="best-deals-section">
             <h2>Best Deals</h2>
             <div className="product-list">
@@ -271,7 +722,6 @@ function Categories() {
             </div>
           </motion.section>
 
-          {/* Recently Viewed */}
           <motion.section initial="hidden" animate="visible" variants={fadeIn} className="recently-viewed-section">
             <h2>Recently Viewed</h2>
             <div className="product-list">
@@ -303,4 +753,4 @@ function Categories() {
   );
 }
 
-export default Categories;
+export default Categories; */

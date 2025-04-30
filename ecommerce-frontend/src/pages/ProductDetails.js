@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -22,6 +22,7 @@ function ProductDetails() {
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState(null);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isBuyingNow, setIsBuyingNow] = useState(false);
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
@@ -31,15 +32,14 @@ function ProductDetails() {
   const [selectedCity, setSelectedCity] = useState('');
   const [availabilityInfo, setAvailabilityInfo] = useState(null);
   const [isCompareAdded, setIsCompareAdded] = useState(false);
-  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0, visible: false });
-
-  const mainImageRef = useRef(null);
+  const [zoomLensPosition, setZoomLensPosition] = useState({ x: 0, y: 0 });
+  const [zoomResultPosition, setZoomResultPosition] = useState({ x: 0, y: 0 });
+  const [isZoomVisible, setIsZoomVisible] = useState(false);
 
   const product = products.find((p) => p._id === id);
 
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
 
-  // Sample list of cities and their availability (for demo purposes)
   const cities = [
     { name: 'Mumbai', available: true },
     { name: 'Delhi', available: true },
@@ -49,7 +49,6 @@ function ProductDetails() {
     { name: 'Kolkata', available: true },
   ];
 
-  // Auto-scroll to top on component mount
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [id]);
@@ -66,6 +65,10 @@ function ProductDetails() {
       setStockCount(product.stock || 0);
       if (product.sizes && product.sizes.length > 0) {
         setSelectedSize(product.sizes[0]);
+      }
+      if (product.variants && product.variants.length > 0) {
+        setSelectedVariant(product.variants[0]);
+        setCurrentImageIndex(0);
       }
       if (isValidObjectId(id)) {
         fetchReviews();
@@ -153,15 +156,20 @@ function ProductDetails() {
   const handleAddToCart = async () => {
     if (stockCount <= 0) return;
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-      alert('Please select a size.');
+      toast.error('Please select a size.');
+      return;
+    }
+    if (product.variants && product.variants.length > 0 && !selectedVariant) {
+      toast.error('Please select a variant.');
       return;
     }
     setIsAddingToCart(true);
     try {
-      await addToCart({ ...product, selectedSize });
+      await addToCart({ ...product, selectedSize, selectedVariant });
       setStockCount((prev) => prev - 1);
+      toast.success('Added to cart!');
     } catch (error) {
-      setReviewsError(error.message || 'Failed to add to cart. Please try again.');
+      toast.error(error.message || 'Failed to add to cart. Please try again.');
     } finally {
       setIsAddingToCart(false);
     }
@@ -170,16 +178,20 @@ function ProductDetails() {
   const handleBuyNow = async () => {
     if (stockCount <= 0) return;
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-      alert('Please select a size.');
+      toast.error('Please select a size.');
+      return;
+    }
+    if (product.variants && product.variants.length > 0 && !selectedVariant) {
+      toast.error('Please select a variant.');
       return;
     }
     setIsBuyingNow(true);
     try {
-      await addToCart({ ...product, selectedSize });
+      await addToCart({ ...product, selectedSize, selectedVariant });
       setStockCount((prev) => prev - 1);
       navigate('/checkout');
     } catch (error) {
-      setReviewsError(error.message || 'Failed to add to cart. Please try again.');
+      toast.error(error.message || 'Failed to add to cart. Please try again.');
     } finally {
       setIsBuyingNow(false);
     }
@@ -190,26 +202,44 @@ function ProductDetails() {
   };
 
   const handleThumbnailHover = (index) => {
-    setCurrentImageIndex(index);
-  };
-
-  const handleMouseMove = (e) => {
-    const rect = mainImageRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const xPercent = (x / rect.width) * 100;
-    const yPercent = (y / rect.height) * 100;
-
-    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-      setZoomPosition({ x: xPercent, y: yPercent, visible: true });
-    } else {
-      setZoomPosition({ x: 0, y: 0, visible: false });
+    if (window.innerWidth >= 768) {
+      setCurrentImageIndex(index);
     }
   };
 
+  const handleMouseMove = (e) => {
+    if (window.innerWidth < 992) return; // Only enable zoom on screens ≥992px
+    const mainImage = e.currentTarget;
+    const rect = mainImage.getBoundingClientRect();
+    const lensSize = 100; // Size of the zoom lens (100px x 100px)
+    let x = e.clientX - rect.left - lensSize / 2;
+    let y = e.clientY - rect.top - lensSize / 2;
+
+    // Constrain the lens within the image boundaries
+    const maxX = rect.width - lensSize;
+    const maxY = rect.height - lensSize;
+    x = Math.max(0, Math.min(x, maxX));
+    y = Math.max(0, Math.min(y, maxY));
+
+    setZoomLensPosition({ x, y });
+
+    // Calculate the background position for the zoom-result
+    const zoomResultSize = rect.width; // zoom-result matches main image size
+    const zoomFactor = 2; // 2x magnification
+    const backgroundX = (x / rect.width) * 100 * zoomFactor;
+    const backgroundY = (y / rect.height) * 100 * zoomFactor;
+
+    setZoomResultPosition({ x: backgroundX, y: backgroundY });
+    setIsZoomVisible(true);
+  };
+
   const handleMouseLeave = () => {
-    setZoomPosition({ x: 0, y: 0, visible: false });
+    setIsZoomVisible(false);
+  };
+
+  const handleVariantChange = (variant) => {
+    setSelectedVariant(variant);
+    setCurrentImageIndex(0);
   };
 
   const handleNotifySubmit = (e) => {
@@ -217,7 +247,7 @@ function ProductDetails() {
     console.log(`Notification requested for ${email} when ${product.name} is back in stock.`);
     setIsNotifyModalOpen(false);
     setEmail('');
-    alert('You will be notified when this product is back in stock!');
+    toast.success('You will be notified when this product is back in stock!');
   };
 
   const handleWishlistToggle = async () => {
@@ -264,19 +294,12 @@ function ProductDetails() {
 
   const handleShare = () => {
     const url = window.location.href;
-    const text = `Check out this amazing product: ${product.name} on Clean Modern Marketplace!`;
-
+    const text = `Check out this amazing product: ${product.name}!`;
     if (navigator.share) {
-      navigator
-        .share({
-          title: product.name,
-          text: text,
-          url: url,
-        })
-        .catch((err) => {
-          console.error('Error sharing:', err);
-          setIsShareModalOpen(true);
-        });
+      navigator.share({ title: product.name, text, url }).catch((err) => {
+        console.error('Error sharing:', err);
+        setIsShareModalOpen(true);
+      });
     } else {
       setIsShareModalOpen(true);
     }
@@ -284,9 +307,8 @@ function ProductDetails() {
 
   const shareProduct = async (platform) => {
     const url = window.location.href;
-    const text = `Check out this amazing product: ${product.name} on Clean Modern Marketplace!`;
+    const text = `Check out this amazing product: ${product.name}!`;
     let shareUrl = '';
-
     switch (platform) {
       case 'whatsapp':
         shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`;
@@ -303,16 +325,10 @@ function ProductDetails() {
       case 'copy':
         try {
           await navigator.clipboard.writeText(url);
-          toast.success('Link copied to clipboard!', {
-            position: 'top-right',
-            autoClose: 2000,
-          });
+          toast.success('Link copied to clipboard!', { position: 'top-right', autoClose: 2000 });
         } catch (err) {
           console.error('Failed to copy link:', err);
-          toast.error('Failed to copy link.', {
-            position: 'top-right',
-            autoClose: 2000,
-          });
+          toast.error('Failed to copy link.', { position: 'top-right', autoClose: 2000 });
         }
         setIsShareModalOpen(false);
         return;
@@ -326,13 +342,9 @@ function ProductDetails() {
   const handleAvailabilityCheck = (e) => {
     e.preventDefault();
     if (!selectedCity) {
-      toast.error('Please select a city.', {
-        position: 'top-right',
-        autoClose: 2000,
-      });
+      toast.error('Please select a city.', { position: 'top-right', autoClose: 2000 });
       return;
     }
-
     const cityData = cities.find((city) => city.name === selectedCity);
     if (cityData) {
       setAvailabilityInfo({
@@ -340,17 +352,10 @@ function ProductDetails() {
         available: cityData.available,
         estimatedDelivery: cityData.available ? '3-5 days' : null,
       });
-      if (cityData.available) {
-        toast.success(`Delivery available in ${selectedCity}!`, {
-          position: 'top-right',
-          autoClose: 2000,
-        });
-      } else {
-        toast.error(`Delivery not available in ${selectedCity}.`, {
-          position: 'top-right',
-          autoClose: 2000,
-        });
-      }
+      toast[cityData.available ? 'success' : 'error'](
+        `Delivery ${cityData.available ? 'available' : 'not available'} in ${selectedCity}.`,
+        { position: 'top-right', autoClose: 2000 }
+      );
     }
   };
 
@@ -364,26 +369,28 @@ function ProductDetails() {
     if (isCompareAdded) {
       compareList = compareList.filter((pid) => pid !== product._id);
       setIsCompareAdded(false);
-      toast.success('Removed from comparison list!', {
-        position: 'top-right',
-        autoClose: 2000,
-      });
-    } else {
-      if (compareList.length >= 4) {
-        toast.error('You can compare up to 4 products only.', {
-          position: 'top-right',
-          autoClose: 2000,
-        });
-        return;
-      }
+      toast.success('Removed from comparison list!', { position: 'top-right', autoClose: 2000 });
+    } else if (compareList.length < 4) {
       compareList.push(product._id);
       setIsCompareAdded(true);
-      toast.success('Added to comparison list!', {
-        position: 'top-right',
-        autoClose: 2000,
-      });
+      toast.success('Added to comparison list!', { position: 'top-right', autoClose: 2000 });
+    } else {
+      toast.error('You can compare up to 4 products only.', { position: 'top-right', autoClose: 2000 });
     }
     localStorage.setItem('compareList', JSON.stringify(compareList));
+  };
+
+  const renderStars = (rating) => {
+    const filledStars = Math.floor(rating);
+    const halfStar = rating % 1 !== 0;
+    const emptyStars = 5 - Math.ceil(rating);
+    return (
+      <div className="star-rating">
+        {[...Array(filledStars)].map((_, i) => <span key={`filled-${i}`} className="star filled">★</span>)}
+        {halfStar && <span className="star half-filled">★</span>}
+        {[...Array(emptyStars)].map((_, i) => <span key={`empty-${i}`} className="star">★</span>)}
+      </div>
+    );
   };
 
   if (authLoading || loading) {
@@ -418,23 +425,24 @@ function ProductDetails() {
     );
   }
 
-  const imageList =
-    product.images && Array.isArray(product.images) && product.images.length > 0
+  const imageList = selectedVariant && selectedVariant.additionalImages && selectedVariant.additionalImages.length > 0
+    ? [selectedVariant.mainImage, ...selectedVariant.additionalImages]
+    : product.images && product.images.length > 0
       ? [product.image, ...product.images]
       : [product.image || 'https://placehold.co/400?text=No+Image'];
 
   const stockStatus = stockCount > 5 ? 'In Stock' : stockCount > 0 ? 'Low Stock' : 'Out of Stock';
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p._id !== product._id)
-    .slice(0, 3);
-
+  const relatedProducts = products.filter((p) => p.category === product.category && p._id !== product._id).slice(0, 4);
   const recentlyViewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]')
     .filter((pid) => pid !== id)
     .map((pid) => products.find((p) => p._id === pid))
-    .filter(Boolean);
-
-  const offerText = product.offer ? product.offer : '45% OFF';
-  const originalPrice = product.price / (1 - parseFloat(offerText) / 100);
+    .filter(Boolean)
+    .slice(0, 4);
+  const originalPrice = product.discountedPrice
+    ? product.price
+    : product.offer
+      ? product.price / (1 - parseFloat(product.offer) / 100)
+      : null;
 
   return (
     <div className="product-details-container">
@@ -448,81 +456,72 @@ function ProductDetails() {
 
         <div className="product-main">
           <div className="image-section">
-            <div className="thumbnails">
-              {imageList.map((img, index) => (
+            <div className="image-gallery">
+              <div className="thumbnails">
+                {imageList.map((img, index) => (
+                  <div
+                    key={index}
+                    className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
+                    onClick={() => handleImageChange(index)}
+                    onMouseEnter={() => handleThumbnailHover(index)}
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} view ${index + 1}`}
+                      loading="lazy"
+                      onError={(e) => (e.target.src = 'https://placehold.co/100?text=No+Image')}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="main-image-wrapper">
                 <div
-                  key={index}
-                  className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
-                  onClick={() => handleImageChange(index)}
-                  onMouseEnter={() => handleThumbnailHover(index)}
+                  className="main-image"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
                 >
                   <img
-                    src={img}
-                    alt={`${product.name} view ${index + 1}`}
+                    src={imageList[currentImageIndex]}
+                    alt={product.name}
                     loading="lazy"
-                    onError={(e) => (e.target.src = 'https://placehold.co/100?text=No+Image')}
+                    onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
+                    style={{ objectFit: 'contain' }}
                   />
+                  {isZoomVisible && (
+                    <>
+                      <div
+                        className="zoom-lens"
+                        style={{
+                          left: `${zoomLensPosition.x}px`,
+                          top: `${zoomLensPosition.y}px`,
+                        }}
+                      />
+                      <div
+                        className="zoom-result"
+                        style={{
+                          backgroundImage: `url(${imageList[currentImageIndex]})`,
+                          backgroundPosition: `${zoomResultPosition.x}% ${zoomResultPosition.y}%`,
+                          backgroundSize: '200%',
+                        }}
+                      />
+                    </>
+                  )}
                 </div>
-              ))}
-            </div>
-            <div className="main-image-wrapper">
-              <div
-                className="main-image"
-                ref={mainImageRef}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                style={{ width: '400px', height: '400px', maxWidth: '100%', maxHeight: '100%' }} // Fixed size
-              >
-                <img
-                  src={imageList[currentImageIndex]}
-                  alt={product.name}
-                  loading="lazy"
-                  onError={(e) => (e.target.src = 'https://placehold.co/400?text=No+Image')}
-                  style={{ objectFit: 'contain' }} // Maintain aspect ratio
-                />
-                {zoomPosition.visible && (
-                  <div
-                    className="zoom-lens"
-                    style={{
-                      left: `${zoomPosition.x}%`,
-                      top: `${zoomPosition.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                  />
-                )}
-                {zoomPosition.visible && (
-                  <div
-                    className="zoom-result"
-                    style={{
-                      backgroundImage: `url(${imageList[currentImageIndex]})`,
-                      backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                    }}
-                  />
-                )}
               </div>
-              <div className="action-buttons-mobile">
+            </div>
+            <div className="action-buttons-container">
+              <div className="action-buttons">
                 {stockCount > 0 ? (
                   <>
-                    <button
-                      className="add-to-cart"
-                      onClick={handleAddToCart}
-                      disabled={isAddingToCart}
-                    >
+                    <button className="action-btn add-to-cart" onClick={handleAddToCart} disabled={isAddingToCart}>
                       {isAddingToCart ? 'Adding...' : 'Add to Cart'}
                     </button>
-                    <button
-                      className="btn-buy-now"
-                      onClick={handleBuyNow}
-                      disabled={isBuyingNow}
-                    >
+                    <button className="action-btn buy-now" onClick={handleBuyNow} disabled={isBuyingNow}>
                       {isBuyingNow ? 'Processing...' : 'Buy Now'}
                     </button>
                   </>
                 ) : (
-                  <button
-                    className="btn-notify"
-                    onClick={() => setIsNotifyModalOpen(true)}
-                  >
+                  <button className="action-btn notify" onClick={() => setIsNotifyModalOpen(true)}>
                     Notify Me
                   </button>
                 )}
@@ -537,7 +536,6 @@ function ProductDetails() {
                 className={`wishlist-icon ${isInWishlist ? 'in-wishlist' : ''}`}
                 onClick={handleWishlistToggle}
                 title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                aria-label={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -556,17 +554,34 @@ function ProductDetails() {
             </div>
             <div className="product-rating">
               <span className="rating-badge">
-                {averageRating} ★ ({reviews.length} Ratings & {reviews.length} Reviews)
+                {averageRating} ★
+                <span className="rating-text">({reviews.length} Reviews)</span>
               </span>
             </div>
             <div className="price-section">
-              <span className="product-price">₹{Number(product.price).toFixed(2)}</span>
-              <span className="original-price">₹{Number(originalPrice).toFixed(2)}</span>
-              <span className="discount">{offerText}</span>
+              <span className="product-price">₹{Number(product.discountedPrice || product.price).toFixed(2)}</span>
+              {originalPrice && <span className="original-price">₹{Number(originalPrice).toFixed(2)}</span>}
+              {product.offer && <span className="discount">{product.offer}</span>}
             </div>
             <p className={`stock-status ${stockStatus.toLowerCase().replace(' ', '-')}`}>
-              {stockStatus} {stockCount > 0 && <span>({stockCount} left)</span>}
+              {stockStatus} {stockCount > 0 && `(${stockCount} left)`}
             </p>
+            {product.variants && product.variants.length > 0 && (
+              <div className="variant-selector">
+                <label>Variant: </label>
+                {product.variants.map((variant, index) => (
+                  <button
+                    key={index}
+                    className={`variant-option ${selectedVariant === variant ? 'selected' : ''}`}
+                    onClick={() => handleVariantChange(variant)}
+                    style={{ backgroundColor: variant.specifications?.color || '#fff' }}
+                    title={variant.variantId}
+                  >
+                    {variant.specifications?.color || `Variant ${index + 1}`}
+                  </button>
+                ))}
+              </div>
+            )}
             {product.sizes && product.sizes.length > 0 && (
               <div className="size-selector">
                 <label>Size: </label>
@@ -581,132 +596,55 @@ function ProductDetails() {
                 ))}
               </div>
             )}
-            <div className="action-buttons">
-              {stockCount > 0 ? (
-                <>
-                  <button
-                    className="add-to-cart"
-                    onClick={handleAddToCart}
-                    disabled={isAddingToCart}
-                  >
-                    {isAddingToCart ? 'Adding...' : 'Add to Cart'}
-                  </button>
-                  <button
-                    className="btn-buy-now"
-                    onClick={handleBuyNow}
-                    disabled={isBuyingNow}
-                  >
-                    {isBuyingNow ? 'Processing...' : 'Buy Now'}
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="btn-notify"
-                  onClick={() => setIsNotifyModalOpen(true)}
-                >
-                  Notify Me
-                </button>
-              )}
-            </div>
             <div className="availability-check">
               <form onSubmit={handleAvailabilityCheck}>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                >
-                  <option value="">Select your city</option>
-                  {cities.map((city, index) => (
-                    <option key={index} value={city.name}>
-                      {city.name}
-                    </option>
-                  ))}
+                <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)}>
+                  <option value="">Select City</option>
+                  {cities.map((city, index) => <option key={index} value={city.name}>{city.name}</option>)}
                 </select>
-                <button type="submit" className="btn-check-availability">
-                  Check Availability
-                </button>
+                <button type="submit" className="btn-check-availability">Check</button>
               </form>
-              {availabilityInfo && (
-                <p className="availability-info">
-                  {availabilityInfo.available
-                    ? `Delivery available in ${availabilityInfo.city}. Estimated delivery in ${availabilityInfo.estimatedDelivery}.`
-                    : `Delivery not available in ${availabilityInfo.city}.`}
-                </p>
-              )}
+              {availabilityInfo && <p className={`availability-info ${availabilityInfo.available ? '' : 'error'}`}>
+                {availabilityInfo.available ? `Available in ${availabilityInfo.city} (${availabilityInfo.estimatedDelivery})` : `Not available in ${availabilityInfo.city}`}
+              </p>}
             </div>
             <div className="compare-section">
-              <button
-                className={`btn-compare ${isCompareAdded ? 'added' : ''}`}
-                onClick={handleCompareToggle}
-              >
-                {isCompareAdded ? 'Remove from Compare' : 'Add to Compare'}
+              <button className={`btn-compare ${isCompareAdded ? 'added' : ''}`} onClick={handleCompareToggle}>
+                {isCompareAdded ? 'Remove Compare' : 'Add Compare'}
               </button>
-              <button
-                className="share-btn my-5"
-                onClick={handleShare}
-                title="Share this product"
-                aria-label="Share this product"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="18" cy="5" r="3"></circle>
-                  <circle cx="6" cy="12" r="3"></circle>
-                  <circle cx="18" cy="19" r="3"></circle>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              <button className="share-btn" onClick={handleShare} title="Share">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                 </svg>
-                <span>Share</span>
+                Share
               </button>
-              {isCompareAdded && (
-                <button
-                  className="btn-view-compare"
-                  onClick={() => navigate('/compare')}
-                >
-                  View Comparison
-                </button>
-              )}
+              {isCompareAdded && <button className="btn-view-compare" onClick={() => navigate('/compare')}>View Compare</button>}
             </div>
           </div>
-        </div>
 
-        <div className="product-details-section">
-          <h2>Product Details</h2>
-          <div className="details-content">
-            <div className="details-row">
-              <span className="details-label">Description:</span>
-              <span className="details-value">{product.description || 'No description available.'}</span>
-            </div>
-            <div className="details-row">
-              <span className="details-label">Category:</span>
-              <span className="details-value">{product.category || 'N/A'}</span>
-            </div>
-            <div className="details-row">
-              <span className="details-label">Brand:</span>
-              <span className="details-value">{product.brand || 'N/A'}</span>
-            </div>
-            <div className="details-row">
-              <span className="details-label">Model:</span>
-              <span className="details-value">{product.model || 'N/A'}</span>
-            </div>
-            <div className="details-row">
-              <span className="details-label">Weight:</span>
-              <span className="details-value">{product.weight || 'N/A'} kg</span>
-            </div>
-            <div className="details-row">
-              <span className="details-label">Featured:</span>
-              <span className="details-value">{product.featured ? 'Yes' : 'No'}</span>
-            </div>
-            <div className="details-row">
-              <span className="details-label">Status:</span>
-              <span className="details-value">{product.isActive ? 'Active' : 'Inactive'}</span>
+          <div className="product-details-section">
+            <h2>Product Details</h2>
+            <div className="details-content">
+              <div className="details-row"><span className="details-label">Category:</span><span className="details-value">{product.category}</span></div>
+              <div className="details-row"><span className="details-label">Subcategory:</span><span className="details-value">{product.subcategory || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Nested Category:</span><span className="details-value">{product.nestedCategory || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Description:</span><span className="details-value">{product.description || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Offer:</span><span className="details-value">{product.offer || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Seller:</span><span className="details-value">{product.seller || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Warranty:</span><span className="details-value">{product.warranty || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Status:</span><span className="details-value">{product.isActive ? 'Active' : 'Inactive'}</span></div>
+              <div className="details-row"><span className="details-label">Featured:</span><span className="details-value">{product.featured ? 'Yes' : 'No'}</span></div>
+              <div className="details-row"><span className="details-label">Deal Tag:</span><span className="details-value">{product.dealTag || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Brand:</span><span className="details-value">{product.brand || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Weight:</span><span className="details-value">{product.weight ? `${product.weight} ${product.weightUnit}` : 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Model:</span><span className="details-value">{product.model || 'N/A'}</span></div>
+              <div className="details-row"><span className="details-label">Created:</span><span className="details-value">{new Date(product.createdAt).toLocaleDateString()}</span></div>
+              {Object.entries(product.specifications).map(([key, value]) => (
+                <div key={key} className="details-row"><span className="details-label">{key}:</span><span className="details-value">{value || 'N/A'}</span></div>
+              ))}
+              {selectedVariant && Object.entries(selectedVariant.specifications).map(([key, value]) => (
+                <div key={key} className="details-row"><span className="details-label">{key}:</span><span className="details-value">{value || 'N/A'}</span></div>
+              ))}
             </div>
           </div>
         </div>
@@ -714,50 +652,33 @@ function ProductDetails() {
         <div className="reviews-section">
           <h2>Ratings & Reviews</h2>
           {reviewsLoading ? (
-            <div className="loading-container">
-              <div className="spinner"></div>
-              <p>Loading Reviews...</p>
-            </div>
+            <div className="loading-container"><div className="spinner"></div><p>Loading Reviews...</p></div>
           ) : reviewsError ? (
             <p className="error-text">{reviewsError}</p>
           ) : reviews.length === 0 ? (
-            <p className="no-reviews">No reviews yet for this product. Be the first to share your thoughts!</p>
+            <p className="no-reviews">No reviews yet.</p>
           ) : (
             <>
               <div className="rating-summary">
-                <div className="average-rating">
-                  <span>{averageRating} ★</span>
-                  <p>{reviews.length} Ratings & {reviews.length} Reviews</p>
-                </div>
+                <div className="average-rating"><span>{averageRating}</span>{renderStars(averageRating)}<p>{reviews.length} Reviews</p></div>
                 <div className="rating-breakdown">
-                  <p>5★: {ratingBreakdown[5]}</p>
-                  <p>4★: {ratingBreakdown[4]}</p>
-                  <p>3★: {ratingBreakdown[3]}</p>
-                  <p>2★: {ratingBreakdown[2]}</p>
-                  <p>1★: {ratingBreakdown[1]}</p>
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <div key={star} className="rating-bar">
+                      <span>{star}★</span>
+                      <div className="bar-container"><div className="bar-filled" style={{ width: `${(ratingBreakdown[star] / reviews.length) * 100 || 0}%` }}></div></div>
+                      <span>{ratingBreakdown[star]}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="reviews-list">
                 {reviews.slice(0, 3).map((review) => (
                   <div key={review._id} className="review-item">
-                    <div className="review-header">
-                      <span className="reviewer-name">{review.userId?.name || 'Anonymous'}</span>
-                      <span className="rating-badge">{review.rating} ★</span>
-                      <span className="review-date">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="review-comment">{review.comment || 'No comment provided.'}</p>
+                    <div className="review-header"><span>{review.userId?.name || 'Anonymous'}</span><span>{renderStars(review.rating)}</span><span>{new Date(review.createdAt).toLocaleDateString()}</span></div>
+                    <p>{review.comment || 'No comment'}</p>
                   </div>
                 ))}
-                {reviews.length > 3 && (
-                  <button
-                    className="view-all-reviews"
-                    onClick={() => navigate(`/product/${id}/reviews`)}
-                  >
-                    View All Reviews
-                  </button>
-                )}
+                {reviews.length > 3 && <button className="view-all-reviews" onClick={() => navigate(`/product/${id}/reviews`)}>View All</button>}
               </div>
             </>
           )}
@@ -765,28 +686,12 @@ function ProductDetails() {
 
         {relatedProducts.length > 0 && (
           <div className="related-products-section">
-            <h2>People Also Bought</h2>
+            <h2>Related Products</h2>
             <div className="related-products-grid">
-              {relatedProducts.map((related) => (
-                <div key={related._id} className="related-product-card">
-                  <div className="related-product-image">
-                    <img
-                      src={related.image || 'https://placehold.co/150?text=No+Image'}
-                      alt={related.name}
-                      loading="lazy"
-                      onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
-                    />
-                  </div>
-                  <div className="related-product-info">
-                    <h3>{related.name}</h3>
-                    <p>₹{Number(related.price).toFixed(2)}</p>
-                    <button
-                      className="btn-quick"
-                      onClick={() => navigate(`/product/${related._id}`)}
-                    >
-                      Quick View
-                    </button>
-                  </div>
+              {relatedProducts.map((p) => (
+                <div key={p._id} className="related-product-card">
+                  <div className="related-product-image"><img src={p.image} alt={p.name} loading="lazy" onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')} /></div>
+                  <div className="related-product-info"><h3>{p.name}</h3><p>₹{p.discountedPrice || p.price}</p><button className="btn-quick" onClick={() => navigate(`/product/${p._id}`)}>View</button></div>
                 </div>
               ))}
             </div>
@@ -797,26 +702,10 @@ function ProductDetails() {
           <div className="recently-viewed-section">
             <h2>Recently Viewed</h2>
             <div className="recently-viewed-grid">
-              {recentlyViewed.map((viewed) => (
-                <div key={viewed._id} className="recently-viewed-card">
-                  <div className="recently-viewed-image">
-                    <img
-                      src={viewed.image || 'https://placehold.co/150?text=No+Image'}
-                      alt={viewed.name}
-                      loading="lazy"
-                      onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')}
-                    />
-                  </div>
-                  <div className="recently-viewed-info">
-                    <h3>{viewed.name}</h3>
-                    <p>₹{Number(viewed.price).toFixed(2)}</p>
-                    <button
-                      className="btn-quick"
-                      onClick={() => navigate(`/product/${viewed._id}`)}
-                    >
-                      Quick View
-                    </button>
-                  </div>
+              {recentlyViewed.map((p) => (
+                <div key={p._id} className="recently-viewed-card">
+                  <div className="recently-viewed-image"><img src={p.image} alt={p.name} loading="lazy" onError={(e) => (e.target.src = 'https://placehold.co/150?text=No+Image')} /></div>
+                  <div className="recently-viewed-info"><h3>{p.name}</h3><p>₹{p.discountedPrice || p.price}</p><button className="btn-quick" onClick={() => navigate(`/product/${p._id}`)}>View</button></div>
                 </div>
               ))}
             </div>
@@ -827,25 +716,11 @@ function ProductDetails() {
       {isNotifyModalOpen && (
         <div className="notify-modal">
           <div className="notify-modal-content">
-            <h3>Notify Me When Back in Stock</h3>
+            <h3>Notify Me</h3>
             <form onSubmit={handleNotifySubmit}>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-              />
-              <button type="submit" className="btn-submit-notify">
-                Submit
-              </button>
-              <button
-                type="button"
-                className="btn-close-modal"
-                onClick={() => setIsNotifyModalOpen(false)}
-              >
-                Close
-              </button>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" required />
+              <button type="submit" className="btn-submit-notify">Submit</button>
+              <button type="button" className="btn-close-modal" onClick={() => setIsNotifyModalOpen(false)}>Close</button>
             </form>
           </div>
         </div>
@@ -854,105 +729,15 @@ function ProductDetails() {
       {isShareModalOpen && (
         <div className="share-modal">
           <div className="share-modal-content">
-            <h3>Share this Product</h3>
+            <h3>Share</h3>
             <div className="share-options">
-              <button
-                className="share-option whatsapp"
-                onClick={() => shareProduct('whatsapp')}
-                title="Share on WhatsApp"
-                aria-label="Share on WhatsApp"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M20.1 3.9C17.8 1.6 14.5.5 11.2.5 5.2.5.5 5.2.5 11.2c0 1.9.5 3.7 1.4 5.3L.5 23l6.6-1.7c1.5.8 3.2 1.3 5 1.3 6 0 10.7-4.7 10.7-10.7 0-3.3-1.1-6.6-3.4-8.9zM11.2 20.5c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.9 1 1-3.8-.2-.3c-.8-1.3-1.2-2.8-1.2-4.3 0-5 4.1-9 9-9s9 4.1 9 9-4.1 9-9 9zm5.5-5.5c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.2-.8.9-.9 1.1-.1.2-.2.2-.4.1s-.9-.4-1.7-.8c-.6-.3-1.1-.7-1.5-1.1-.4-.4-.6-.8-.8-1.3-.1-.5 0-.9.2-1 .1-.1.3-.3.4-.5.1-.2.1-.4.1-.6 0-.2-.1-.4-.3-.5-.2-.1-1.7-.8-2-1-.3-.2-.5-.3-.7-.5-.2-.2-.3-.4-.2-.6s.3-.5.5-.7c.2-.2.4-.3.7-.3h.5c.2 0 .5.1.7.3.2.2.7.7.9.9.2.2.3.3.4.5.1.2.1.4.1.6 0 .2-.1.4-.2.6-.1.2-.3.4-.5.6-.2.2-.4.4-.6.6-.2.2-.3.4-.2.6.1.2.5.9 1.1 1.5.7.7 1.4 1 1.7 1.1.2.1.4.1.6 0 .2-.1.7-.3 1-.6.3-.3.5-.3.7-.2.2.1.7.5.9.7.2.2.3.4.2.6-.1.2-.3.5-.6.6z"></path>
-                </svg>
-                WhatsApp
-              </button>
-              <button
-                className="share-option telegram"
-                onClick={() => shareProduct('telegram')}
-                title="Share on Telegram"
-                aria-label="Share on Telegram"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"></path>
-                </svg>
-                Telegram
-              </button>
-              <button
-                className="share-option twitter"
-                onClick={() => shareProduct('twitter')}
-                title="Share on Twitter"
-                aria-label="Share on Twitter"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
-                </svg>
-                Twitter
-              </button>
-              <button
-                className="share-option facebook"
-                onClick={() => shareProduct('facebook')}
-                title="Share on Facebook"
-                aria-label="Share on Facebook"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-                </svg>
-                Facebook
-              </button>
-              <button
-                className="share-option copy-link"
-                onClick={() => shareProduct('copy')}
-                title="Copy Link"
-                aria-label="Copy Link"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                </svg>
-                Copy Link
-              </button>
+              <button className="share-option whatsapp" onClick={() => shareProduct('whatsapp')}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.1 3.9C17.8 1.6 14.5.5 11.2.5 5.2.5.5 5.2.5 11.2c0 1.9.5 3.7 1.4 5.3L.5 23l6.6-1.7c1.5.8 3.2 1.3 5 1.3 6 0 10.7-4.7 10.7-10.7 0-3.3-1.1-6.6-3.4-8.9zM11.2 20.5c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.9 1 1-3.8-.2-.3c-.8-1.3-1.2-2.8-1.2-4.3 0-5 4.1-9 9-9s9 4.1 9 9-4.1 9-9 9zm5.5-5.5c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.2-.8.9-.9 1.1-.1.2-.2.2-.4.1s-.9-.4-1.7-.8c-.6-.3-1.1-.7-1.5-1.1-.4-.4-.6-.8-.8-1.3-.1-.5 0-.9.2-1 .1-.1.3-.3.4-.5.1-.2.1-.4.1-.6 0-.2-.1-.4-.3-.5-.2-.1-1.7-.8-2-1-.3-.2-.5-.3-.7-.5-.2-.2-.3-.4-.2-.6s.3-.5.5-.7c.2-.2.4-.3.7-.3h.5c.2 0 .5.1.7.3.2.2.7.7.9.9.2.2.3.3.4.5.1.2.1.4.1.6 0 .2-.1.4-.2.6-.1.2-.3.4-.5.6-.2.2-.4.4-.6.6-.2.2-.3.4-.2.6.1.2.5.9 1.1 1.5.7.7 1.4 1 1.7 1.1.2.1.4.1.6 0 .2-.1.7-.3 1-.6.3-.3.5-.3.7-.2.2.1.7.5.9.7.2.2.3.4.2.6-.1.2-.3.5-.6.6z"></path></svg>WhatsApp</button>
+              <button className="share-option telegram" onClick={() => shareProduct('telegram')}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"></path></svg>Telegram</button>
+              <button className="share-option twitter" onClick={() => shareProduct('twitter')}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>Twitter</button>
+              <button className="share-option facebook" onClick={() => shareProduct('facebook')}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>Facebook</button>
+              <button className="share-option copy-link" onClick={() => shareProduct('copy')}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>Copy</button>
             </div>
-            <button
-              className="btn-close-modal"
-              onClick={() => setIsShareModalOpen(false)}
-            >
-              Close
-            </button>
+            <button className="btn-close-modal" onClick={() => setIsShareModalOpen(false)}>Close</button>
           </div>
         </div>
       )}

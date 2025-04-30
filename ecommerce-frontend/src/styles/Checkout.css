@@ -7,7 +7,7 @@
 
 /* Base styles for the checkout wrapper */
 .checkout-wrapper {
-  font-family: 'Arial', sans-serif;
+  font-family: 'Roboto', sans-serif; /* Updated to Roboto for consistency */
   background-color: #f5f5f5;
   padding: 20px 0;
   min-height: 100vh;
@@ -144,15 +144,21 @@
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease; /* Added transform for hover effect */
 }
 
 .address-option-btn:hover {
   background-color: #e68900;
+  transform: translateY(-2px); /* Added modern hover effect */
 }
 
 .address-option-btn.active {
   background-color: #d67600;
+}
+
+.address-option-btn:focus {
+  outline: 2px solid #ff9800; /* Added focus state for accessibility */
+  outline-offset: 2px;
 }
 
 /* Form groups */
@@ -181,6 +187,7 @@
 .payment-method-select:focus {
   outline: none;
   border-color: #ff9800;
+  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2); /* Added subtle focus shadow */
 }
 
 .checkbox-label {
@@ -234,16 +241,22 @@
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease; /* Added transform for hover effect */
 }
 
-.submit-btn:hover {
+.submit-btn:hover:not(:disabled) {
   background-color: #e68900;
+  transform: translateY(-2px); /* Added modern hover effect */
 }
 
 .submit-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.submit-btn:focus {
+  outline: 2px solid #ff9800; /* Added focus state for accessibility */
+  outline-offset: 2px;
 }
 
 .spinner-orbit {
