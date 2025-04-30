@@ -499,17 +499,13 @@
     background: transparent;
   }
 
-  .search-bar1 {
-    padding: 6px 10px;
+  /* .search-bar1 {
     border-radius: 3px;
     border: 1px solid #d0d8e8;
     box-shadow: none;
-  }
+  } */
 
-  .navbar-blue .search-bar1 {
-    background-color: #fff;
-    border-color: #d0d8e8;
-  }
+  
 
   .search-bar1:hover {
     border-color: #2874f0;
@@ -599,12 +595,12 @@
     background: transparent;
   }
 
-  .search-bar1 {
+  /* .search-bar1 {
     padding: 7px 10px;
     border-radius: 3px;
     border: 1px solid #e0e0e0;
     box-shadow: none;
-  }
+  } */
 
   .navbar-blue .search-bar1 {
     background-color: #fff;
