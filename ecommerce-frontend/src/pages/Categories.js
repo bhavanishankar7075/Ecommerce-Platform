@@ -17,9 +17,10 @@ function Categories() {
   const productsPerPage = 8;
   const navigate = useNavigate();
 
-  // Define category hierarchy
+  // Define category hierarchy with image field for each main category
   const categoryHierarchy = {
     Fashion: {
+      image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Men: [
         'Top Wear', 'Bottom Wear', 'Casual Shoes', 'Watches', 'Ethnic', 'Sports Shoes',
         'Luggage', 'Trimmers', 'Essentials', 'Men Grooming'
@@ -28,25 +29,31 @@ function Categories() {
       Beauty: ['Skincare', 'Makeup', 'Haircare', 'Fragrances']
     },
     Gadgets: {
+      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Accessories: ['Phone Cases', 'Chargers', 'Headphones'],
       SmartDevices: ['Smartwatches', 'Speakers', 'Cameras']
     },
     Electronics: {
+      image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Audio: ['Headphones', 'Speakers', 'Earphones'],
       Computing: ['Laptops', 'Desktops', 'Monitors']
     },
     Home: {
+      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Decor: ['Wall Art', 'Rugs', 'Lighting'],
       Kitchen: ['Appliances', 'Utensils', 'Cookware']
     },
     Mobiles: {
+      image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Brands: ['Samsung', 'Apple', 'Xiaomi', 'OnePlus']
     },
     Appliances: {
+      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Small: ['Microwave', 'Toaster', 'Blender'],
       Large: ['Refrigerator', 'Washing Machine', 'Air Conditioner']
     },
     Furniture: {
+      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=50&h=50&q=80',
       Living: ['Sofas', 'Tables', 'Chairs'],
       Bedroom: ['Beds', 'Wardrobes', 'Mattresses']
     }
@@ -62,10 +69,8 @@ function Categories() {
         (product) => product.category.toLowerCase() === selectedNestedCategory.toLowerCase()
       );
     } else if (selectedSubcategory) {
-      // No filtering yet, just show nested category buttons
       filtered = [];
     } else if (selectedCategory) {
-      // No filtering yet, just show subcategory buttons
       filtered = [];
     }
     if (searchQuery.trim()) {
@@ -82,7 +87,6 @@ function Categories() {
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
-  // Mock related products (replace with actual logic if needed)
   const relatedProducts = products.slice(0, 4);
   const topPicks = products.slice(4, 8);
   const bestDeals = products.slice(8, 12);
@@ -127,7 +131,7 @@ function Categories() {
               }}
             >
               <img
-                src="https://placehold.co/50x50?text=All"
+                src="https://www.advisoryexcellence.com/wp-content/uploads/2021/12/E-COMMERCE-PHOTO.jpg"
                 alt="All Categories"
                 onError={(e) => {
                   e.target.src = 'https://placehold.co/50x50?text=All';
@@ -152,7 +156,7 @@ function Categories() {
                 }}
               >
                 <img
-                  src={categoryHierarchy[category]?.Men?.[0] ? 'https://placehold.co/50x50?text=Men' : 'https://placehold.co/50x50?text=' + category}
+                  src={categoryHierarchy[category].image}
                   alt={category}
                   onError={(e) => {
                     e.target.src = 'https://placehold.co/50x50?text=Category';
@@ -184,7 +188,7 @@ function Categories() {
             <motion.section initial="hidden" animate="visible" variants={fadeIn} className="subcategory-section">
               <h2>{selectedCategory} Subcategories</h2>
               <div className="category-button-list">
-                {Object.keys(categoryHierarchy[selectedCategory]).map((subcategory) => (
+                {Object.keys(categoryHierarchy[selectedCategory]).filter(key => key !== 'image').map((subcategory) => (
                   <button
                     key={subcategory}
                     className={`category-button ${selectedSubcategory === subcategory ? 'active' : ''}`}
@@ -286,7 +290,7 @@ function Categories() {
             </motion.div>
           )}
 
-          {/* Related Products, Top Picks, Best Deals, Recently Viewed (shown only when no specific category is selected) */}
+          {/* Related Products, Top Picks, Best Deals, Recently Viewed */}
           {!selectedCategory && !selectedSubcategory && !selectedNestedCategory && (
             <>
               <motion.section initial="hidden" animate="visible" variants={fadeIn} className="related-products-section">
