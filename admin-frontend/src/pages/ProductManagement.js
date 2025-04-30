@@ -218,13 +218,13 @@ function ProductManagement() {
       const productData = res.data.products || res.data || [];
       const initializedProducts = Array.isArray(productData)
         ? productData.map((product) => ({
-          ...product,
-          selected: product.selected || false,
-          image: product.image || '/default-product.jpg',
-          images: product.images || [],
-          specifications: product.specifications || {},
-          variants: product.variants || [],
-        }))
+            ...product,
+            selected: product.selected || false,
+            image: product.image || '/default-product.jpg',
+            images: product.images || [],
+            specifications: product.specifications || {},
+            variants: product.variants || [],
+          }))
         : [];
 
       setProducts(initializedProducts);
@@ -715,24 +715,24 @@ function ProductManagement() {
   const handleVariantSubmit = async (e) => {
     e.preventDefault();
     if (!validateVariantForm()) return;
-  
+
     setSubmitting(true);
-  
+
     try {
       const token = localStorage.getItem('token');
       if (!token || isTokenExpired(token)) {
         throw new Error('Session expired. Please log in again.');
       }
-  
+
       const productToUpdate = products.find((p) => p._id === variantModal);
       const variantId = Date.now().toString(); // Unique ID for the variant
-  
+
       // Prepare variant data with specifications
       const newVariant = {
         variantId,
         specifications: variantFormData.specifications || {},
       };
-  
+
       const variantForm = new FormData();
       if (variantFormData.mainImage) {
         variantForm.append('variantMainImage', variantFormData.mainImage);
@@ -744,7 +744,7 @@ function ProductManagement() {
           }
         });
       }
-  
+
       // Prepare product update data
       const updateForm = new FormData();
       updateForm.append('name', productToUpdate.name);
@@ -771,25 +771,25 @@ function ProductManagement() {
       updateForm.append('model', productToUpdate.model || '');
       updateForm.append('existingImages', JSON.stringify(productToUpdate.images || []));
       updateForm.append('variants', JSON.stringify([...(productToUpdate.variants || []), newVariant]));
-  
+
       // Append variant images
       variantForm.forEach((value, key) => {
         updateForm.append(key, value);
       });
-  
+
       const res = await axios.put(
         `https://backend-ps76.onrender.com/api/admin/products/${variantModal}`,
         updateForm,
         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
       );
-  
+
       const updatedProduct = res.data.product;
       setProducts((prev) =>
         prev.map((p) =>
           p._id === variantModal ? { ...updatedProduct, selected: p.selected || false } : p
         )
       );
-  
+
       toast.success('Variant added successfully!');
       setVariantModal(null);
       setVariantFormData(null);
@@ -1095,7 +1095,7 @@ function ProductManagement() {
 
     const product = products.find((p) => p._id === productId) || previewModal;
     const variant = variantId === 'default' ? null : product.variants.find((v) => v.variantId === variantId);
-    const mainImage = variant ? variant.mainImage : product.image;
+    const mainImage = variant?.mainImage || product.image; // Fallback to product image if variant mainImage is missing
     setSelectedImage((prev) => ({
       ...prev,
       [productId]: mainImage,
@@ -1567,10 +1567,10 @@ function ProductManagement() {
             products.map((product) => {
               const currentVariantId = selectedVariant[product._id] || 'default';
               const variant = currentVariantId === 'default' ? null : product.variants.find((v) => v.variantId === currentVariantId);
-              const currentImage = variant ? variant.mainImage : (selectedImage[product._id] || product.image);
+              const currentImage = selectedImage[product._id] || (variant?.mainImage || product.image || '/default-product.jpg');
               const allImages = variant
-                ? [variant.mainImage, ...(variant.additionalImages || [])]
-                : [product.image, ...(product.images || [])];
+                ? [variant.mainImage || product.image, ...(variant.additionalImages || product.images || [])].filter(Boolean)
+                : [product.image, ...(product.images || [])].filter(Boolean);
 
               return (
                 <div key={product._id} className="product-card">
@@ -1635,8 +1635,8 @@ function ProductManagement() {
                       ) : null}
                     </p>
                     <p>
-                      Category: {product.category || 'N/A'}
-                      {product.subcategory ? ` > ${product.subcategory}` : ''}
+                      Category: {product.category || 'N/A'} 
+                      {product.subcategory ? ` > ${product.subcategory}` : ''} 
                       {product.nestedCategory ? ` > ${product.nestedCategory}` : ''}
                     </p>
                     <p>
@@ -1759,8 +1759,8 @@ function ProductManagement() {
               const currentVariantId = selectedVariant[previewModal._id] || 'default';
               const variant = currentVariantId === 'default' ? null : previewModal.variants.find((v) => v.variantId === currentVariantId);
               const allImages = variant
-                ? [variant.mainImage, ...(variant.additionalImages || [])]
-                : [previewModal.image, ...(previewModal.images || [])];
+                ? [variant.mainImage || previewModal.image, ...(variant.additionalImages || previewModal.images || [])].filter(Boolean)
+                : [previewModal.image, ...(previewModal.images || [])].filter(Boolean);
               return allImages.length > 0 && (
                 <div className="image-thumbnails">
                   {allImages.map((img, index) => (
@@ -1787,8 +1787,8 @@ function ProductManagement() {
               ) : null}
             </p>
             <p>
-              Category: {previewModal.category || 'N/A'}
-              {previewModal.subcategory ? ` > ${previewModal.subcategory}` : ''}
+              Category: {previewModal.category || 'N/A'} 
+              {previewModal.subcategory ? ` > ${previewModal.subcategory}` : ''} 
               {previewModal.nestedCategory ? ` > ${previewModal.nestedCategory}` : ''}
             </p>
             <p>
@@ -1830,6 +1830,7 @@ function ProductManagement() {
               <p>No specifications available.</p>
             )}
           </div>
+
         </div>
       )}
 
@@ -1845,58 +1846,8 @@ function ProductManagement() {
                 <label>Main Image (Optional)</label>
                 <input type="file" name="variantMainImage" accept="image/*" onChange={handleFileChange} />
                 {variantFormData.currentMainImage && (
-                  <div className="image-preview">
-                    <img
-                      src={variantFormData.currentMainImage}
-                      alt="Variant Main Preview"
-                      onError={(e) => {
-                        e.target.src = '/default-product.jpg';
-                        e.target.onerror = null;
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="form-group">
-                <label>Additional Images (Optional)</label>
-                <input type="file" name="variantImages" accept="image/*" multiple onChange={handleFileChange} />
-                <div className="additional-images-preview">
-                  {variantFormData.newImages.map((image, index) => (
-                    <div key={`variant-new-${index}`} className="image-preview-item">
-                      <img
-                        src={image.preview}
-                        alt={`Variant New ${index}`}
-                        onError={(e) => {
-                          e.target.src = '/default-product.jpg';
-                          e.target.onerror = null;
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="delete-image-btn"
-                        onClick={() =>
-                          setVariantFormData((prev) => ({
-                            ...prev,
-                            newImages: prev.newImages.filter((_, i) => i !== index),
-                          }))
-                        }
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="submit" className="save-btn" disabled={submitting}>
-                  {submitting ? 'Saving...' : 'Add Variant'}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeVariantModal}>
-                  Cancel
-                </button>
 
-              </div> </form> <div className="form-group"> <label>Variant Specifications</label> {Object.keys(variantFormData.specifications || {}).length > 0 ? (Object.entries(variantFormData.specifications).map(([section, specs]) => (<div key={section} className="specification-section"> <h4>{section}</h4> {Object.entries(specs || {}).map(([key, value]) => (<div key={key} className="spec-field"> <input type="text" value={key} readOnly placeholder="Key (e.g., Color)" /> <input type="text" value={value || ''} onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value)} placeholder="Value (e.g., Red)" /> <button type="button" onClick={() => removeVariantSpecificationField(section, key)} className="remove-btn" > Remove </button> </div>))} <button type="button" onClick={() => addVariantSpecificationField(section)} className="add-btn" > Add Specification </button> </div>))) : (<p>No specifications added.</p>)} <button type="button" onClick={addVariantSpecificationSection} className="add-btn"> Add Specification Section </button> </div> </div> </div>)} </div>);
-}
+<div className="image-preview"> <img src={variantFormData.currentMainImage} alt="Variant Main Preview" onError={(e) => { e.target.src = '/default-product.jpg'; e.target.onerror = null; }} /> </div> )} </div> <div className="form-group"> <label>Additional Images (Optional)</label> <input type="file" name="variantImages" accept="image/*" multiple onChange={handleFileChange} /> <div className="additional-images-preview"> {variantFormData.newImages && variantFormData.newImages.map((image, index) => ( <div key={`variant-new-${index}`} className="image-preview-item"> <img src={image.preview} alt={`Variant New ${index}`} onError={(e) => { e.target.src = '/default-product.jpg'; e.target.onerror = null; }} /> <button type="button" className="delete-image-btn" onClick={() => setVariantFormData((prev) => ({ ...prev, newImages: prev.newImages.filter((_, i) => i !== index), })) } > ✕ </button> </div> ))} </div> </div> <div className="form-group"> <label>Variant Specifications</label> {Object.keys(variantFormData.specifications || {}).length > 0 ? ( Object.entries(variantFormData.specifications).map(([section, specs]) => ( <div key={section} className="specification-section"> <h4>{section}</h4> {Object.entries(specs || {}).map(([key, value]) => ( <div key={key} className="spec-field"> <input type="text" value={key} readOnly placeholder="Key (e.g., Color)" /> <input type="text" value={value || ''} onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value)} placeholder="Value (e.g., Red)" /> <button type="button" onClick={() => removeVariantSpecificationField(section, key)} className="remove-btn" > Remove </button> </div> ))} <button type="button" onClick={() => addVariantSpecificationField(section)} className="add-btn" > Add Specification </button> </div> )) ) : ( <p>No specifications added.</p> )} <button type="button" onClick={addVariantSpecificationSection} className="add-btn"> Add Specification Section </button> </div> <div className="form-actions"> <button type="submit" className="save-btn" disabled={submitting}> {submitting ? 'Saving...' : 'Add Variant'} </button> <button type="button" className="cancel-btn" onClick={closeVariantModal}> Cancel </button> </div> </form> </div> </div> )} </div> ); }
 export default ProductManagement;
 
 
