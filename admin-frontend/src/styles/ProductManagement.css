@@ -1,5 +1,3 @@
-/* styles/ProductManagement.css */
-
 .product-management-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -44,6 +42,8 @@
 /* Add Product Section */
 .add-product-section {
   margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
 }
 
 .add-product-btn {
@@ -59,6 +59,16 @@
 
 .add-product-btn:hover {
   background: #218838;
+}
+
+.bulk-upload-label {
+  padding: 10px 20px;
+  background: #17a2b8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
 }
 
 /* Product Form Section */
@@ -144,6 +154,19 @@
   border-radius: 5px;
 }
 
+.image-variant-section {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.image-variant-section h4 {
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  color: #333;
+}
+
 .additional-images-preview {
   display: flex;
   flex-wrap: wrap;
@@ -207,6 +230,39 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 1em;
+}
+
+.specification-section {
+  margin-bottom: 15px;
+}
+
+.spec-field {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.spec-field input {
+  flex: 1;
+}
+
+.remove-btn {
+  padding: 5px 10px;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-btn {
+  padding: 5px 10px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 5px;
 }
 
 /* Product List Section */
@@ -314,12 +370,37 @@
   overflow: hidden;
   border-radius: 5px;
   margin-top: 30px;
+  position: relative;
 }
 
 .product-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.image-thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.thumbnail:hover {
+  border-color: #007bff;
+}
+
+.thumbnail.selected {
+  border-color: #007bff;
 }
 
 .product-details {
@@ -334,6 +415,11 @@
 .product-details p {
   margin: 5px 0;
   color: #555;
+}
+
+.discounted-price {
+  color: #28a745;
+  font-weight: bold;
 }
 
 .stock-badge {
@@ -370,6 +456,36 @@
   color: #dc3545;
 }
 
+.specifications-preview {
+  margin-top: 10px;
+}
+
+.specifications-preview h4 {
+  font-size: 1.1em;
+  margin-top: 10px;
+  color: #333;
+  font-weight: bold;
+}
+
+.spec-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+
+.spec-key {
+  font-weight: bold;
+  color: #555;
+  width: 40%;
+  text-align: left;
+}
+
+.spec-value {
+  color: #333;
+  width: 60%;
+  text-align: right;
+}
+
 .product-actions {
   display: flex;
   flex-wrap: wrap;
@@ -377,22 +493,29 @@
   margin-top: 10px;
 }
 
-.product-actions button {
+.preview-btn,
+.edit-btn,
+.duplicate-btn,
+.activate-btn,
+.deactivate-btn,
+.delete-btn {
   padding: 5px 10px;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 0.9em;
+  width: 48%;
+  margin-bottom: 5px;
 }
 
 .preview-btn {
-  background: #007bff;
+  background: #6c757d;
   color: #fff;
 }
 
 .edit-btn {
-  background: #ffc107;
-  color: #000;
+  background: #007bff;
+  color: #fff;
 }
 
 .duplicate-btn {
@@ -400,14 +523,14 @@
   color: #fff;
 }
 
-.activate-btn,
-.deactivate-btn {
+.activate-btn {
   background: #28a745;
   color: #fff;
 }
 
 .deactivate-btn {
   background: #dc3545;
+  color: #fff;
 }
 
 .delete-btn {
@@ -424,15 +547,17 @@
 }
 
 .pagination button {
-  padding: 8px 15px;
-  border: 1px solid #ddd;
+  padding: 5px 10px;
+  background: #007bff;
+  color: #fff;
+  border: none;
   border-radius: 4px;
-  background: #fff;
   cursor: pointer;
+  font-size: 0.9em;
 }
 
 .pagination button:disabled {
-  background: #f1f1f1;
+  background: #6c757d;
   cursor: not-allowed;
 }
 
@@ -459,9 +584,9 @@
   background: #fff;
   padding: 20px;
   border-radius: 8px;
-  max-width: 500px;
+  max-width: 600px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 90vh;
   overflow-y: auto;
   position: relative;
 }
@@ -480,30 +605,24 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  font-size: 1em;
 }
 
 .modal-image {
   width: 100%;
-  height: 200px;
-  object-fit: cover;
+  height: auto;
   border-radius: 5px;
 }
 
-.additional-images {
-  margin-top: 20px;
-}
-
-.image-gallery {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.gallery-image {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 5px;
+.deal-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #ff9800;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.8em;
 }
 
 /* Loading Spinner */
@@ -511,33 +630,4 @@
   text-align: center;
   font-size: 1.2em;
   color: #555;
-  margin-top: 50px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .header-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .product-controls {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .search-input,
-  .filter-input,
-  .filter-select {
-    width: 100%;
-  }
-
-  .product-grid {
-    grid-template-columns: 1fr;
-  }
 }
