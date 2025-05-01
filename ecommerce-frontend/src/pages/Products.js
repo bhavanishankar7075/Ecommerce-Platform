@@ -590,9 +590,9 @@ function ProductList() {
         <h1 className="text-2xl font-semibold text-gray-800 text-center mb-4">{titles[titleIndex]}</h1>
         <div className="products-content flex gap-6">
           <div className={`filters-sidebar w-64 bg-white p-4 border border-gray-200 shadow-md ${showFilters ? 'visible' : ''}`}>
-            <div className="filters-header flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-800">Filters</h3>
-              <div className="flex gap-2">
+            <div className="filters-header flex justify-between items-center mt-5 ">
+              <h3 className="text-lg font-medium text-gray-800 mt-5">Filters</h3>
+              <div className="flex gap-2 mt-5">
                 <button className="text-blue-600 hover:underline text-sm" onClick={resetFilters}>Clear All</button>
                 <button className="text-gray-800 text-xl hover:text-gray-600" onClick={() => setShowFilters(false)}>✕</button>
               </div>
@@ -849,23 +849,7 @@ function ProductList() {
                             </div>
                           )}
                           <p className={`stock-status text-xs font-medium ${getStockStatus(stock).replace(' ', '-') === 'In-Stock' ? 'text-green-600' : 'text-red-600'} mb-2`}>{getStockStatus(stock)}</p>
-                          {product.variants && product.variants.length > 0 && (
-                            <div className="variants-section mb-2">
-                              <select
-                                value={selectedVariants[product._id] || 0}
-                                onChange={(e) => handleVariantChange(product._id, Number(e.target.value))}
-                                className="w-full p-1 border border-gray-200 rounded text-sm"
-                              >
-                                {product.variants.map((variant, idx) => (
-                                  <option key={idx} value={idx}>
-                                    {variant.color && variant.size
-                                      ? `${variant.color} - ${variant.size}`
-                                      : variant.color || variant.size || `Variant ${idx + 1}`}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
+                          
                           <div className="compare-section mb-2">
                             <label className="flex items-center text-sm text-gray-600">
                               <input
