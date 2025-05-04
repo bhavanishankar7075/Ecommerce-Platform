@@ -8,6 +8,23 @@ export function ProductProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Capitalization mapping for mainCategory to match frontend filter expectations
+  const capitalizeMainCategory = (mainCategory) => {
+    const categoryMap = {
+      'fashion': 'Fashion',
+      'gadgets': 'Gadgets',
+      'furniture': 'Furniture',
+      'mobiles': 'Mobiles',
+      'appliances': 'Appliances',
+      'beauty': 'Beauty',
+      'home': 'Home',
+      'toys & baby': 'Toys & Baby',
+      'sports': 'Sports',
+      // Add other mappings as needed
+    };
+    return categoryMap[mainCategory.toLowerCase()] || mainCategory;
+  };
+
   // Fetch all products when the provider mounts
   useEffect(() => {
     fetchProducts();
@@ -17,11 +34,21 @@ export function ProductProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      const { category, subcategory, nestedCategory } = filters;
+      const { mainCategory, subcategory, nestedCategory } = filters;
       const params = new URLSearchParams();
-      if (category) params.append('category', category);
-      if (subcategory) params.append('subcategory', subcategory);
-      if (nestedCategory) params.append('nestedCategory', nestedCategory);
+
+      // Construct the category path based on provided filters with exact capitalization
+      let categoryPath = '';
+      if (mainCategory) {
+        categoryPath = mainCategory;
+        if (subcategory) {
+          categoryPath += `/${subcategory}`;
+          if (nestedCategory) {
+            categoryPath += `/${nestedCategory}`;
+          }
+        }
+        params.append('category', categoryPath);
+      }
 
       const res = await axios.get(`https://backend-ps76.onrender.com/api/products?${params.toString()}`);
       console.log('Raw product data from backend:', res.data);
@@ -74,6 +101,19 @@ export function ProductProvider({ children }) {
         // Ensure sizes is an array
         const sizes = Array.isArray(item.sizes) ? item.sizes : [];
 
+        // Preserve the original capitalization of subcategory and nestedCategory, but map mainCategory
+        const originalCategory = item.category || 'Uncategorized';
+        const categoryParts = originalCategory.split('/');
+        const rawMainCategory = categoryParts[0] || 'Uncategorized';
+        const mainCategoryPart = capitalizeMainCategory(rawMainCategory); // Map to correct capitalization
+        const subcategoryPart = item.subcategory || ''; // Preserve backend capitalization
+        const nestedCategoryPart = item.nestedCategory || ''; // Preserve backend capitalization
+
+        // Reconstruct the full category path with the mapped mainCategory
+        const fullCategoryPath = [mainCategoryPart, subcategoryPart, nestedCategoryPart]
+          .filter(Boolean)
+          .join('/');
+
         return {
           _id: item._id || '',
           name: item.name || '',
@@ -83,9 +123,10 @@ export function ProductProvider({ children }) {
           image,
           images,
           variants, // Include variants with their images and specs
-          category: item.category || 'Uncategorized',
-          subcategory: item.subcategory || '',
-          nestedCategory: item.nestedCategory || '',
+          category: fullCategoryPath || 'Uncategorized', // Full path: "Fashion/Men/Top Wear"
+          mainCategory: mainCategoryPart,
+          subcategory: subcategoryPart,
+          nestedCategory: nestedCategoryPart,
           featured: item.featured || false,
           description: item.description || '',
           brand: item.brand || '',
@@ -167,6 +208,19 @@ export function ProductProvider({ children }) {
 
       const sizes = Array.isArray(item.sizes) ? item.sizes : [];
 
+      // Preserve the original capitalization of subcategory and nestedCategory, but map mainCategory
+      const originalCategory = item.category || 'Uncategorized';
+      const categoryParts = originalCategory.split('/');
+      const rawMainCategory = categoryParts[0] || 'Uncategorized';
+      const mainCategoryPart = capitalizeMainCategory(rawMainCategory); // Map to correct capitalization
+      const subcategoryPart = item.subcategory || ''; // Preserve backend capitalization
+      const nestedCategoryPart = item.nestedCategory || ''; // Preserve backend capitalization
+
+      // Reconstruct the full category path with the mapped mainCategory
+      const fullCategoryPath = [mainCategoryPart, subcategoryPart, nestedCategoryPart]
+        .filter(Boolean)
+        .join('/');
+
       const product = {
         _id: item._id || '',
         name: item.name || '',
@@ -176,9 +230,10 @@ export function ProductProvider({ children }) {
         image,
         images,
         variants, // Include variants with their images and specs
-        category: item.category || 'Uncategorized',
-        subcategory: item.subcategory || '',
-        nestedCategory: item.nestedCategory || '',
+        category: fullCategoryPath || 'Uncategorized', // Full path: "Fashion/Men/Top Wear"
+        mainCategory: mainCategoryPart,
+        subcategory: subcategoryPart,
+        nestedCategory: nestedCategoryPart,
         featured: item.featured || false,
         description: item.description || '',
         brand: item.brand || '',

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -79,7 +78,7 @@ function Navigation() {
         'Top Wear', 'Bottom Wear', 'Casual Shoes', 'Watches', 'Ethnic', 'Sports Shoes',
         'Luggage', 'Trimmers', 'Essentials', 'Men Grooming'
       ],
-      Women: ['Dresses', 'Tops', 'Footwear', 'Jewelry', 'Handbags', 'Accessories'],
+      Women: ['Dresses', 'Top Wear', 'Footwear', 'Jewelry', 'Handbags', 'Accessories'],
       Beauty: ['Skincare', 'Makeup', 'Haircare', 'Fragrances']
     },
     Gadgets: {
@@ -218,7 +217,13 @@ function Navigation() {
                   setHoveredSubcategory(null);
                 }}
               >
-                <span className="mini-nav-link">{category}</span>
+                {/* Main Category Link */}
+                <Link
+                  to={`/products?category=${encodeURIComponent(category)}`}
+                  className="mini-nav-link"
+                >
+                  {category}
+                </Link>
                 {hoveredCategory === category && (
                   <div className="mini-dropdown">
                     {Object.keys(categoryHierarchy[category]).map((subcategory) => (
@@ -228,7 +233,11 @@ function Navigation() {
                         onMouseEnter={() => setHoveredSubcategory(subcategory)}
                         onMouseLeave={() => setHoveredSubcategory(null)}
                       >
-                        <Link to={`/categories?main=${category}&sub=${subcategory}`} className="mini-dropdown-link">
+                        {/* Subcategory Link */}
+                        <Link
+                          to={`/products?category=${encodeURIComponent(`${category}/${subcategory}`)}`}
+                          className="mini-dropdown-link"
+                        >
                           {subcategory}
                         </Link>
                         {hoveredSubcategory === subcategory && (
@@ -236,7 +245,7 @@ function Navigation() {
                             {categoryHierarchy[category][subcategory].map((nestedCategory) => (
                               <Link
                                 key={nestedCategory}
-                                to={`/categories?main=${category}&sub=${subcategory}&nested=${nestedCategory}`}
+                                to={`/products?category=${encodeURIComponent(`${category}/${subcategory}/${nestedCategory}`)}`}
                                 className="nested-dropdown-item"
                               >
                                 {nestedCategory}

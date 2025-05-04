@@ -61,23 +61,36 @@ function Categories() {
 
   const mainCategories = Object.keys(categoryHierarchy);
 
-  // Filter products based on selected nested category and search query
+  // Filter products based on selected category, subcategory, nested category, and search query
   useEffect(() => {
     let filtered = products;
-    if (selectedNestedCategory) {
-      filtered = filtered.filter(
-        (product) => product.category.toLowerCase() === selectedNestedCategory.toLowerCase()
-      );
-    } else if (selectedSubcategory) {
-      filtered = [];
-    } else if (selectedCategory) {
-      filtered = [];
+
+    // Construct the category path based on selected levels
+    let categoryPath = '';
+    if (selectedCategory) {
+      categoryPath = selectedCategory;
+      if (selectedSubcategory) {
+        categoryPath += `/${selectedSubcategory}`;
+        if (selectedNestedCategory) {
+          categoryPath += `/${selectedNestedCategory}`;
+        }
+      }
     }
+
+    // Filter products based on the category path
+    if (categoryPath) {
+      filtered = filtered.filter((product) =>
+        product.category.toLowerCase().startsWith(categoryPath.toLowerCase())
+      );
+    }
+
+    // Apply search query filter if present
     if (searchQuery.trim()) {
       filtered = filtered.filter((product) =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
+
     setFilteredProducts(filtered);
     setCurrentPage(1);
   }, [selectedCategory, selectedSubcategory, selectedNestedCategory, searchQuery, products]);
@@ -232,66 +245,76 @@ function Categories() {
             </motion.section>
           )}
 
-          {/* Display Filtered Products when a nested category is selected */}
-          {selectedNestedCategory && (
+          {/* Display Filtered Products when any category level is selected */}
+          {(selectedCategory || selectedSubcategory || selectedNestedCategory) && (
             <motion.section initial="hidden" animate="visible" variants={fadeIn} className="filtered-products-section">
-              <h2>{selectedNestedCategory} Products</h2>
-              <div className="product-list">
-                {currentProducts.map((product) => (
-                  <div
-                    key={product._id}
-                    className="product-item"
-                    onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
-                  >
-                    <img
-                      src={product.image || 'https://placehold.co/100x100?text=Product'}
-                      alt={product.name}
-                      onError={(e) => {
-                        e.target.src = 'https://placehold.co/100x100?text=Product';
-                      }}
-                    />
-                    <div className="product-details">
-                      <h5>{product.name}</h5>
-                      <p className="price">₹{Number(product.price).toFixed(2)}</p>
-                      <p className="discount">{product.offer || '10% OFF'}</p>
-                      {product.stock !== undefined && (
-                        <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
-                          {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
-                        </p>
-                      )}
-                    </div>
+              <h2>
+                {selectedNestedCategory || selectedSubcategory || selectedCategory} Products
+              </h2>
+              {filteredProducts.length === 0 ? (
+                <div className="no-products">
+                  <p>No products found in this category.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="product-list">
+                    {currentProducts.map((product) => (
+                      <div
+                        key={product._id}
+                        className="product-item"
+                        onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
+                      >
+                        <img
+                          src={product.image || 'https://placehold.co/100x100?text=Product'}
+                          alt={product.name}
+                          onError={(e) => {
+                            e.target.src = 'https://placehold.co/100x100?text=Product';
+                          }}
+                        />
+                        <div className="product-details">
+                          <h5>{product.name}</h5>
+                          <p className="price">₹{Number(product.price).toFixed(2)}</p>
+                          <p className="discount">{product.offer || '10% OFF'}</p>
+                          {product.stock !== undefined && (
+                            <p className={`stock-info ${product.stock <= 5 ? 'low-stock' : ''}`}>
+                              {product.stock <= 5 ? `Hurry! Only ${product.stock} left!` : `In Stock: ${product.stock}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="pagination">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <span>
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </div>
+                  <div className="pagination">
+                    <button
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
+                    <span>
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.section>
           )}
 
-          {/* No Products Message when no nested category is selected but search yields no results */}
-          {!selectedNestedCategory && filteredProducts.length === 0 && searchQuery.trim() && (
+          {/* No Products Message when no category is selected but search yields no results */}
+          {!selectedCategory && !selectedSubcategory && !selectedNestedCategory && filteredProducts.length === 0 && searchQuery.trim() && (
             <motion.div initial="hidden" animate="visible" variants={fadeIn} className="no-products">
-              <p>No products found. Try a different category or search term.</p>
+              <p>No products found. Try a different search term.</p>
             </motion.div>
           )}
 
           {/* Related Products, Top Picks, Best Deals, Recently Viewed */}
-          {!selectedCategory && !selectedSubcategory && !selectedNestedCategory && (
+          {!selectedCategory && !selectedSubcategory && !selectedNestedCategory && filteredProducts.length > 0 && (
             <>
               <motion.section initial="hidden" animate="visible" variants={fadeIn} className="related-products-section">
                 <h2>Related Products</h2>

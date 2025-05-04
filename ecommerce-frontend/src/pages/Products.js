@@ -68,14 +68,38 @@ function ProductList() {
             'Ethnic',
             'Watches & Shades',
             'Accessories',
+            'Essentials',
           ],
         },
-        { name: 'Beauty', nested: ['Swiss Beauty', 'Sugar Pop', 'Insights', 'Renee'] },
+        {
+          name: 'Beauty',
+          nested: ['Swiss Beauty', 'Sugar Pop Insights', 'Renee'],
+        },
       ],
     },
     { name: 'Gadgets', sub: [] },
     { name: 'Furniture', sub: [] },
-    { name: 'Mobiles', sub: [] },
+    {
+      name: 'Mobiles',
+      sub: [
+        {
+          name: 'Smartphones',
+          nested: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel'],
+        },
+        {
+          name: 'FeaturePhones',
+          nested: ['Nokia', 'JioPhone'],
+        },
+        {
+          name: 'Tablets',
+          nested: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
+        },
+        {
+          name: 'Accessories',
+          nested: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors'],
+        },
+      ],
+    },
     { name: 'Appliances', sub: [] },
     { name: 'Beauty', sub: [] },
     { name: 'Home', sub: [] },
@@ -102,9 +126,6 @@ function ProductList() {
   );
   const [priceDropAlerts, setPriceDropAlerts] = useState(
     JSON.parse(localStorage.getItem('priceDropAlerts')) || {}
-  );
-  const [selectedVariants, setSelectedVariants] = useState(
-    JSON.parse(localStorage.getItem('selectedVariants')) || {}
   );
   const observer = useRef();
   const navigate = useNavigate();
@@ -144,9 +165,9 @@ function ProductList() {
 
   useEffect(() => {
     const fetchRatings = async () => {
-      const storedRatings = JSON.parse(localStorage.getItem('productRatings'));
-      if (storedRatings && Object.keys(storedRatings).length > 0) {
-        setProductRatings(storedRatings);
+      const sunnyRatings = JSON.parse(localStorage.getItem('productRatings'));
+      if (sunnyRatings && Object.keys(sunnyRatings).length > 0) {
+        setProductRatings(sunnyRatings);
         setIsRatingsLoading(false);
         return;
       }
@@ -251,8 +272,7 @@ function ProductList() {
 
   useEffect(() => {
     localStorage.setItem('selectedProducts', JSON.stringify(selectedProducts));
-    localStorage.setItem('selectedVariants', JSON.stringify(selectedVariants));
-  }, [selectedProducts, selectedVariants]);
+  }, [selectedProducts]);
 
   const correctSearchTerm = (query) => {
     const productNames = products.map(p => p.name.toLowerCase());
@@ -294,6 +314,17 @@ function ProductList() {
   const applyFilters = useCallback(() => {
     let updatedProducts = [...products];
 
+    // Log all products to debug their categories
+    console.log('All Products:', products.map(p => ({
+      id: p._id,
+      name: p.name,
+      category: p.category,
+      mainCategory: p.mainCategory,
+      subcategory: p.subcategory,
+      nestedCategory: p.nestedCategory
+    })));
+
+    // Apply search filter
     if (searchQuery) {
       const queryWords = searchQuery.toLowerCase().split(' ');
       updatedProducts = updatedProducts.filter((product) =>
@@ -310,21 +341,99 @@ function ProductList() {
       setCorrectedSearch('');
     }
 
-    if (categoryFilter) {
+    // Apply category filter with case-sensitive matching
+    if (categoryFilter && categoryFilter !== 'All Categories') {
       updatedProducts = updatedProducts.filter((product) => {
-        const productCats = product.category ? product.category.split('/').filter(Boolean) : [];
-        return productCats.includes(categoryFilter) || productCats.some(cat => cat.startsWith(categoryFilter + '/'));
+        // Construct the full category path from product fields with original capitalization
+        const productMainCategory = (product.mainCategory || '').trim();
+        const productSubcategory = (product.subcategory || '').trim();
+        const productNestedCategory = (product.nestedCategory || '').trim();
+
+        // Create the product's full category path (e.g., "Fashion/Men/Top Wear")
+        const productCategoryPathParts = [
+          productMainCategory,
+          productSubcategory,
+          productNestedCategory
+        ].filter(Boolean); // Remove empty strings
+        const productCategoryPath = productCategoryPathParts.join('/');
+
+        // Use the filter category path as-is (e.g., "Fashion/Men/Top Wear")
+        const filterCategoryPath = categoryFilter.trim();
+
+        // Split both paths into parts for comparison
+        const productCats = productCategoryPath.split('/').filter(Boolean);
+        const filterCats = filterCategoryPath.split('/').filter(Boolean);
+
+        // Log the comparison for debugging
+        console.log(`Comparing Product: "${product.name}"`, {
+          ProductCategoryPath: productCategoryPath,
+          FilterCategoryPath: filterCategoryPath,
+          ProductCats: productCats,
+          FilterCats: filterCats
+        });
+
+        // If the filter has more parts than the product category path, it can't match
+        if (filterCats.length > productCats.length) {
+          console.log(`Product ${product.name} has fewer category parts (${productCats.length}) than filter (${filterCats.length}), excluding.`);
+          return false;
+        }
+
+        // Compare each part of the filter with the corresponding part of the product category (case-sensitive)
+        let matches = true;
+        for (let i = 0; i < filterCats.length; i++) {
+          if (!productCats[i] || productCats[i] !== filterCats[i]) {
+            matches = false;
+            break;
+          }
+        }
+
+        // Special case for top-level categories (e.g., "Gadgets")
+        if (filterCats.length === 1) {
+          const filterCat = filterCats[0];
+          const productCat = productCats[0] || '';
+          const categoryMappings = {
+            Gadgets: ['Electronics', 'Mobiles', 'Appliances'],
+            Beauty: ['Beauty'],
+            Fashion: ['Fashion'],
+            Furniture: ['Furniture'],
+            Home: ['Home'],
+            'Toys & Baby': ['Toys & Baby'],
+            Sports: ['Sports']
+          };
+
+          if (categoryMappings[filterCat] && categoryMappings[filterCat].includes(productCat)) {
+            matches = true;
+          }
+        }
+
+        // Log the result of the match
+        console.log(`Product ${product.name} (Category: ${productCategoryPath}) Match Result: ${matches}`);
+
+        return matches;
       });
+
+      // Log the filtered products after category filter
+      console.log('Filtered Products after Category Filter:', updatedProducts.map(p => ({
+        id: p._id,
+        name: p.name,
+        category: p.category,
+        mainCategory: p.mainCategory,
+        subcategory: p.subcategory,
+        nestedCategory: p.nestedCategory
+      })));
     }
 
+    // Apply price filter
     updatedProducts = updatedProducts.filter(
       (product) => Number(product.price) >= priceRange[0] && Number(product.price) <= priceRange[1]
     );
 
+    // Apply stock filter
     if (inStockOnly || quickFilters.inStock) {
       updatedProducts = updatedProducts.filter((product) => (product.stock || 0) > 0);
     }
 
+    // Apply rating filter
     if (ratingFilter || quickFilters.highRated) {
       updatedProducts = updatedProducts.filter((product) => {
         const rating = productRatings[product._id]?.averageRating || 0;
@@ -335,10 +444,12 @@ function ProductList() {
       });
     }
 
+    // Apply discount filter
     if (quickFilters.discounted) {
       updatedProducts = updatedProducts.filter((product) => product.offer && parseFloat(product.offer) > 0);
     }
 
+    // Apply admin filters
     if (quickFilters.approvedOnly && user?.role === 'admin') {
       updatedProducts = updatedProducts.filter((product) => product.approved === true);
     }
@@ -347,12 +458,13 @@ function ProductList() {
       updatedProducts = updatedProducts.filter((product) => (product.stock || 0) < 10);
     }
 
+    // Apply sorting
     if (sort === 'popularity') {
       updatedProducts.sort((a, b) => (productRatings[b._id]?.reviewCount || 0) - (productRatings[a._id]?.reviewCount || 0));
     } else if (sort === 'price-asc') {
       updatedProducts.sort((a, b) => Number(a.price) - Number(b.price));
     } else if (sort === 'price-desc') {
-      updatedProducts.sort((a, b) => Number(b.price) - Number(b.price));
+      updatedProducts.sort((a, b) => Number(b.price) - Number(a.price));
     } else if (sort === 'newest') {
       updatedProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sort === 'discount') {
@@ -476,22 +588,6 @@ function ProductList() {
     toast.success(`Price drop alert set for ${product.name} at ₹${parsedPrice}!`, { position: 'bottom-right', autoClose: 2000 });
   };
 
-  const handleVariantChange = (productId, variantIndex) => {
-    setSelectedVariants((prev) => ({
-      ...prev,
-      [productId]: variantIndex,
-    }));
-  };
-
-  const getProductDisplayData = (product) => {
-    const variantIndex = selectedVariants[product._id] || 0;
-    if (product.variants && product.variants.length > 0 && variantIndex < product.variants.length) {
-      const variant = product.variants[variantIndex];
-      return { price: variant.price || product.price, stock: variant.stock !== undefined ? variant.stock : product.stock, image: variant.image || product.image };
-    }
-    return { price: product.price, stock: product.stock, image: product.image };
-  };
-
   const handleBackToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const handleImageClick = (productId) => window.open(`/product/${productId}`, '_blank');
   const getStockStatus = (stock) => (stock || 0) > 0 ? 'In Stock' : 'Out of Stock';
@@ -560,6 +656,12 @@ function ProductList() {
     setShowRecentSearches(false);
   };
 
+  const handleApplyFashionFilter = (cat) => {
+    setCategoryFilter(cat === categoryFilter ? '' : cat);
+    setShowFilters(false);
+    applyFilters();
+  };
+
   const activeFilterCount = [
     categoryFilter && categoryFilter !== 'All Categories',
     priceRange[0] !== 0 || priceRange[1] !== maxPrice,
@@ -590,7 +692,7 @@ function ProductList() {
         <h1 className="text-2xl font-semibold text-gray-800 text-center mb-4">{titles[titleIndex]}</h1>
         <div className="products-content flex gap-6">
           <div className={`filters-sidebar w-64 bg-white p-4 border border-gray-200 shadow-md ${showFilters ? 'visible' : ''}`}>
-            <div className="filters-header flex justify-between items-center mt-5 ">
+            <div className="filters-header flex justify-between items-center mt-5">
               <h3 className="text-lg font-medium text-gray-800 mt-5">Filters</h3>
               <div className="flex gap-2 mt-5">
                 <button className="text-blue-600 hover:underline text-sm" onClick={resetFilters}>Clear All</button>
@@ -616,45 +718,63 @@ function ProductList() {
                     <button
                       className="w-full text-left text-sm font-medium text-gray-800 py-2 hover:bg-gray-100 rounded transition-colors"
                       onClick={() => {
-                        setCategoryFilter(cat.name === categoryFilter ? '' : cat.name);
                         setExpandedCategories((prev) => ({
                           ...prev,
                           [cat.name]: !prev[cat.name],
                         }));
                       }}
                     >
-                      {cat.name} {cat.name === 'Fashion' && expandedCategories[cat.name] ? '▼' : '▶'}
+                      {cat.name} {cat.sub.length > 0 && (expandedCategories[cat.name] ? '▼' : '▶')}
                     </button>
-                    {cat.name === 'Fashion' && expandedCategories[cat.name] && cat.sub.map((sub, subIndex) => (
-                      <div key={subIndex} className="ml-4">
-                        <button
-                          className="w-full text-left text-sm text-gray-600 py-1 hover:bg-gray-100 rounded transition-colors"
-                          onClick={() => setCategoryFilter(`${cat.name}/${sub.name}`)}
-                        >
-                          {sub.name}
-                        </button>
-                        {expandedCategories[sub.name] && sub.nested.map((nested, nestedIndex) => (
+                    {cat.sub.length > 0 && expandedCategories[cat.name] && (
+                      <div className="ml-4">
+                        {cat.sub.map((sub, subIndex) => (
+                          <div key={subIndex}>
+                            <button
+                              className="w-full text-left text-sm text-gray-600 py-1 hover:bg-gray-100 rounded transition-colors"
+                              onClick={() => setExpandedCategories((prev) => ({
+                                ...prev,
+                                [sub.name]: !prev[sub.name],
+                              }))}
+                            >
+                              {sub.name} {sub.nested.length > 0 && (expandedCategories[sub.name] ? '▼' : '▶')}
+                            </button>
+                            {expandedCategories[sub.name] && sub.nested.map((nested, nestedIndex) => (
+                              <button
+                                key={nestedIndex}
+                                className="w-full text-left text-sm text-gray-500 pl-6 py-1 hover:bg-gray-100 rounded transition-colors"
+                                onClick={() => setCategoryFilter(`${cat.name}/${sub.name}/${nested}`)}
+                              >
+                                {nested}
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                        {cat.sub.map((sub, subIndex) => (
                           <button
-                            key={nestedIndex}
-                            className="w-full text-left text-sm text-gray-500 pl-6 py-1 hover:bg-gray-100 rounded transition-colors"
-                            onClick={() => setCategoryFilter(`${cat.name}/${sub.name}/${nested}`)}
+                            key={subIndex}
+                            className="w-full text-left text-sm text-gray-600 py-1 hover:bg-gray-100 rounded transition-colors"
+                            onClick={() => setCategoryFilter(`${cat.name}/${sub.name}`)}
                           >
-                            {nested}
+                            {sub.name}
                           </button>
                         ))}
                         <button
-                          className="w-full text-left text-sm text-gray-600 py-1 hover:bg-gray-100 rounded transition-colors"
-                          onClick={() => {
-                            setExpandedCategories((prev) => ({
-                              ...prev,
-                              [sub.name]: !prev[sub.name],
-                            }));
-                          }}
+                          className="w-full text-center bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700 mt-2"
+                          onClick={() => handleApplyFashionFilter(cat.name)}
                         >
-                          {sub.name === 'Women' && expandedCategories[sub.name] ? '▼' : '▶'} Subcategories
+                          Apply
                         </button>
                       </div>
-                    ))}
+                    )}
+                    {cat.sub.length === 0 && (
+                      <button
+                        className="w-full text-left text-sm text-gray-600 py-1 hover:bg-gray-100 rounded transition-colors ml-4"
+                        onClick={() => handleApplyFashionFilter(cat.name)}
+                      >
+                        {cat.name}
+                      </button>
+                    )}
                   </div>
                 )
               ))}
@@ -767,10 +887,10 @@ function ProductList() {
                 </>
               )}
             </div>
-            <div className="product-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="product-grid">
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="product-card bg-white border border-gray-200 p-4 rounded-lg shadow-sm animate-pulse h-[350px]">
+                  <div key={index} className="product-card bg-white border border-gray-200 p-4 rounded-lg shadow-sm animate-pulse">
                     <div className="skeleton-image w-full h-40 bg-gray-200 rounded"></div>
                     <div className="card-content mt-2">
                       <div className="skeleton-text w-3/4 h-4 bg-gray-200 rounded mb-2"></div>
@@ -785,12 +905,11 @@ function ProductList() {
                 ))
               ) : filtered.length > 0 ? (
                 filtered.slice(0, visibleCount).map((product, index) => {
-                  const displayData = getProductDisplayData(product);
-                  const stock = displayData.stock;
+                  const stock = product.stock;
                   const isWishlisted = wishlist.some((item) => item.productId && item.productId._id === product._id);
                   const rating = productRatings[product._id] || { averageRating: 0, reviewCount: 0 };
                   const discount = product.offer ? parseFloat(product.offer) : 0;
-                  const originalPrice = discount ? (displayData.price / (1 - discount / 100)).toFixed(2) : displayData.price;
+                  const originalPrice = discount ? (product.price / (1 - discount / 100)).toFixed(2) : product.price;
                   const isLastElement = index === filtered.slice(0, visibleCount).length - 1;
                   const isSelectedForCompare = selectedProducts.some((p) => p._id === product._id);
                   const hasAlert = priceDropAlerts[product._id] && !priceDropAlerts[product._id].notified;
@@ -798,8 +917,8 @@ function ProductList() {
                   const isApproved = product.approved !== undefined ? product.approved : true;
 
                   return (
-                    <div key={product._id} className="product-card bg-white border border-gray-200 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow h-[350px] flex flex-col justify-between" ref={isLastElement ? lastProductElementRef : null}>
-                      <meta name="description" content={`${product.name} - ₹${displayData.price}`} />
+                    <div key={product._id} className="product-card bg-white border border-gray-200 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between" ref={isLastElement ? lastProductElementRef : null}>
+                      <meta name="description" content={`${product.name} - ₹${product.price}`} />
                       {product.featured && <span className="badge bg-green-600 text-white text-xs px-2 py-1 rounded absolute top-2 left-2">Featured</span>}
                       {hasAlert && <span className="badge bg-yellow-500 text-white text-xs px-2 py-1 rounded absolute top-2 left-2">Price Alert</span>}
                       {isLowStock && <span className="badge bg-red-500 text-white text-xs px-2 py-1 rounded absolute top-2 left-2">Low Stock</span>}
@@ -817,16 +936,16 @@ function ProductList() {
                           <path d="M12 16h.01"></path>
                         </svg>
                       </button>
-                      <div className="image-container flex justify-center items-center h-48 mb-2 overflow-hidden">
+                      <div className="image-container flex justify-center items-center mb-2 overflow-hidden">
                         {isRatingsLoading ? (
                           <div className="skeleton-image w-full h-full bg-gray-200 rounded"></div>
                         ) : (
                           <img
-                            src={displayData.image || 'https://via.placeholder.com/150'}
+                            src={product.image || 'https://via.placeholder.com/150'}
                             alt={product.name}
                             className="product-image max-h-full max-w-full object-contain cursor-pointer"
                             loading="lazy"
-                            onError={(e) => { console.log(`Failed to load image for ${product.name}: ${displayData.image}`); e.target.src = 'https://via.placeholder.com/150'; }}
+                            onError={(e) => { console.log(`Failed to load image for ${product.name}: ${product.image}`); e.target.src = 'https://via.placeholder.com/150'; }}
                             onClick={() => handleImageClick(product._id)}
                           />
                         )}
@@ -835,7 +954,7 @@ function ProductList() {
                         <div>
                           <h3 className="product-title text-sm font-medium text-gray-800 line-clamp-2 mb-2">{product.name}</h3>
                           <div className="price-section flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="product-price text-lg font-semibold text-gray-900">₹{Number(displayData.price).toFixed(2)}</span>
+                            <span className="product-price text-lg font-semibold text-gray-900">₹{Number(product.price).toFixed(2)}</span>
                             {discount > 0 && (
                               <>
                                 <span className="original-price text-sm text-gray-500 line-through">₹{Number(originalPrice).toFixed(2)}</span>
@@ -849,7 +968,6 @@ function ProductList() {
                             </div>
                           )}
                           <p className={`stock-status text-xs font-medium ${getStockStatus(stock).replace(' ', '-') === 'In-Stock' ? 'text-green-600' : 'text-red-600'} mb-2`}>{getStockStatus(stock)}</p>
-                          
                           <div className="compare-section mb-2">
                             <label className="flex items-center text-sm text-gray-600">
                               <input
@@ -871,7 +989,7 @@ function ProductList() {
                             <i className="fas fa-shopping-cart"></i> Add
                           </button>
                           <button
-                            className="btn-view-details bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700 w-full"
+                            className="btn-view-details bg-blue-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-700 w-full hidden md:block"
                             onClick={() => navigate(`/product/${product._id}`)}
                           >
                             <i className="fas fa-eye"></i> View
@@ -892,7 +1010,7 @@ function ProductList() {
           <div className="comparison-bar fixed bottom-20 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-10">
             <div className="comparison-content max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
               <span className="text-sm font-medium text-gray-800">Selected Products ({selectedProducts.length}/4):</span>
-              <div className="selected-products flex gap-3 overflow-x-auto py-2 px-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <div className="selected-products flex gap-3 overflow-x-auto py-2 px-2">
                 {selectedProducts.map((product) => (
                   <div key={product._id} className="selected-product flex items-center gap-2 bg-gray-100 p-2 rounded-lg text-xs text-gray-700 min-w-[120px]">
                     <img

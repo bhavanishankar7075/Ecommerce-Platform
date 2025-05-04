@@ -68,6 +68,22 @@ body {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+@media (max-width: 1023px) {
+  .filters-sidebar {
+    width: 280px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .filters-sidebar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+  }
 }
 
 @media (max-width: 767px) {
@@ -79,6 +95,13 @@ body {
     z-index: 20;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .filters-sidebar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
   }
 
   .filters-sidebar.visible {
@@ -171,13 +194,13 @@ body {
   align-items: center;
   margin-bottom: 15px;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 10px;
 }
 
 .search-bar {
   position: relative;
-  width: 100%;
-  max-width: 400px;
+  flex: 1;
+  min-width: 200px;
 }
 
 .search-bar input {
@@ -261,29 +284,39 @@ body {
   text-decoration: underline;
 }
 
-.sort-options {
+.sort-options,
+.filter-options,
+.price-options,
+.clear-options {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.sort-options label {
+  gap: 5px;
+  padding: 6px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   font-size: 14px;
   color: #333;
 }
 
-.sort-options select {
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+.sort-options select,
+.filter-options button,
+.price-options select,
+.clear-options button {
+  background: none;
+  border: none;
   font-size: 14px;
+  color: #1e90ff;
+  cursor: pointer;
   outline: none;
-  transition: border-color 0.2s;
 }
 
-.sort-options select:focus {
-  border-color: #1e90ff;
-  box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.2);
+.sort-options select:focus,
+.filter-options button:focus,
+.price-options select:focus,
+.clear-options button:focus {
+  outline: none;
+  text-decoration: underline;
 }
 
 .btn-filter-toggle {
@@ -337,92 +370,22 @@ body {
   border-color: #1e90ff;
 }
 
-/* Enhanced Categories Section */
-.filter-section .categories-list {
-  list-style: none;
-}
-
-.filter-section .category-item {
-  margin-bottom: 8px;
-}
-
-.filter-section .category-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #333;
-  background: linear-gradient(135deg, #ffffff, #f8f9fa);
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.filter-section .category-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(120deg, transparent, rgba(30, 144, 255, 0.1), transparent);
-  animation: shine 2s infinite;
-}
-
-.filter-section .category-button:hover {
-  background: linear-gradient(135deg, #e9ecef, #ffffff);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.filter-section .category-button .icon {
-  font-size: 16px;
-  transition: transform 0.3s ease;
-}
-
-.filter-section .category-button.expanded .icon {
-  transform: rotate(180deg);
-}
-
-.filter-section .subcategory-item {
-  margin-left: 20px;
-  margin-top: 5px;
-}
-
-.filter-section .subcategory-button {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 14px;
-  color: #555;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.filter-section .subcategory-button:hover {
-  background: #e9ecef;
-  transform: translateX(5px);
-}
-
-@keyframes shine {
-  0% { left: -100%; }
-  20% { left: 100%; }
-  100% { left: 100%; }
-}
-
 /* Product Grid */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 15px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 0;
+    overflow-x: hidden;
+  }
 }
 
 .product-card {
@@ -437,6 +400,15 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+  .product-card {
+    padding: 10px;
+    height: 340px;
+  }
 }
 
 .product-card:hover {
@@ -504,11 +476,28 @@ body {
   overflow: hidden;
 }
 
+@media (max-width: 767px) {
+  .image-container {
+    height: 150px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
 .product-image {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
   cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .product-image {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    object-position: center;
+  }
 }
 
 .card-content {
@@ -584,15 +573,6 @@ body {
   color: #dc3545;
 }
 
-.variants-section select {
-  width: 100%;
-  padding: 5px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-
 .compare-section label {
   display: flex;
   align-items: center;
@@ -652,24 +632,16 @@ body {
   border-top: 1px solid #e0e0e0;
   padding: 15px;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 30; /* Higher z-index to ensure it appears above the filter sidebar */
+  z-index: 30;
 }
 
-/* Adjust the comparison bar to respect the filter sidebar's space on larger screens */
 @media (min-width: 768px) {
   .comparison-bar {
-    left: 270px; /* Account for the sidebar width (250px) + gap (20px) */
+    left: 270px;
     right: 15px;
-    width: calc(100% - 285px); /* Ensure it fits within the remaining space */
-    max-width: 960px; /* Match the container's max-width */
-    margin: 0 auto; /* Center it within the adjusted space */
-  }
-}
-
-/* Lower the comparison bar on medium devices (768px to 991px) */
-@media (min-width: 768px) and (max-width: 991px) {
-  .comparison-bar {
-    bottom: 30px; /* Lower the comparison bar on medium devices */
+    width: calc(100% - 285px);
+    max-width: 960px;
+    margin: 0 auto;
   }
 }
 
