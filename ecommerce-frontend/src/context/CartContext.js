@@ -34,39 +34,48 @@ export function CartProvider({ children }) {
 
       const cartItems = res.data.cart?.items || [];
       // Process cart items with image, variant, and size handling
-      const processedCartItems = cartItems.map((item) => ({
-        ...item,
-        productId: {
-          ...item.productId,
-          image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
-            ? item.productId.image
-            : 'https://placehold.co/50?text=No+Image',
-          images: item.productId?.images && Array.isArray(item.productId.images)
-            ? item.productId.images.map((img) =>
-                typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                  ? img
-                  : 'https://placehold.co/50?text=No+Image'
-              )
-            : [],
-          variants: item.productId?.variants && Array.isArray(item.productId.variants)
-            ? item.productId.variants.map((variant) => ({
-                variantId: variant.variantId || '',
-                mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
-                  ? variant.mainImage
-                  : 'https://placehold.co/50?text=No+Image',
-                additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
-                  ? variant.additionalImages.map((img) =>
-                      typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                        ? img
-                        : 'https://placehold.co/50?text=No+Image'
-                    )
-                  : [],
-                specifications: variant.specifications || {},
-              }))
-            : [],
-          sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
-        },
-      }));
+      const processedCartItems = cartItems.map((item) => {
+        // Find the variant details if variantId exists
+        let selectedVariant = null;
+        if (item.variantId && item.productId?.variants) {
+          selectedVariant = item.productId.variants.find((v) => v.variantId === item.variantId) || null;
+        }
+
+        return {
+          ...item,
+          productId: {
+            ...item.productId,
+            image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
+              ? item.productId.image
+              : 'https://placehold.co/50?text=No+Image',
+            images: item.productId?.images && Array.isArray(item.productId.images)
+              ? item.productId.images.map((img) =>
+                  typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                    ? img
+                    : 'https://placehold.co/50?text=No+Image'
+                )
+              : [],
+            variants: item.productId?.variants && Array.isArray(item.productId.variants)
+              ? item.productId.variants.map((variant) => ({
+                  variantId: variant.variantId || '',
+                  mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
+                    ? variant.mainImage
+                    : 'https://placehold.co/50?text=No+Image',
+                  additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
+                    ? variant.additionalImages.map((img) =>
+                        typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                          ? img
+                          : 'https://placehold.co/50?text=No+Image'
+                      )
+                    : [],
+                  specifications: variant.specifications || {},
+                }))
+              : [],
+            sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
+          },
+          selectedVariant, // Add selected variant details for display
+        };
+      });
       setCart(processedCartItems);
     } catch (err) {
       console.error('Error fetching cart:', err);
@@ -122,39 +131,48 @@ export function CartProvider({ children }) {
 
       const cartItems = res.data.cart?.items || [];
       // Process cart items with image, variant, and size handling
-      const processedCartItems = cartItems.map((item) => ({
-        ...item,
-        productId: {
-          ...item.productId,
-          image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
-            ? item.productId.image
-            : 'https://placehold.co/50?text=No+Image',
-          images: item.productId?.images && Array.isArray(item.productId.images)
-            ? item.productId.images.map((img) =>
-                typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                  ? img
-                  : 'https://placehold.co/50?text=No+Image'
-              )
-            : [],
-          variants: item.productId?.variants && Array.isArray(item.productId.variants)
-            ? item.productId.variants.map((variant) => ({
-                variantId: variant.variantId || '',
-                mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
-                  ? variant.mainImage
-                  : 'https://placehold.co/50?text=No+Image',
-                additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
-                  ? variant.additionalImages.map((img) =>
-                      typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                        ? img
-                        : 'https://placehold.co/50?text=No+Image'
-                    )
-                  : [],
-                specifications: variant.specifications || {},
-              }))
-            : [],
-          sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
-        },
-      }));
+      const processedCartItems = cartItems.map((item) => {
+        // Find the variant details if variantId exists
+        let selectedVariant = null;
+        if (item.variantId && item.productId?.variants) {
+          selectedVariant = item.productId.variants.find((v) => v.variantId === item.variantId) || null;
+        }
+
+        return {
+          ...item,
+          productId: {
+            ...item.productId,
+            image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
+              ? item.productId.image
+              : 'https://placehold.co/50?text=No+Image',
+            images: item.productId?.images && Array.isArray(item.productId.images)
+              ? item.productId.images.map((img) =>
+                  typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                    ? img
+                    : 'https://placehold.co/50?text=No+Image'
+                )
+              : [],
+            variants: item.productId?.variants && Array.isArray(item.productId.variants)
+              ? item.productId.variants.map((variant) => ({
+                  variantId: variant.variantId || '',
+                  mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
+                    ? variant.mainImage
+                    : 'https://placehold.co/50?text=No+Image',
+                  additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
+                    ? variant.additionalImages.map((img) =>
+                        typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                          ? img
+                          : 'https://placehold.co/50?text=No+Image'
+                      )
+                    : [],
+                  specifications: variant.specifications || {},
+                }))
+              : [],
+            sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
+          },
+          selectedVariant, // Add selected variant details for display
+        };
+      });
       setCart(processedCartItems);
 
       toast.success(isBulk ? 'Items added to cart!' : `${product.name} added to cart!`, {
@@ -202,39 +220,48 @@ export function CartProvider({ children }) {
 
       const cartItems = res.data.cart?.items || [];
       // Process cart items with image, variant, and size handling
-      const processedCartItems = cartItems.map((item) => ({
-        ...item,
-        productId: {
-          ...item.productId,
-          image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
-            ? item.productId.image
-            : 'https://placehold.co/50?text=No+Image',
-          images: item.productId?.images && Array.isArray(item.productId.images)
-            ? item.productId.images.map((img) =>
-                typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                  ? img
-                  : 'https://placehold.co/50?text=No+Image'
-              )
-            : [],
-          variants: item.productId?.variants && Array.isArray(item.productId.variants)
-            ? item.productId.variants.map((variant) => ({
-                variantId: variant.variantId || '',
-                mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
-                  ? variant.mainImage
-                  : 'https://placehold.co/50?text=No+Image',
-                additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
-                  ? variant.additionalImages.map((img) =>
-                      typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                        ? img
-                        : 'https://placehold.co/50?text=No+Image'
-                    )
-                  : [],
-                specifications: variant.specifications || {},
-              }))
-            : [],
-          sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
-        },
-      }));
+      const processedCartItems = cartItems.map((item) => {
+        // Find the variant details if variantId exists
+        let selectedVariant = null;
+        if (item.variantId && item.productId?.variants) {
+          selectedVariant = item.productId.variants.find((v) => v.variantId === item.variantId) || null;
+        }
+
+        return {
+          ...item,
+          productId: {
+            ...item.productId,
+            image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
+              ? item.productId.image
+              : 'https://placehold.co/50?text=No+Image',
+            images: item.productId?.images && Array.isArray(item.productId.images)
+              ? item.productId.images.map((img) =>
+                  typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                    ? img
+                    : 'https://placehold.co/50?text=No+Image'
+                )
+              : [],
+            variants: item.productId?.variants && Array.isArray(item.productId.variants)
+              ? item.productId.variants.map((variant) => ({
+                  variantId: variant.variantId || '',
+                  mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
+                    ? variant.mainImage
+                    : 'https://placehold.co/50?text=No+Image',
+                  additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
+                    ? variant.additionalImages.map((img) =>
+                        typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                          ? img
+                          : 'https://placehold.co/50?text=No+Image'
+                      )
+                    : [],
+                  specifications: variant.specifications || {},
+                }))
+              : [],
+            sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
+          },
+          selectedVariant, // Add selected variant details for display
+        };
+      });
       setCart(processedCartItems);
 
       toast.info('Item removed from cart!', {
@@ -275,39 +302,48 @@ export function CartProvider({ children }) {
 
       const cartItems = res.data.cart?.items || [];
       // Process cart items with image, variant, and size handling
-      const processedCartItems = cartItems.map((item) => ({
-        ...item,
-        productId: {
-          ...item.productId,
-          image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
-            ? item.productId.image
-            : 'https://placehold.co/50?text=No+Image',
-          images: item.productId?.images && Array.isArray(item.productId.images)
-            ? item.productId.images.map((img) =>
-                typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                  ? img
-                  : 'https://placehold.co/50?text=No+Image'
-              )
-            : [],
-          variants: item.productId?.variants && Array.isArray(item.productId.variants)
-            ? item.productId.variants.map((variant) => ({
-                variantId: variant.variantId || '',
-                mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
-                  ? variant.mainImage
-                  : 'https://placehold.co/50?text=No+Image',
-                additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
-                  ? variant.additionalImages.map((img) =>
-                      typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
-                        ? img
-                        : 'https://placehold.co/50?text=No+Image'
-                    )
-                  : [],
-                specifications: variant.specifications || {},
-              }))
-            : [],
-          sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
-        },
-      }));
+      const processedCartItems = cartItems.map((item) => {
+        // Find the variant details if variantId exists
+        let selectedVariant = null;
+        if (item.variantId && item.productId?.variants) {
+          selectedVariant = item.productId.variants.find((v) => v.variantId === item.variantId) || null;
+        }
+
+        return {
+          ...item,
+          productId: {
+            ...item.productId,
+            image: item.productId?.image && typeof item.productId.image === 'string' && (item.productId.image.startsWith('http://') || item.productId.image.startsWith('https://'))
+              ? item.productId.image
+              : 'https://placehold.co/50?text=No+Image',
+            images: item.productId?.images && Array.isArray(item.productId.images)
+              ? item.productId.images.map((img) =>
+                  typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                    ? img
+                    : 'https://placehold.co/50?text=No+Image'
+                )
+              : [],
+            variants: item.productId?.variants && Array.isArray(item.productId.variants)
+              ? item.productId.variants.map((variant) => ({
+                  variantId: variant.variantId || '',
+                  mainImage: variant.mainImage && typeof variant.mainImage === 'string' && (variant.mainImage.startsWith('http://') || variant.mainImage.startsWith('https://'))
+                    ? variant.mainImage
+                    : 'https://placehold.co/50?text=No+Image',
+                  additionalImages: variant.additionalImages && Array.isArray(variant.additionalImages)
+                    ? variant.additionalImages.map((img) =>
+                        typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))
+                          ? img
+                          : 'https://placehold.co/50?text=No+Image'
+                      )
+                    : [],
+                  specifications: variant.specifications || {},
+                }))
+              : [],
+            sizes: item.productId?.sizes && Array.isArray(item.productId.sizes) ? item.productId.sizes : [],
+          },
+          selectedVariant, // Add selected variant details for display
+        };
+      });
       setCart(processedCartItems);
 
       toast.success('Quantity updated!', {

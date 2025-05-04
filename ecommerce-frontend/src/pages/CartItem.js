@@ -1,38 +1,24 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
 import '../styles/CartItem.css';
 
 function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, onSelect }) {
   const { user, logout } = useAuth();
   const [isRemoving, setIsRemoving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showWishlistOption, setShowWishlistOption] = useState(false);
 
   const handleProductClick = () => {
     navigate(`/product/${item.productId?._id || item._id}`);
   };
 
-  const handleRemove = async (moveToWishlist = false) => {
+  const handleRemove = async () => {
     setIsRemoving(true);
     try {
-      if (moveToWishlist && user) {
-        const token = localStorage.getItem('token');
-        await axios.post(
-          'https://backend-ps76.onrender.com/api/wishlist',
-          { userId: user._id, productId: item.productId?._id || item._id },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        toast.success('Item moved to wishlist!', {
-          position: 'top-right',
-          autoClose: 3000,
-        });
-      }
       await removeFromCart(item._id);
     } catch (err) {
       console.error('Error during removal:', err);
-      if (moveToWishlist && err.response?.status === 401) {
+      if (err.response?.status === 401) {
         await logout();
         navigate('/login');
         toast.error('Session expired. Please log in again.', {
@@ -40,14 +26,13 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
           autoClose: 3000,
         });
       } else {
-        toast.error(moveToWishlist ? 'Failed to move to wishlist.' : 'Failed to remove item.', {
+        toast.error('Failed to remove item.', {
           position: 'top-right',
           autoClose: 3000,
         });
       }
     } finally {
       setIsRemoving(false);
-      setShowWishlistOption(false);
     }
   };
 
@@ -76,7 +61,7 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
 
   const handleDecrease = async () => {
     if (item.quantity <= 1) {
-      setShowWishlistOption(true);
+      await handleRemove();
       return;
     }
     setIsUpdating(true);
@@ -93,6 +78,9 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
     }
   };
 
+  // Get variant color if available
+  const variantColor = item.selectedVariant?.specifications?.color || 'N/A';
+
   return (
     <div className="cart-item">
       <input
@@ -104,7 +92,7 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
       />
       <div className="cart-item-image" onClick={handleProductClick}>
         <img
-          src={item.productId?.image || 'https://placehold.co/100x100?text=No+Image'}
+          src={item.selectedVariant?.mainImage || item.productId?.image || 'https://placehold.co/100x100?text=No+Image'}
           alt={item.productId?.name || 'Product'}
           onError={(e) => {
             e.target.src = 'https://placehold.co/100x100?text=No+Image';
@@ -114,8 +102,11 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
       <div className="cart-item-details">
         <h5 onClick={handleProductClick}>{item.productId?.name || 'Unknown Product'}</h5>
         <p className="seller-info">Seller: RetailNet</p>
-        {item.selectedSize && (
-          <p className="variant-info">Size: {item.selectedSize}</p>
+        {item.size && (
+          <p className="variant-info">Size: {item.size}</p>
+        )}
+        {item.variantId && (
+          <p className="variant-info">Color: {variantColor}</p>
         )}
         {item.inStock !== false ? (
           <div className="price-section">
@@ -145,7 +136,7 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
         </div>
         <div className="cart-item-actions">
           <button
-            onClick={() => setShowWishlistOption(true)}
+            onClick={handleRemove}
             className="action-btn"
             disabled={isRemoving}
             aria-label="Remove item from cart"
@@ -154,38 +145,6 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
           </button>
         </div>
       </div>
-
-      {showWishlistOption && (
-        <div className="wishlist-modal">
-          <div className="wishlist-modal-content">
-            <h3>Remove Item</h3>
-            <p>Do you want to move this item to your wishlist?</p>
-            <div className="wishlist-modal-actions">
-              <button
-                onClick={() => handleRemove(true)}
-                disabled={isRemoving}
-                className="btn-wishlist"
-              >
-                Move to Wishlist
-              </button>
-              <button
-                onClick={() => handleRemove(false)}
-                disabled={isRemoving}
-                className="btn-remove"
-              >
-                Remove
-              </button>
-              <button
-                onClick={() => setShowWishlistOption(false)}
-                disabled={isRemoving}
-                className="btn-cancel"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

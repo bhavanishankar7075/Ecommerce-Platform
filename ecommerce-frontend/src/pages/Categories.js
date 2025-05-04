@@ -25,7 +25,7 @@ function Categories() {
         'Top Wear', 'Bottom Wear', 'Casual Shoes', 'Watches', 'Ethnic', 'Sports Shoes',
         'Luggage', 'Trimmers', 'Essentials', 'Men Grooming'
       ],
-      Women: ['Dresses', 'Tops', 'Footwear', 'Jewelry', 'Handbags', 'Accessories'],
+      Women: ['Dresses', 'Top Wear', 'Footwear', 'Jewelry', 'Handbags', 'Accessories'],
       Beauty: ['Skincare', 'Makeup', 'Haircare', 'Fragrances']
     },
     Gadgets: {
