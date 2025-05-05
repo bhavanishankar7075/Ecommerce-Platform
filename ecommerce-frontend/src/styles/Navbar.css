@@ -5,13 +5,11 @@
   transition: background-color 0.3s ease;
 }
 
-/* White background for Home route */
 .navbar-white {
   background-color: #fff;
   height: 70px;
 }
 
-/* Blue background for Products, Product Details, and Orders routes */
 .navbar-blue {
   background-color: #2874f0;
   height: 70px;
@@ -24,14 +22,21 @@
   max-width: 1280px;
   margin: 0 auto;
   flex-wrap: nowrap;
-  gap: 15px;
+  gap: 20px;
+  height: 100%; /* Ensure the container takes the full height of the navbar */
 }
 
-/* Logo */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0; /* Prevent the logo container from shrinking */
+}
+
 .navbar-logo {
-  height: 30px;
+  height: 48px;
   width: auto;
-  margin-right: 20px;
+  display: block;
+  object-fit: contain;
   transition: transform 0.3s ease;
 }
 
@@ -39,54 +44,53 @@
   transform: scale(1.05);
 }
 
-/* Search Container */
 .search-container1 {
   flex: 1;
   position: relative;
   margin: 0 20px;
-  max-width: 600px;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  padding: 0;
+  max-width: 500px; /* Reduced max-width for a more compact look */
+  min-width: 300px; /* Ensure it doesn't shrink too much */
+  display: flex;
+  align-items: center;
 }
 
 .search-bar1 {
   display: flex;
   align-items: center;
-  border-radius: 4px;
-  box-shadow: none;
-  transition: border-color 0.3s ease;
-  border: 1px solid #e0e0e0;
-} 
-
- .navbar-blue .search-bar1 {
   background-color: #fff;
-} 
-
-.search-bar1:hover {
-  border-color: #2874f0;
+  border: #333 solid 1px;
+  border-radius: 6px; /* Slightly larger border-radius for a modern look */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 8px 12px;
+  width: 400px; /* Ensure the search bar takes the full width of its container */
+  height: 60px; /* Fixed height to fit within the navbar */
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
 }
 
-.search-input {
+
+
+ .search-input1{
   flex: 1;
   border: none;
   outline: none;
   font-size: 14px;
   color: #333;
   background-color: transparent;
-}
+  width: 100%; 
+  height: 100%;
+  padding: 0;
+} 
 
-.search-input::placeholder {
+ .search-input::placeholder {
   color: #999;
   font-style: italic;
-}
+} 
 
 .search-results {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  width: 100%;
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
@@ -122,14 +126,14 @@
   border: 1px solid #e0e0e0;
 }
 
-/* Nav Links */
 .nav-links {
   display: flex;
   align-items: center;
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 25px;
+  gap: 30px;
+  flex-shrink: 0; /* Prevent nav links from shrinking */
 }
 
 .nav-item {
@@ -188,7 +192,6 @@
   font-size: 12px;
 }
 
-/* Dropdown Menu */
 .account-dropdown:hover .dropdown-menu {
   display: block;
 }
@@ -278,7 +281,6 @@
   display: inline-block;
 }
 
-/* Cart Link */
 .cart-link {
   position: relative;
   padding: 5px 10px;
@@ -291,7 +293,7 @@
 }
 
 .navbar-blue .cart-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255,  0.1);
 }
 
 .cart-link i {
@@ -310,11 +312,10 @@
   font-weight: 500;
 }
 
-/* Mini Navbar */
 .mini-navbar {
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 5px 0;
+  padding: 10px 0;
   position: sticky;
   top: 70px;
   z-index: 900;
@@ -325,8 +326,8 @@
   align-items: center;
   list-style: none;
   margin: 0 auto;
-  padding: 0;
-  gap: 20px;
+  padding: 0 20px;
+  gap: 25px;
   max-width: 1280px;
 }
 
@@ -408,7 +409,6 @@
   color: #2874f0;
 }
 
-/* Bottom Navigation */
 .bottom-nav {
   display: none;
   background-color: #fff;
@@ -480,44 +480,25 @@
   }
 
   .navbar-logo {
-    height: 24px;
+    height: 70px;
     width: auto;
-    margin-right: 10px;
   }
 
   .search-container1 {
     flex: 1;
     margin: 0 10px;
     max-width: none;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
+    min-width: 200px;
   }
 
-  .navbar-blue .search-container1 {
-    background: transparent;
+  .search-bar1 {
+    padding: 6px 10px;
+    border-radius: 4px;
+    height: 36px;
   }
 
-  /* .search-bar1 {
-    border-radius: 3px;
-    border: 1px solid #d0d8e8;
-    box-shadow: none;
-  } */
-
-  
-
-  .search-bar1:hover {
-    border-color: #2874f0;
-  }
-
-  .search-input {
+  .search-input1 {
     font-size: 13px;
-    color: #333;
-  }
-
-  .search-input::placeholder {
-    color: #999;
   }
 
   .search-results {
@@ -576,42 +557,24 @@
   }
 
   .navbar-logo {
-    height: 28px;
+    height: 80px;
     width: auto;
-    margin-right: 15px;
   }
 
   .search-container1 {
     flex: 1;
     margin: 0 15px;
-    max-width: 500px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
+    max-width: 400px;
+    min-width: 250px;
   }
 
-  .navbar-blue .search-container1 {
-    background: transparent;
-  }
-
-  /* .search-bar1 {
+  .search-bar1 {
     padding: 7px 10px;
-    border-radius: 3px;
-    border: 1px solid #e0e0e0;
-    box-shadow: none;
-  } */
-
-  .navbar-blue .search-bar1 {
-    background-color: #fff;
-    border-color: #d0d8e8;
+    border-radius: 5px;
+    height: 38px;
   }
 
-  .search-bar1:hover {
-    border-color: #2874f0;
-  }
-
-  .search-input {
+  .search-input1 {
     font-size: 14px;
   }
 
@@ -642,7 +605,8 @@
   }
 
   .mini-nav-links {
-    gap: 15px;
+    gap: 20px;
+    padding: 0 15px;
   }
 
   .mini-nav-link {
@@ -671,6 +635,10 @@
   .bottom-nav {
     display: none;
   }
+
+  .mini-navbar {
+    top: 65px;
+  }
 }
 
 /* Desktop Devices (992px and above) */
@@ -691,18 +659,17 @@
 
   .search-container1 {
     margin: 0 20px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-  }
-
-  .navbar-blue .search-container1 {
-    background: transparent;
+    max-width: 500px;
+    min-width: 300px;
   }
 
   .search-bar1 {
-    box-shadow: none;
+    padding: 8px 12px;
+    height: 40px;
+  }
+
+  .search-input1 {
+    font-size: 14px;
   }
 
   .bottom-nav {
@@ -710,13 +677,13 @@
   }
 
   .navbar-logo {
-    height: 30px;
+    height: 90px;
     width: auto;
-    margin-right: 20px;
   }
 
   .mini-nav-links {
-    gap: 20px;
+    gap: 25px;
+    padding: 0 20px;
   }
 
   .mini-nav-link {
