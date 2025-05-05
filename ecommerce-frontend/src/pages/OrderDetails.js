@@ -82,6 +82,7 @@ Order Details:
       year: 'numeric',
     })}
 - Product: ${item.name}
+- Size: ${item.size || 'N/A'}
 - Price: ₹${item.price.toFixed(2)}
 - Status: ${order.status}
 - Shipping Address:
@@ -186,10 +187,8 @@ Order Details:
   const currentStatus = order.status;
   const isCancelled = currentStatus === 'Cancelled';
   const currentStepIndex = isCancelled ? -1 : statusSteps.indexOf(currentStatus);
-  // Adjust progressPercentage to start at 0 for "Pending" (first step)
   const progressPercentage = isCancelled || currentStepIndex === 0 ? 0 : ((currentStepIndex) / (statusSteps.length - 1)) * 100;
 
-  // Status history with timestamps (assuming order.statusHistory exists)
   const statusHistory = order.statusHistory || [];
 
   return (
@@ -198,7 +197,6 @@ Order Details:
         <h1 className="order-details-title">Order Details</h1>
         {error && <p className="error-message">{error}</p>}
         <div className="order-details-content">
-          {/* Left Section: Product Details and Status */}
           <div className="order-details-left">
             <div className="order-meta">
               <p><strong>Order ID:</strong> {order._id}</p>
@@ -225,6 +223,7 @@ Order Details:
               />
               <div className="product-info">
                 <h2 className="product-name">{item.name}</h2>
+                {item.size && <p className="product-size">Size: {item.size}</p>}
                 <p className="product-price">₹{item.price.toFixed(2)}</p>
               </div>
             </div>
@@ -247,9 +246,8 @@ Order Details:
             <div className="status-tracker">
               <h3>Order Status</h3>
               <div className="status-progress">
-                {statusSteps.map((step, index) => {
-                  const statusEntry = statusHistory.find((entry) => entry.status === step);
-                  return (
+                <div className="status-steps-container">
+                  {statusSteps.map((step, index) => (
                     <div
                       key={step}
                       className={`status-step ${
@@ -259,8 +257,38 @@ Order Details:
                       <div className="status-circle"></div>
                       <div className="status-info">
                         <span>{step}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {isCancelled && (
+                    <div className="status-step cancelled">
+                      <div className="status-circle"></div>
+                      <div className="status-info">
+                        <span>Cancelled</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="progress-bar">
+                    <div
+                      className={`progress-fill ${progressPercentage > 0 ? 'visible' : ''}`}
+                      style={{
+                        width: `${progressPercentage}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="status-timestamps">
+                  {statusSteps.map((step, index) => {
+                    const statusEntry = statusHistory.find((entry) => entry.status === step);
+                    return (
+                      <div
+                        key={step}
+                        className={`status-timestamp ${
+                          isCancelled ? 'cancelled' : index <= currentStepIndex ? 'completed' : ''
+                        }`}
+                      >
                         {statusEntry && (
-                          <p className="status-timestamp">
+                          <p>
                             {new Date(statusEntry.timestamp).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -270,16 +298,12 @@ Order Details:
                           </p>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-                {isCancelled && (
-                  <div className="status-step cancelled">
-                    <div className="status-circle"></div>
-                    <div className="status-info">
-                      <span>Cancelled</span>
+                    );
+                  })}
+                  {isCancelled && (
+                    <div className="status-timestamp cancelled">
                       {statusHistory.find((entry) => entry.status === 'Cancelled') && (
-                        <p className="status-timestamp">
+                        <p>
                           {new Date(
                             statusHistory.find((entry) => entry.status === 'Cancelled').timestamp
                           ).toLocaleString('en-US', {
@@ -291,15 +315,7 @@ Order Details:
                         </p>
                       )}
                     </div>
-                  </div>
-                )}
-                <div className="progress-bar">
-                  <div
-                    className={`progress-fill ${progressPercentage > 0 ? 'visible' : ''}`}
-                    style={{
-                      width: `${progressPercentage}%`,
-                    }}
-                  ></div>
+                  )}
                 </div>
               </div>
             </div>
@@ -311,7 +327,6 @@ Order Details:
             </div>
           </div>
 
-          {/* Right Section: Shipping Address and Price Details */}
           <div className="order-details-right">
             <div className="shipping-address">
               <h3>Shipping Address</h3>
@@ -406,8 +421,15 @@ export default OrderDetails;
 
 
 
-/* // OrderDetails.js
-import { useState, useEffect } from 'react';
+
+
+
+
+
+
+
+
+/* import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -420,6 +442,7 @@ function OrderDetails() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -490,6 +513,7 @@ Order Details:
       year: 'numeric',
     })}
 - Product: ${item.name}
+- Size: ${item.size || 'N/A'}
 - Price: ₹${item.price.toFixed(2)}
 - Status: ${order.status}
 - Shipping Address:
@@ -517,6 +541,44 @@ Order Details:
         setError('Failed to copy order details to clipboard.');
       });
     }
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!user || !user._id) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const item = order.items[0];
+      if (isInWishlist) {
+        const wishlistItem = await axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const itemToRemove = wishlistItem.data.find((item) => item.productId?._id === item.productId._id);
+        if (itemToRemove) {
+          await axios.delete(`https://backend-ps76.onrender.com/api/wishlist/${itemToRemove._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setIsInWishlist(false);
+        }
+      } else {
+        await axios.post(
+          'https://backend-ps76.onrender.com/api/wishlist',
+          { userId: user._id, productId: item.productId._id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setIsInWishlist(true);
+      }
+    } catch (err) {
+      console.error('Error updating wishlist:', err);
+      setError(err.response?.data?.message || 'Failed to update wishlist.');
+    }
+  };
+
+  const handleReorder = () => {
+    const item = order.items[0];
+    navigate(`/product/${item.productId._id}`);
   };
 
   if (authLoading || loading) {
@@ -556,14 +618,12 @@ Order Details:
   const currentStatus = order.status;
   const isCancelled = currentStatus === 'Cancelled';
   const currentStepIndex = isCancelled ? -1 : statusSteps.indexOf(currentStatus);
-  const progressPercentage = isCancelled ? 0 : ((currentStepIndex + 1) / statusSteps.length) * 100;
-  const progressHeight = isCancelled ? 0 : ((currentStepIndex + 1) / statusSteps.length) * 100;
+  const progressPercentage = isCancelled || currentStepIndex === 0 ? 0 : ((currentStepIndex) / (statusSteps.length - 1)) * 100;
 
-  // Status history with timestamps (assuming order.statusHistory exists)
   const statusHistory = order.statusHistory || [];
 
   return (
-    <div className="order-details-container my-5 py-5">
+    <div className="order-details-container">
       <div className="order-details-scrollable">
         <h1 className="order-details-title">Order Details</h1>
         {error && <p className="error-message">{error}</p>}
@@ -594,8 +654,24 @@ Order Details:
               />
               <div className="product-info">
                 <h2 className="product-name">{item.name}</h2>
+                {item.size && <p className="product-size">Size: {item.size}</p>}
                 <p className="product-price">₹{item.price.toFixed(2)}</p>
               </div>
+            </div>
+
+            <div className="product-actions">
+              <button
+                className="wishlist-button"
+                onClick={handleWishlistToggle}
+              >
+                {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              </button>
+              <button
+                className="reorder-button"
+                onClick={handleReorder}
+              >
+                Reorder
+              </button>
             </div>
 
             <div className="status-tracker">
@@ -615,12 +691,15 @@ Order Details:
                         <span>{step}</span>
                         {statusEntry && (
                           <p className="status-timestamp">
+                            <div className='status-time'>
+
                             {new Date(statusEntry.timestamp).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
                               hour: 'numeric',
                               minute: 'numeric',
                             })}
+                            </div>
                           </p>
                         )}
                       </div>
@@ -633,7 +712,7 @@ Order Details:
                     <div className="status-info">
                       <span>Cancelled</span>
                       {statusHistory.find((entry) => entry.status === 'Cancelled') && (
-                        <p className="status-timestamp">
+                        <p className="status-timestamp ">
                           {new Date(
                             statusHistory.find((entry) => entry.status === 'Cancelled').timestamp
                           ).toLocaleString('en-US', {
@@ -649,10 +728,9 @@ Order Details:
                 )}
                 <div className="progress-bar">
                   <div
-                    className="progress-fill"
+                    className={`progress-fill ${progressPercentage > 0 ? 'visible' : ''}`}
                     style={{
-                      width: window.innerWidth >= 768 ? `${progressPercentage}%` : '100%',
-                      height: window.innerWidth < 768 ? `${progressHeight}%` : '100%',
+                      width: `${progressPercentage}%`,
                     }}
                   ></div>
                 </div>
@@ -738,4 +816,6 @@ Order Details:
   );
 }
 
-export default OrderDetails; */
+export default OrderDetails;
+
+ */

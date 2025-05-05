@@ -15,7 +15,6 @@ function OrderItem({
   handleAddToWishlist,
   handleRemoveFromWishlist,
   wishlistMessages,
-  handleReorder,
   variantDetails,
 }) {
   const key = `${order._id}_${item.productId}`;
@@ -77,11 +76,6 @@ function OrderItem({
           })}
         </p>
         <div className="actions-container">
-          {index === 0 && (
-            <button className="reorder-btn" onClick={() => handleReorder(order)}>
-              Reorder
-            </button>
-          )}
           <div className="wishlist-actions">
             {isInWishlist ? (
               <button

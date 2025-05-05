@@ -3,28 +3,26 @@
   max-width: 1400px;
   margin: 0 auto;
   background-color: #f5f5f5;
-  min-height: 100vh; /* Ensure the container takes full height */
+  min-height: 100vh;
   position: relative;
 }
 
-/* Scrollable content area */
 .order-details-scrollable {
   padding: 20px;
-  padding-top: 80px; /* Space for top navbar */
-  padding-bottom: 80px; /* Space for bottom navbar */
-  overflow-y: auto; /* Enable vertical scrolling */
-  height: calc(100vh - 160px); /* Viewport height minus top and bottom navbars */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  padding-top: 80px;
+  padding-bottom: 80px;
+  overflow-y: auto;
+  height: calc(100vh - 160px);
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Hide scrollbar but keep it functional */
 .order-details-scrollable::-webkit-scrollbar {
-  display: none; /* Hide scrollbar for Chrome, Safari, Edge */
+  display: none;
 }
 
 .order-details-scrollable {
-  -ms-overflow-style: none; /* Hide scrollbar for IE and Edge */
-  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .order-details-title {
@@ -47,7 +45,6 @@
   gap: 20px;
 }
 
-/* Left Section */
 .order-details-left {
   flex: 2;
   background-color: #fff;
@@ -59,7 +56,6 @@
   gap: 15px;
 }
 
-/* Order Meta (Order ID and Date) */
 .order-meta {
   margin-bottom: 15px;
 }
@@ -104,6 +100,12 @@
   margin-bottom: 8px;
 }
 
+.product-size {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
 .product-price {
   font-size: 16px;
   font-weight: 500;
@@ -111,7 +113,6 @@
   margin-bottom: 12px;
 }
 
-/* Product Actions (Wishlist and Reorder Buttons) */
 .product-actions {
   display: flex;
   gap: 10px;
@@ -148,7 +149,6 @@
   color: #fff;
 }
 
-/* Status Tracker */
 .status-tracker {
   margin-top: 15px;
 }
@@ -160,21 +160,23 @@
   margin-bottom: 15px;
 }
 
-/* Horizontal layout for all screen sizes */
 .status-progress {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 0;
+}
+
+.status-steps-container {
   display: flex;
   flex-direction: row;
   align-items: center;
   position: relative;
-  padding: 0;
 }
 
 .status-step {
   flex: 1;
   text-align: center;
-  margin-bottom: 0;
-  display: block;
-  gap: 0;
   padding: 0 5px;
 }
 
@@ -223,13 +225,32 @@
   font-weight: 600;
 }
 
-.status-timestamp {
-  font-size: 12px;
-  color: #999;
-  margin-top: 2px;
+.status-timestamps {
+  display: flex;
+  flex-direction: row;
+  margin-top: 10px;
 }
 
-/* Horizontal progress bar for all screen sizes */
+.status-timestamp {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+  padding: 0 5px;
+}
+
+.status-timestamp.completed {
+  color: #28a745;
+}
+
+.status-timestamp.cancelled {
+  color: #e63946;
+}
+
+.status-timestamp p {
+  margin: 0;
+}
+
 .status-progress .progress-bar {
   position: absolute;
   top: 6px;
@@ -242,17 +263,16 @@
 }
 
 .status-progress .progress-fill {
-  width: 0; /* Hidden by default */
+  width: 0;
   height: 100%;
   background-color: #28a745;
   transition: width 0.3s ease;
 }
 
 .status-progress .progress-fill.visible {
-  width: 100%; /* Controlled by inline style */
+  width: 100%;
 }
 
-/* Order Actions (Share Button) */
 .order-actions {
   margin-top: 20px;
 }
@@ -273,11 +293,11 @@
   background-color: #007bff;
   color: #fff;
 }
-.names{
+
+.names {
   color: #090606;
 }
 
-/* Right Section */
 .order-details-right {
   flex: 1;
   display: flex;
@@ -343,7 +363,6 @@
   margin-top: 10px;
 }
 
-/* Skeleton Loading */
 .skeleton {
   background-color: #f0f0f0;
   border-radius: 4px;
@@ -432,6 +451,10 @@
     font-size: 16px;
   }
 
+  .product-size {
+    font-size: 13px;
+  }
+
   .product-price {
     font-size: 14px;
   }
@@ -462,6 +485,7 @@
 
   .status-timestamp {
     font-size: 10px;
+    padding: 0 3px;
   }
 
   .status-circle {
@@ -535,6 +559,10 @@
     font-size: 17px;
   }
 
+  .product-size {
+    font-size: 14px;
+  }
+
   .product-price {
     font-size: 15px;
   }
@@ -564,6 +592,7 @@
 
   .status-timestamp {
     font-size: 11px;
+    padding: 0 4px;
   }
 
   .status-circle {
@@ -636,6 +665,10 @@
     font-size: 18px;
   }
 
+  .product-size {
+    font-size: 14px;
+  }
+
   .product-price {
     font-size: 16px;
   }
@@ -666,6 +699,7 @@
 
   .status-timestamp {
     font-size: 12px;
+    padding: 0 10px;
   }
 
   .share-button {
@@ -728,6 +762,10 @@
     font-size: 20px;
   }
 
+  .product-size {
+    font-size: 14px;
+  }
+
   .product-price {
     font-size: 16px;
   }
@@ -758,6 +796,7 @@
 
   .status-timestamp {
     font-size: 12px;
+    padding: 0 10px;
   }
 
   .share-button {
