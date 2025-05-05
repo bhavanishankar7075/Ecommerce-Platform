@@ -61,7 +61,7 @@
   border: #333 solid 1px;
   border-radius: 6px; /* Slightly larger border-radius for a modern look */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 8px 12px;
+  padding: 8px 12px; 
   width: 400px; /* Ensure the search bar takes the full width of its container */
   height: 60px; /* Fixed height to fit within the navbar */
   transition: box-shadow 0.3s ease, transform 0.2s ease;
