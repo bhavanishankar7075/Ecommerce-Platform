@@ -1,4 +1,3 @@
-/* Signup.css */
 .signup-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); /* Space-themed gradient */
@@ -22,10 +21,10 @@
 /* Scrollable content area */
 .signup-scrollable {
   padding: 20px;
-  padding-top: 80px; /* Space for top navbar */
-  padding-bottom: 80px; /* Space for bottom navbar on mobile */
+  padding-top: 60px; /* Reduced space for top navbar */
+  padding-bottom: 60px; /* Reduced space for bottom navbar on mobile */
   overflow-y: auto;
-  height: calc(100vh - 160px); /* Viewport height minus top and bottom navbars */
+  height: calc(100vh - 120px); /* Adjusted height to fit reduced padding */
   -webkit-overflow-scrolling: touch;
   display: flex;
   justify-content: center;
@@ -52,7 +51,7 @@
   font-size: 28px;
   font-weight: 600;
   color: #fff;
-  margin-bottom: 20px;
+  margin-bottom: 15px; /* Reduced margin to make the form more compact */
   text-align: center;
 }
 
@@ -60,29 +59,37 @@
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 30px;
+  padding: 20px; /* Reduced padding to make the card more compact */
 }
 
 .signup-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px; /* Reduced gap between input groups for a tighter layout */
+}
+
+.suggestion-text {
+  font-size: 0.8em; /* Slightly smaller font size */
+  color: #666;
+  margin-top: 2px; /* Reduced margin to minimize space */
+  margin-bottom: 0; /* Ensure no extra space below */
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px; /* Reduced gap within input group for tighter spacing */
 }
 
 .input-label {
   font-size: 14px;
   font-weight: 500;
   color: #333;
+  margin-bottom: 2px; /* Reduced margin to minimize space */
 }
 
 .input-field {
-  padding: 10px;
+  padding: 8px; /* Slightly reduced padding for a more compact input */
   font-size: 14px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
@@ -112,22 +119,25 @@
 .error-message {
   background-color: #ffe6e6;
   color: #e63946;
-  padding: 10px;
+  padding: 6px; /* Reduced padding for a more compact error message */
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px; /* Slightly smaller font size */
   text-align: center;
+  margin-top: 4px; /* Reduced margin to minimize space */
+  margin-bottom: 0; /* Ensure no extra space below */
 }
 
 .signup-btn {
   background-color: #007bff;
   color: #fff;
-  padding: 12px;
+  padding: 10px; /* Slightly reduced padding */
   border: none;
   border-radius: 6px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  margin-top: 8px; /* Reduced margin to tighten the layout */
 }
 
 .signup-btn:hover {
@@ -140,7 +150,7 @@
 }
 
 .login-link {
-  margin-top: 20px;
+  margin-top: 15px; /* Reduced margin to make the form more compact */
   font-size: 14px;
   color: black;
   text-align: center;
@@ -174,9 +184,12 @@
 @media (max-width: 575.98px) {
   .signup-scrollable {
     padding: 15px;
-    padding-top: 70px;
-    padding-bottom: 70px;
-    height: calc(100vh - 140px);
+    padding-top: 50px; /* Further reduced for mobile */
+    padding-bottom: 50px;
+    height: calc(100vh - 100px); /* Adjusted height */
+  }
+  .signup-title{
+    margin-top: 40px;
   }
 
   .signup-content {
@@ -185,23 +198,34 @@
 
   .signup-title {
     font-size: 22px;
+    margin-bottom: 12px; /* Reduced margin */
   }
 
   .signup-card {
-    padding: 20px;
+    padding: 15px; /* Further reduced padding */
   }
 
   .signup-form {
-    gap: 15px;
+    gap: 10px; /* Further reduced gap */
+  }
+
+  .input-group {
+    gap: 3px; /* Further reduced gap */
   }
 
   .input-label {
     font-size: 13px;
+    margin-bottom: 1px; /* Reduced margin */
   }
 
   .input-field {
     font-size: 13px;
-    padding: 8px;
+    padding: 6px; /* Reduced padding */
+  }
+
+  .suggestion-text {
+    font-size: 0.75em; /* Smaller font for mobile */
+    margin-top: 1px; /* Further reduced margin */
   }
 
   .match-indicator {
@@ -209,27 +233,33 @@
   }
 
   .error-message {
-    font-size: 13px;
-    padding: 8px;
+    font-size: 12px; /* Smaller font for mobile */
+    padding: 5px; /* Reduced padding */
+    margin-top: 3px; /* Reduced margin */
   }
 
   .signup-btn {
     font-size: 14px;
-    padding: 10px;
+    padding: 8px; /* Reduced padding */
+    margin-top: 6px; /* Reduced margin */
   }
 
   .login-link {
     font-size: 13px;
+    margin-top: 12px; /* Reduced margin */
   }
 }
 
 /* Medium Devices (576px to 767.98px) */
 @media (min-width: 576px) and (max-width: 767.98px) {
   .signup-scrollable {
-    padding: 20px;
-    padding-top: 70px;
-    padding-bottom: 70px;
-    height: calc(100vh - 140px);
+    padding: 15px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+    height: calc(100vh - 100px);
+  }
+  .signup-title{
+    margin-top: 105px;
   }
 
   .signup-content {
@@ -238,23 +268,34 @@
 
   .signup-title {
     font-size: 24px;
+    margin-bottom: 12px;
   }
 
   .signup-card {
-    padding: 25px;
+    padding: 20px;
   }
 
   .signup-form {
-    gap: 18px;
+    gap: 10px;
+  }
+
+  .input-group {
+    gap: 3px;
   }
 
   .input-label {
     font-size: 14px;
+    margin-bottom: 2px;
   }
 
   .input-field {
     font-size: 14px;
-    padding: 10px;
+    padding: 8px;
+  }
+
+  .suggestion-text {
+    font-size: 0.8em;
+    margin-top: 2px;
   }
 
   .match-indicator {
@@ -262,16 +303,20 @@
   }
 
   .error-message {
-    font-size: 14px;
+    font-size: 13px;
+    padding: 6px;
+    margin-top: 3px;
   }
 
   .signup-btn {
     font-size: 15px;
-    padding: 12px;
+    padding: 10px;
+    margin-top: 8px;
   }
 
   .login-link {
     font-size: 14px;
+    margin-top: 15px;
   }
 }
 
@@ -279,9 +324,9 @@
 @media (min-width: 768px) and (max-width: 991.98px) {
   .signup-scrollable {
     padding: 20px;
-    padding-top: 70px;
+    padding-top: 60px;
     padding-bottom: 20px;
-    height: calc(100vh - 90px);
+    height: calc(100vh - 80px);
   }
 
   .signup-content {
@@ -290,23 +335,35 @@
 
   .signup-title {
     font-size: 26px;
+    margin-bottom: 15px;
+    margin-top: 105px;
   }
 
   .signup-card {
-    padding: 30px;
+    padding: 25px;
   }
 
   .signup-form {
-    gap: 20px;
+    gap: 12px;
+  }
+
+  .input-group {
+    gap: 4px;
   }
 
   .input-label {
     font-size: 14px;
+    margin-bottom: 2px;
   }
 
   .input-field {
     font-size: 14px;
-    padding: 10px;
+    padding: 8px;
+  }
+
+  .suggestion-text {
+    font-size: 0.8em;
+    margin-top: 2px;
   }
 
   .match-indicator {
@@ -314,26 +371,30 @@
   }
 
   .error-message {
-    font-size: 14px;
+    font-size: 13px;
+    padding: 6px;
+    margin-top: 4px;
   }
 
   .signup-btn {
     font-size: 16px;
-    padding: 12px;
+    padding: 10px;
+    margin-top: 8px;
   }
 
   .login-link {
     font-size: 14px;
+    margin-top: 15px;
   }
 }
 
 /* Extra Large Devices (992px and above) */
 @media (min-width: 992px) {
   .signup-scrollable {
-    padding: 30px;
-    padding-top: 80px;
+    padding: 20px;
+    padding-top: 60px;
     padding-bottom: 20px;
-    height: calc(100vh - 100px);
+    height: calc(100vh - 80px);
   }
 
   .signup-content {
@@ -342,23 +403,35 @@
 
   .signup-title {
     font-size: 28px;
+    margin-bottom: 15px;
+    margin-top: 105px;
   }
 
   .signup-card {
-    padding: 30px;
+    padding: 20px;
   }
 
   .signup-form {
-    gap: 20px;
+    gap: 12px;
+  }
+
+  .input-group {
+    gap: 4px;
   }
 
   .input-label {
     font-size: 14px;
+    margin-bottom: 2px;
   }
 
   .input-field {
     font-size: 14px;
-    padding: 10px;
+    padding: 8px;
+  }
+
+  .suggestion-text {
+    font-size: 0.8em;
+    margin-top: 2px;
   }
 
   .match-indicator {
@@ -366,15 +439,19 @@
   }
 
   .error-message {
-    font-size: 14px;
+    font-size: 13px;
+    padding: 6px;
+    margin-top: 4px;
   }
 
   .signup-btn {
     font-size: 16px;
-    padding: 12px;
+    padding: 10px;
+    margin-top: 8px;
   }
 
   .login-link {
     font-size: 14px;
+    margin-top: 15px;
   }
 }
