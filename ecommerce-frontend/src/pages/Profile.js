@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext'; // Import useCart
+import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Profile.css';
 
 function Profile() {
   const { user, logout, loading: authLoading, updateUser } = useAuth();
-  const { cart } = useCart(); // Get cart from CartContext
+  const { cart } = useCart();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState({
     username: '',
@@ -28,6 +28,9 @@ function Profile() {
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+  });
+  const [showPassword, setShowPassword] = useState({
+    currentPassword: false,
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [error, setError] = useState('');
@@ -50,10 +53,8 @@ function Profile() {
   const [showSavedAddress, setShowSavedAddress] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
 
-  // Calculate cart count (total number of items in the cart)
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
-  // Responsive handling
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -61,7 +62,6 @@ function Profile() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sync profile data with user data
   useEffect(() => {
     if (authLoading) {
       setLoading(true);
@@ -74,62 +74,57 @@ function Profile() {
     }
 
     if (user && user._id) {
-      const newProfileData = {
-        username: user.username || '',
-        email: user.email || '',
-        address: user.address || '',
-        avatar: user.avatar || '/default-avatar.jpg',
-        shippingAddress: user.shippingAddress || {
-          fullName: '',
-          address: '',
-          city: '',
-          postalCode: '',
-          country: '',
-          phoneNumber: '',
-        },
+      const loadProfileData = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const [profileRes, ordersRes, wishlistRes] = await Promise.all([
+            axios.get('https://backend-ps76.onrender.com/api/users/profile', {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`https://backend-ps76.onrender.com/api/orders/user/${user._id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          ]);
+
+          const updatedUser = profileRes.data;
+          const avatarUrl = updatedUser.avatar
+            ? updatedUser.avatar.startsWith('http')
+              ? updatedUser.avatar
+              : `https://backend-ps76.onrender.com${updatedUser.avatar}`
+            : '/default-avatar.jpg';
+          const newProfileData = {
+            username: updatedUser.username || '',
+            email: updatedUser.email || '',
+            address: updatedUser.address || '',
+            avatar: avatarUrl,
+            shippingAddress: updatedUser.shippingAddress || {
+              fullName: '',
+              address: '',
+              city: '',
+              postalCode: '',
+              country: '',
+              phoneNumber: '',
+            },
+          };
+          setProfileData(newProfileData);
+          setShippingAddressForm(newProfileData.shippingAddress);
+          setOrders(ordersRes.data || []);
+          setWishlist(wishlistRes.data || []);
+        } catch (err) {
+          console.error('Error loading profile data:', err);
+          setError(err.response?.data?.message || 'Failed to load profile data');
+        } finally {
+          setLoading(false);
+        }
       };
-      setProfileData(newProfileData);
-      setShippingAddressForm(newProfileData.shippingAddress);
-      fetchOrders();
+      loadProfileData();
     } else {
       setLoading(false);
     }
   }, [user, authLoading, navigate, isLoggingOut]);
-
-  // Fetch wishlist on mount
-  useEffect(() => {
-    if (user && user._id) {
-      const fetchWishlist = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const res = await axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setWishlist(res.data || []);
-        } catch (err) {
-          console.error('Error fetching wishlist:', err);
-          setError(err.response?.data?.message || 'Failed to load wishlist');
-        }
-      };
-      fetchWishlist();
-    }
-  }, [user]);
-
-  const fetchOrders = async () => {
-    try {
-      if (!user?._id) throw new Error('User ID is undefined');
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`https://backend-ps76.onrender.com/api/orders/user/${user._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setOrders(res.data || []);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError(err.response?.data?.message || 'Failed to load orders');
-      setLoading(false);
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -144,6 +139,10 @@ function Profile() {
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   const handleSaveProfile = async () => {
@@ -478,7 +477,6 @@ function Profile() {
             {error && <p className="error-pod">{error}</p>}
           </header>
           <section className="accordion-container">
-            {/* Profile Section */}
             <div className="accordion-item">
               <button
                 className={`accordion-header ${activeSection === 'profile' ? 'active' : ''}`}
@@ -618,7 +616,6 @@ function Profile() {
               )}
             </div>
 
-            {/* Update Shipping Address Section */}
             <div className="accordion-item">
               <button
                 className={`accordion-header ${activeSection === 'shipping' ? 'active' : ''}`}
@@ -678,7 +675,7 @@ function Profile() {
                         type="text"
                         name="phoneNumber"
                         value={shippingAddressForm.phoneNumber}
-                        onClick={handleShippingAddressChange}
+                        onChange={handleShippingAddressChange}
                         className="input-field"
                         placeholder="Phone Number"
                       />
@@ -696,7 +693,6 @@ function Profile() {
               )}
             </div>
 
-            {/* Orders Section - Now Navigates to /orders */}
             <div className="accordion-item">
               <button
                 className="accordion-header"
@@ -706,7 +702,6 @@ function Profile() {
               </button>
             </div>
 
-            {/* Change Password Section */}
             <div className="accordion-item">
               <button
                 className={`accordion-header ${activeSection === 'password' ? 'active' : ''}`}
@@ -722,14 +717,23 @@ function Profile() {
                   <div className="stellar-card password-pod">
                     <h3 className="card-title">Change Password</h3>
                     <div className="password-form">
-                      <input
-                        type="password"
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Current Password"
-                        className="input-field"
-                      />
+                      <div className="password-input-wrapper">
+                        <input
+                          type={showPassword.currentPassword ? 'text' : 'password'}
+                          name="currentPassword"
+                          value={passwordData.currentPassword}
+                          onChange={handlePasswordChange}
+                          placeholder="Current Password"
+                          className="input-field"
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle"
+                          onClick={() => togglePasswordVisibility('currentPassword')}
+                        >
+                          <i className={`fas ${showPassword.currentPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                       <input
                         type="password"
                         name="newPassword"

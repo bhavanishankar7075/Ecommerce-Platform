@@ -86,6 +86,12 @@
   color: #0056b3;
 }
 
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .sidebar-nav .nav-btn {
   display: flex;
   align-items: center;
@@ -496,6 +502,34 @@
   resize: vertical;
 }
 
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #bbdefb;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.light-mode .password-toggle {
+  color: #007bff;
+}
+
+.password-toggle:hover {
+  color: #90caf9;
+}
+
+.light-mode .password-toggle:hover {
+  color: #0056b3;
+}
+
 .action-cluster {
   margin-top: 15px;
   display: flex;
@@ -879,6 +913,19 @@
 
   .stellar-sidebar {
     width: 100%;
+    position: static;
+  }
+
+  .sidebar-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .sidebar-nav .nav-btn {
+    margin: 0;
+    padding: 8px;
+    font-size: 0.9rem;
   }
 
   .cosmic-dashboard {
@@ -916,5 +963,3 @@
     font-size: 1rem;
   }
 }
-
-
