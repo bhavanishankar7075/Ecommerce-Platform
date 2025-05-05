@@ -34,7 +34,7 @@ function Profile() {
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingShipping, setIsEditingShipping] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -74,66 +74,98 @@ function Profile() {
     }
 
     if (user && user._id) {
-      const loadProfileData = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const [profileRes, ordersRes, wishlistRes] = await Promise.all([
-            axios.get('https://backend-ps76.onrender.com/api/users/profile', {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            axios.get(`https://backend-ps76.onrender.com/api/orders/user/${user._id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-          ]);
+      // Check if data exists in localStorage
+      const cachedProfile = localStorage.getItem('profileData');
+      const cachedOrders = localStorage.getItem('ordersData');
+      const cachedWishlist = localStorage.getItem('wishlistData');
 
-          const updatedUser = profileRes.data;
-          const avatarUrl = updatedUser.avatar
-            ? updatedUser.avatar.startsWith('http')
-              ? updatedUser.avatar
-              : `https://backend-ps76.onrender.com${updatedUser.avatar}`
-            : '/default-avatar.jpg';
-          const newProfileData = {
-            username: updatedUser.username || '',
-            email: updatedUser.email || '',
-            address: updatedUser.address || '',
-            avatar: avatarUrl,
-            shippingAddress: updatedUser.shippingAddress || {
-              fullName: '',
-              address: '',
-              city: '',
-              postalCode: '',
-              country: '',
-              phoneNumber: '',
-            },
-          };
-          setProfileData(newProfileData);
-          setShippingAddressForm(newProfileData.shippingAddress);
-          setOrders(ordersRes.data || []);
-          setWishlist(wishlistRes.data || []);
-        } catch (err) {
-          console.error('Error loading profile data:', err);
-          setError(err.response?.data?.message || 'Failed to load profile data');
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadProfileData();
-    } else {
-      setLoading(false);
+      if (cachedProfile && cachedOrders && cachedWishlist) {
+        // Use cached data if available
+        setProfileData(JSON.parse(cachedProfile));
+        setShippingAddressForm(JSON.parse(cachedProfile).shippingAddress);
+        setOrders(JSON.parse(cachedOrders));
+        setWishlist(JSON.parse(cachedWishlist));
+        setLoading(false);
+      } else {
+        // Fetch data if not in localStorage
+        const loadProfileData = async () => {
+          try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            const [profileRes, ordersRes, wishlistRes] = await Promise.all([
+              axios.get('https://backend-ps76.onrender.com/api/users/profile', {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+              axios.get(`https://backend-ps76.onrender.com/api/orders/user/${user._id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+              axios.get(`https://backend-ps76.onrender.com/api/wishlist/user/${user._id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+            ]);
+
+            const updatedUser = profileRes.data;
+            const avatarUrl = updatedUser.avatar
+              ? updatedUser.avatar.startsWith('http')
+                ? updatedUser.avatar
+                : `https://backend-ps76.onrender.com${updatedUser.avatar}`
+              : '/default-avatar.jpg';
+            const newProfileData = {
+              username: updatedUser.username || '',
+              email: updatedUser.email || '',
+              address: updatedUser.address || '',
+              avatar: avatarUrl,
+              shippingAddress: updatedUser.shippingAddress || {
+                fullName: '',
+                address: '',
+                city: '',
+                postalCode: '',
+                country: '',
+                phoneNumber: '',
+              },
+            };
+            setProfileData(newProfileData);
+            setShippingAddressForm(newProfileData.shippingAddress);
+            setOrders(ordersRes.data || []);
+            setWishlist(wishlistRes.data || []);
+
+            // Cache the data in localStorage
+            localStorage.setItem('profileData', JSON.stringify(newProfileData));
+            localStorage.setItem('ordersData', JSON.stringify(ordersRes.data || []));
+            localStorage.setItem('wishlistData', JSON.stringify(wishlistRes.data || []));
+          } catch (err) {
+            console.error('Error loading profile data:', err);
+            setError(err.response?.data?.message || 'Failed to load profile data');
+          } finally {
+            setLoading(false);
+          }
+        };
+        loadProfileData();
+      }
     }
   }, [user, authLoading, navigate, isLoggingOut]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setProfileData((prev) => ({ ...prev, [name]: value }));
+    setProfileData((prev) => {
+      const updatedData = { ...prev, [name]: value };
+      localStorage.setItem('profileData', JSON.stringify(updatedData)); // Update localStorage
+      return updatedData;
+    });
   };
 
   const handleShippingAddressChange = (e) => {
     const { name, value } = e.target;
-    setShippingAddressForm((prev) => ({ ...prev, [name]: value }));
+    setShippingAddressForm((prev) => {
+      const updatedForm = { ...prev, [name]: value };
+      const updatedProfileData = {
+        ...profileData,
+        shippingAddress: updatedForm,
+      };
+      setProfileData(updatedProfileData);
+      localStorage.setItem('profileData', JSON.stringify(updatedProfileData)); // Update localStorage
+      return updatedForm;
+    });
   };
 
   const handlePasswordChange = (e) => {
@@ -179,6 +211,7 @@ function Profile() {
       setProfileData(newProfileData);
       setShippingAddressForm(newProfileData.shippingAddress);
       updateUser({ ...updatedUser, _id: updatedUser.id, avatar: avatarUrl });
+      localStorage.setItem('profileData', JSON.stringify(newProfileData)); // Update localStorage
       setIsEditingProfile(false);
       setNotification({ message: 'Profile updated successfully!', type: 'success' });
       setTimeout(() => setNotification({ message: '', type: '' }), 3000);
@@ -223,6 +256,7 @@ function Profile() {
       setProfileData(newProfileData);
       setShippingAddressForm(newProfileData.shippingAddress);
       updateUser(updatedUser);
+      localStorage.setItem('profileData', JSON.stringify(newProfileData)); // Update localStorage
       setIsEditingShipping(false);
       setNotification({ message: 'Shipping address updated successfully!', type: 'success' });
       setTimeout(() => setNotification({ message: '', type: '' }), 3000);
@@ -263,6 +297,7 @@ function Profile() {
       setProfileData(newProfileData);
       setShippingAddressForm(newProfileData.shippingAddress);
       updateUser(updatedUser);
+      localStorage.setItem('profileData', JSON.stringify(newProfileData)); // Update localStorage
       setNotification({ message: 'Shipping address deleted successfully!', type: 'success' });
       setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     } catch (err) {
@@ -294,8 +329,10 @@ function Profile() {
           ? updatedUser.avatar
           : `https://backend-ps76.onrender.com${updatedUser.avatar}`
         : '';
-      setProfileData((prev) => ({ ...prev, avatar: avatarUrl }));
+      const newProfileData = { ...profileData, avatar: avatarUrl };
+      setProfileData(newProfileData);
       updateUser({ ...updatedUser, _id: updatedUser.id, avatar: avatarUrl });
+      localStorage.setItem('profileData', JSON.stringify(newProfileData)); // Update localStorage
       setAvatarFile(null);
       setPreviewAvatar(null);
       setNotification({ message: 'Avatar updated successfully!', type: 'success' });
@@ -352,6 +389,10 @@ function Profile() {
     setIsLoggingOut(true);
     try {
       await logout();
+      // Clear localStorage on logout
+      localStorage.removeItem('profileData');
+      localStorage.removeItem('ordersData');
+      localStorage.removeItem('wishlistData');
       navigate('/', { replace: true });
     } catch (err) {
       console.error('Logout error:', err);
@@ -379,12 +420,16 @@ function Profile() {
   };
 
   const handleCancelProfileEdit = () => {
-    setProfileData((prev) => ({
-      ...prev,
-      username: user.username || '',
-      address: user.address || '',
-      avatar: user.avatar || '/default-avatar.jpg',
-    }));
+    setProfileData((prev) => {
+      const resetData = {
+        ...prev,
+        username: user.username || '',
+        address: user.address || '',
+        avatar: user.avatar || '/default-avatar.jpg',
+      };
+      localStorage.setItem('profileData', JSON.stringify(resetData)); // Update localStorage
+      return resetData;
+    });
     setAvatarFile(null);
     setPreviewAvatar(null);
     setIsEditingProfile(false);
@@ -401,7 +446,7 @@ function Profile() {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className={`cosmic-loading ${darkMode ? 'dark-mode' : 'light-mode'}`}>
         <div className="spinner-orbit"></div>
