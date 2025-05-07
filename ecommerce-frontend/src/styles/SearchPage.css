@@ -421,8 +421,12 @@
     font-size: 14px;
   }
 
+  .category-list {
+    justify-content: space-between; /* Ensure two items per row are spaced evenly */
+  }
+
   .category-group {
-    min-width: 100%;
+    min-width: calc(50% - 15px); /* Two items per row, accounting for gap */
   }
 
   .category-item.main-category {

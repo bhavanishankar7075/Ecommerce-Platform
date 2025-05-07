@@ -929,7 +929,7 @@ function ProductList() {
                 </div>
               </div>
               <button
-                className="apply-btn mt-2 bg-blue-600 text-white px-4 py-1 rounded-lg text-sm hover:bg-blue-700 w-full"
+                className="apply-btn mt-2 bg-blue-600 text-black px-4 py-1 rounded-lg text-sm hover:bg-blue-700 w-full"
                 onClick={handleApplySizeFilter}
               >
                 Apply
