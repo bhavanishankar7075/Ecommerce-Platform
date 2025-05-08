@@ -16,9 +16,9 @@ function Footer() {
       <div className="footer-content">
         {/* Company Info */}
         <div className="footer-section company-info">
-          <h3 className="footer-title">Cosmic Commerce</h3>
+          <h3 className="footer-title">EasyCart</h3>
           <p className="footer-description">
-            Shop the best products from across the galaxy.
+            Shop the best products from across the platform.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ function Footer() {
 
       {/* Copyright */}
       <div className="footer-bottom">
-        <p>© {currentYear} Cosmic Commerce. All rights reserved.</p>
+        <p>© {currentYear} EasyCart. All rights reserved.</p>
       </div>
     </footer>
   );
