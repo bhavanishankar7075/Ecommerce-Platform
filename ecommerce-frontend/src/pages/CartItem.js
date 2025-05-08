@@ -42,7 +42,7 @@ function CartItem({ item, removeFromCart, updateQuantity, navigate, isSelected, 
       // Assuming item.productId.stock holds the available stock
       if (item.productId?.stock && item.quantity >= item.productId.stock) {
         toast.warn('Maximum stock reached!', {
-          position: 'top-right',
+          position: 'bottom-left',
           autoClose: 3000,
         });
         return;

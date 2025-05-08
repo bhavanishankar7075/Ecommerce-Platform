@@ -616,8 +616,8 @@ function ProductList() {
   const getStockStatus = (stock) => (stock || 0) > 0 ? 'In Stock' : 'Out of Stock';
   const handleAddToCart = (product) => {
     addToCart(product);
-    toast.success(`${product.name} blasted into your cart!`, { position: 'bottom-right', autoClose: 2000, hideProgressBar: true, className: 'cosmic-toast' });
-  };
+/*     toast.success(`${product.name} blasted into your cart!`, { position: 'bottom-right', autoClose: 2000, hideProgressBar: true, className: 'cosmic-toast' });
+ */  };
 
   const handleAddToWishlist = async (productId) => {
     if (!user) {
@@ -630,7 +630,7 @@ function ProductList() {
       const res = await axios.post('https://backend-ps76.onrender.com/api/wishlist', { productId }, { headers: { Authorization: `Bearer ${token}` } });
       setWishlist([...wishlist, res.data.item]);
       setWishlistMessages((prev) => ({ ...prev, [productId]: 'Added to wishlist!' }));
-      toast.success('Added to wishlist!');
+      /* toast.success('Added to wishlist!'); */
       setTimeout(() => setWishlistMessages((prev) => ({ ...prev, [productId]: '' })), 3000);
     } catch (err) {
       console.error('Error adding to wishlist:', err.response || err);
@@ -646,7 +646,7 @@ function ProductList() {
       await axios.delete(`https://backend-ps76.onrender.com/api/wishlist/${wishlistItem._id}`, { headers: { Authorization: `Bearer ${token}` } });
       setWishlist(wishlist.filter((item) => item._id !== wishlistItem._id));
       setWishlistMessages((prev) => ({ ...prev, [productId]: 'Removed from wishlist!' }));
-      toast.success('Removed from wishlist!');
+      /* toast.success('Removed from wishlist!'); */
       setTimeout(() => setWishlistMessages((prev) => ({ ...prev, [productId]: '' })), 3000);
     } catch (err) {
       console.error('Error removing from wishlist:', err);

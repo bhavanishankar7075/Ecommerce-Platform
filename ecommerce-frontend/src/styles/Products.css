@@ -814,7 +814,7 @@ option.custom-sort-dropdown:not(:last-child) {
 /* Comparison Bar */
 .comparison-bar {
   position: fixed;
-  bottom: 16px;
+  bottom: 76px; /* Increased to account for a typical 60px navbar height */
   left: 0;
   right: 0;
   background-color: white;
@@ -908,7 +908,7 @@ option.custom-sort-dropdown:not(:last-child) {
 /* Back to Top Button */
 .back-to-top {
   position: fixed;
-  bottom: 60px;
+  bottom: 120px; /* Increased to move further up and clear the navbar and comparison-bar */
   right: 12px;
   width: 36px;
   height: 36px;
@@ -1264,6 +1264,7 @@ option.custom-sort-dropdown:not(:last-child) {
 
   .comparison-bar {
     padding: 16px;
+    bottom: 80px; /* Adjusted for small screens to account for navbar */
   }
 
   .comparison-content {
@@ -1304,7 +1305,7 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .back-to-top {
-    bottom: 64px;
+    bottom: 124px; /* Adjusted to move further up on small screens */
     right: 16px;
     width: 40px;
     height: 40px;
@@ -1413,7 +1414,7 @@ option.custom-sort-dropdown:not(:last-child) {
   .comparison-bar {
     left: 20px;
     right: 20px;
-    bottom: 20px;
+    bottom: 20px; /* Reset to original value for medium screens */
   }
 
   .comparison-content {
@@ -1421,7 +1422,7 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .back-to-top {
-    bottom: 68px;
+    bottom: 68px; /* Reset to original value for medium screens */
     right: 20px;
   }
 }
@@ -1530,5 +1531,20 @@ option.custom-sort-dropdown:not(:last-child) {
   .back-to-top {
     bottom: 80px;
     right: 32px;
+  }
+}
+
+/* Mobile Screens (below 577px) */
+@media (max-width: 576px) {
+  .product-list-wrapper {
+    padding-bottom: 76px; /* Add padding to account for the navbar height */
+  }
+
+  .comparison-bar {
+    bottom: 76px; /* Ensure the comparison bar is above the navbar */
+  }
+
+  .back-to-top {
+    bottom: 120px; /* Move further up to clear the navbar and comparison-bar */
   }
 }
