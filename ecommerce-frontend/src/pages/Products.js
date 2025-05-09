@@ -57,7 +57,7 @@ const categories = [
     sub: [
       {
         name: 'Smartphones',
-        nested: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel'],
+        nested: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],
       },
       {
         name: 'FeaturePhones',

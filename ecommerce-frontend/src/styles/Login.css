@@ -1,31 +1,39 @@
-/* Login.css */
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); /* Space-themed gradient */
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); /* Subtle light gradient */
   position: relative;
   overflow: hidden;
 }
 
-/* Subtle starry background */
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.3)"/><circle cx="50" cy="30" r="0.8" fill="rgba(255,255,255,0.2)"/><circle cx="80" cy="70" r="1.2" fill="rgba(255,255,255,0.4)"/><circle cx="20" cy="80" r="0.9" fill="rgba(255,255,255,0.3)"/></svg>') repeat;
-  opacity: 0.1;
-  pointer-events: none;
+/* Layout container for two-column design on large screens */
+.login-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Image section (hidden by default, shown on large screens) */
+.login-image-section {
+  display: none; /* Hidden on smaller screens */
+}
+
+/* Form section */
+.login-form-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f9f9f9; /* Soft off-white background for the form section */
+  position: relative;
 }
 
 /* Scrollable content area */
 .login-scrollable {
   padding: 20px;
-  padding-top: 80px; /* Space for top navbar */
-  padding-bottom: 80px; /* Space for bottom navbar on mobile */
+  padding-top: 80px;
+  padding-bottom: 80px;
   overflow-y: auto;
-  height: calc(100vh - 160px); /* Viewport height minus top and bottom navbars */
+  height: calc(100vh - 160px);
   -webkit-overflow-scrolling: touch;
   display: flex;
   justify-content: center;
@@ -51,16 +59,35 @@
 .login-title {
   font-size: 28px;
   font-weight: 600;
-  color: #fff;
-  margin-bottom: 20px;
+  color: #333;
+  margin-bottom: 30px;
   text-align: center;
+  position: relative;
+}
+
+/* Golden underline for the title */
+.login-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background-color: #FFD700; /* Golden accent */
+  border-radius: 2px;
 }
 
 .login-card {
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  transition: transform 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-3px);
 }
 
 .login-form {
@@ -82,58 +109,62 @@
 }
 
 .input-field {
-  padding: 10px;
+  padding: 12px;
   font-size: 14px;
   border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  border-radius: 8px;
   outline: none;
   color: #333;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .input-field:focus {
-  border-color: #007bff;
+  border-color: #FFD700; /* Golden accent on focus */
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2); /* Golden glow */
 }
 
 .error-message {
   background-color: #ffe6e6;
   color: #e63946;
-  padding: 10px;
+  padding: 8px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   text-align: center;
 }
 
 .login-btn {
-  background-color: #007bff;
-  color: #fff;
+  background-color: #FFD700; /* Golden button background */
+  color: #333;
   padding: 12px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .login-btn:hover {
-  background-color: #0056b3;
+  background-color: #DAA520; /* Darker golden shade on hover */
+  transform: scale(1.03);
 }
 
 .login-btn:disabled {
   background-color: #cccccc;
+  color: #666;
   cursor: not-allowed;
+  transform: none;
 }
 
 .signup-link {
   margin-top: 20px;
   font-size: 14px;
-  color:black;
+  color: #333;
   text-align: center;
 }
 
 .signup-link a {
-  color: #007bff;
+  color: #FFD700; /* Golden accent for the link */
   text-decoration: none;
   font-weight: 500;
 }
@@ -171,14 +202,26 @@
 
   .login-title {
     font-size: 22px;
+    margin-bottom: 25px;
+  }
+
+  .login-title::after {
+    width: 40px;
+    height: 2px;
+    bottom: -8px;
   }
 
   .login-card {
-    padding: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   }
 
   .login-form {
     gap: 15px;
+  }
+
+  .input-group {
+    gap: 6px;
   }
 
   .input-label {
@@ -187,21 +230,24 @@
 
   .input-field {
     font-size: 13px;
-    padding: 8px;
+    padding: 10px;
+    border-radius: 6px;
   }
 
   .error-message {
-    font-size: 13px;
-    padding: 8px;
+    font-size: 12px;
+    padding: 6px;
   }
 
   .login-btn {
     font-size: 14px;
     padding: 10px;
+    border-radius: 6px;
   }
 
   .signup-link {
     font-size: 13px;
+    margin-top: 15px;
   }
 }
 
@@ -220,14 +266,24 @@
 
   .login-title {
     font-size: 24px;
+    margin-bottom: 28px;
+  }
+
+  .login-title::after {
+    width: 45px;
+    bottom: -9px;
   }
 
   .login-card {
-    padding: 25px;
+    padding: 30px;
   }
 
   .login-form {
     gap: 18px;
+  }
+
+  .input-group {
+    gap: 7px;
   }
 
   .input-label {
@@ -236,20 +292,22 @@
 
   .input-field {
     font-size: 14px;
-    padding: 10px;
+    padding: 11px;
   }
 
   .error-message {
-    font-size: 14px;
+    font-size: 13px;
+    padding: 7px;
   }
 
   .login-btn {
     font-size: 15px;
-    padding: 12px;
+    padding: 11px;
   }
 
   .signup-link {
     font-size: 14px;
+    margin-top: 18px;
   }
 }
 
@@ -268,14 +326,24 @@
 
   .login-title {
     font-size: 26px;
+    margin-bottom: 30px;
+  }
+
+  .login-title::after {
+    width: 50px;
+    bottom: -10px;
   }
 
   .login-card {
-    padding: 30px;
+    padding: 35px;
   }
 
   .login-form {
     gap: 20px;
+  }
+
+  .input-group {
+    gap: 8px;
   }
 
   .input-label {
@@ -284,11 +352,12 @@
 
   .input-field {
     font-size: 14px;
-    padding: 10px;
+    padding: 12px;
   }
 
   .error-message {
-    font-size: 14px;
+    font-size: 13px;
+    padding: 8px;
   }
 
   .login-btn {
@@ -298,11 +367,44 @@
 
   .signup-link {
     font-size: 14px;
+    margin-top: 20px;
   }
 }
 
-/* Extra Large Devices (992px and above) */
+/* Large and Extra Large Devices (992px and above) */
 @media (min-width: 992px) {
+  .login-layout {
+    flex-direction: row;
+  }
+
+  .login-image-section {
+    display: block;
+    flex: 1;
+    background-color: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    position: relative;
+  }
+
+  .login-image {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .login-form-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f9f9f9;
+  }
+
   .login-scrollable {
     padding: 30px;
     padding-top: 80px;
@@ -316,14 +418,25 @@
 
   .login-title {
     font-size: 28px;
+    margin-bottom: 30px;
+    margin-top: 0;
+  }
+
+  .login-title::after {
+    width: 50px;
+    bottom: -10px;
   }
 
   .login-card {
-    padding: 30px;
+    padding: 40px;
   }
 
   .login-form {
     gap: 20px;
+  }
+
+  .input-group {
+    gap: 8px;
   }
 
   .input-label {
@@ -332,11 +445,12 @@
 
   .input-field {
     font-size: 14px;
-    padding: 10px;
+    padding: 12px;
   }
 
   .error-message {
     font-size: 14px;
+    padding: 8px;
   }
 
   .login-btn {
@@ -346,5 +460,6 @@
 
   .signup-link {
     font-size: 14px;
+    margin-top: 20px;
   }
 }
