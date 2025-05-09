@@ -119,7 +119,7 @@
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Compact spacing */
+  gap: 2px; /* Compact spacing */
 }
 
 .input-label {
@@ -444,6 +444,9 @@
     align-items: center;
     padding: 20px;
     position: relative;
+  }
+   .signup-form {
+    gap: 12px;
   }
 
   .signup-image {

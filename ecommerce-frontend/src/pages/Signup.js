@@ -148,7 +148,7 @@ function Signup() {
                       onChange={(e) => setUsername(e.target.value)}
                       required
                     />
-                    <p className="suggestion-text">Example: easycart123 (use letters and numbers)</p>
+                    <p className="suggestion-text">Ex: easycart123 (use letters & numbers)</p>
                     {errors.username && (
                       <div className="error-message">
                         <span>{errors.username}</span>
@@ -167,7 +167,7 @@ function Signup() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
-                    <p className="suggestion-text">Example: easycart@example.com</p>
+                    <p className="suggestion-text">Ex: easycart@example.com</p>
                     {errors.email && (
                       <div className="error-message">
                         <span>{errors.email}</span>
@@ -185,7 +185,7 @@ function Signup() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
-                    <p className="suggestion-text">Example: easycart123! (use letters, numbers, and special characters)</p>
+                    <p className="suggestion-text">Ex: easycart123! (use letters,numbers,special characters)</p>
                     {errors.password && (
                       <div className="error-message">
                         <span>{errors.password}</span>

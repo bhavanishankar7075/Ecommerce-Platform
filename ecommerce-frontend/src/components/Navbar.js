@@ -1,40 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -50,8 +14,9 @@ function Navigation() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 576);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [hoveredSubcategory, setHoveredSubcategory] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [openSubcategory, setOpenSubcategory] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,6 +43,18 @@ function Navigation() {
     );
     setSearchResults(filteredProducts.slice(0, 5));
   }, [searchQuery, products]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.mini-sidebar') && !event.target.closest('.mini-nav-link')) {
+        setIsSidebarOpen(false);
+        setActiveCategory(null);
+        setOpenSubcategory(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -127,10 +104,10 @@ function Navigation() {
       Kitchen: ['Appliances', 'Utensils', 'Cookware']
     },
     Mobiles: {
-      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],
-    FeaturePhones: ['Nokia', 'JioPhone'],
-    Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
-    Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors','Power Banks'],
+      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel', 'Realme', 'Redmi'],
+      FeaturePhones: ['Nokia', 'JioPhone'],
+      Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
+      Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors', 'Power Banks'],
     },
     Appliances: {
       Small: ['Microwave', 'Toaster', 'Blender'],
@@ -143,6 +120,44 @@ function Navigation() {
   };
 
   const mainCategories = Object.keys(categoryHierarchy);
+
+  const toggleSidebar = (category) => {
+    if (activeCategory === category && isSidebarOpen) {
+      setIsSidebarOpen(false);
+      setActiveCategory(null);
+      setOpenSubcategory(null);
+    } else {
+      setActiveCategory(category);
+      setIsSidebarOpen(true);
+      setOpenSubcategory(null);
+    }
+  };
+
+  const toggleSubcategory = (subcategory) => {
+    if (openSubcategory === subcategory) {
+      setOpenSubcategory(null);
+    } else {
+      setOpenSubcategory(subcategory);
+    }
+  };
+
+  const handleAllCategories = () => {
+    if (activeCategory === 'All Categories' && isSidebarOpen) {
+      setIsSidebarOpen(false);
+      setActiveCategory(null);
+      setOpenSubcategory(null);
+    } else {
+      setActiveCategory('All Categories');
+      setIsSidebarOpen(true);
+      setOpenSubcategory(null);
+    }
+  };
+
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+    setActiveCategory(null);
+    setOpenSubcategory(null);
+  };
 
   return (
     <>
@@ -239,57 +254,105 @@ function Navigation() {
       {!isMobile && (
         <div className="mini-navbar">
           <ul className="mini-nav-links">
-            {mainCategories.map((category) => (
-              <li
-                key={category}
-                className="mini-nav-item"
-                onMouseEnter={() => setHoveredCategory(category)}
-                onMouseLeave={() => {
-                  setHoveredCategory(null);
-                  setHoveredSubcategory(null);
-                }}
+            <li className="mini-nav-item">
+              <div
+                className={`mini-nav-link ${activeCategory === 'All Categories' ? 'active' : ''}`}
+                onClick={handleAllCategories}
               >
-                <Link
-                  to={`/products?category=${encodeURIComponent(category)}`}
-                  className="mini-nav-link"
+                All Categories
+              </div>
+            </li>
+            {mainCategories.map((category) => (
+              <li key={category} className="mini-nav-item">
+                <div
+                  className={`mini-nav-link ${activeCategory === category ? 'active' : ''}`}
+                  onClick={() => toggleSidebar(category)}
                 >
                   {category}
-                </Link>
-                {hoveredCategory === category && (
-                  <div className="mini-dropdown">
-                    {Object.keys(categoryHierarchy[category]).map((subcategory) => (
-                      <div
-                        key={subcategory}
-                        className="mini-dropdown-item"
-                        onMouseEnter={() => setHoveredSubcategory(subcategory)}
-                        onMouseLeave={() => setHoveredSubcategory(null)}
-                      >
-                        <Link
-                          to={`/products?category=${encodeURIComponent(`${category}/${subcategory}`)}`}
-                          className="mini-dropdown-link"
-                        >
-                          {subcategory}
-                        </Link>
-                        {hoveredSubcategory === subcategory && (
-                          <div className="nested-dropdown">
-                            {categoryHierarchy[category][subcategory].map((nestedCategory) => (
-                              <Link
-                                key={nestedCategory}
-                                to={`/products?category=${encodeURIComponent(`${category}/${subcategory}/${nestedCategory}`)}`}
-                                className="nested-dropdown-item"
-                              >
-                                {nestedCategory}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                </div>
               </li>
             ))}
           </ul>
+
+          {isSidebarOpen && activeCategory && (
+            <div className={`mini-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+              <div className="mini-sidebar-header">
+                <h3 className="mini-sidebar-title">{activeCategory}</h3>
+                <button className="mini-sidebar-close" onClick={closeSidebar}>
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="mini-sidebar-content">
+                {activeCategory === 'All Categories' ? (
+                  <ul className="mini-sidebar-list">
+                    {mainCategories.map((category) => (
+                      <li key={category} className="mini-sidebar-item">
+                        <div
+                          className={`mini-sidebar-subcategory ${openSubcategory === category ? 'active' : ''}`}
+                          onClick={() => toggleSubcategory(category)}
+                        >
+                          <span className="mini-sidebar-subcategory-label">{category}</span>
+                          <i className={`fas fa-chevron-${openSubcategory === category ? 'up' : 'down'} mini-sidebar-icon`}></i>
+                        </div>
+                        {openSubcategory === category && (
+                          <ul className="mini-sidebar-nested">
+                            {Object.keys(categoryHierarchy[category]).map((subcategory) => (
+                              <li key={subcategory}>
+                                <Link
+                                  to={`/products?category=${encodeURIComponent(`${category}/${subcategory}`)}`}
+                                  className="mini-sidebar-nested-item"
+                                  onClick={() => {
+                                    setIsSidebarOpen(false);
+                                    setActiveCategory(null);
+                                    setOpenSubcategory(null);
+                                  }}
+                                >
+                                  {subcategory}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="mini-sidebar-list">
+                    {Object.keys(categoryHierarchy[activeCategory]).map((subcategory) => (
+                      <li key={subcategory} className="mini-sidebar-item">
+                        <div
+                          className={`mini-sidebar-subcategory ${openSubcategory === subcategory ? 'active' : ''}`}
+                          onClick={() => toggleSubcategory(subcategory)}
+                        >
+                          <span className="mini-sidebar-subcategory-label">{subcategory}</span>
+                          <i className={`fas fa-chevron-${openSubcategory === subcategory ? 'up' : 'down'} mini-sidebar-icon`}></i>
+                        </div>
+                        {openSubcategory === subcategory && (
+                          <ul className="mini-sidebar-nested">
+                            {categoryHierarchy[activeCategory][subcategory].map((nestedCategory) => (
+                              <li key={nestedCategory}>
+                                <Link
+                                  to={`/products?category=${encodeURIComponent(`${activeCategory}/${subcategory}/${nestedCategory}`)}`}
+                                  className="mini-sidebar-nested-item"
+                                  onClick={() => {
+                                    setIsSidebarOpen(false);
+                                    setActiveCategory(null);
+                                    setOpenSubcategory(null);
+                                  }}
+                                >
+                                  {nestedCategory}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -335,4 +398,3 @@ function Navigation() {
 }
 
 export default Navigation;
- 
