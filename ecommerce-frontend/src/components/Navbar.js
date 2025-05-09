@@ -127,7 +127,10 @@ function Navigation() {
       Kitchen: ['Appliances', 'Utensils', 'Cookware']
     },
     Mobiles: {
-      Brands: ['Samsung', 'Apple', 'Xiaomi', 'OnePlus']
+      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],
+    FeaturePhones: ['Nokia', 'JioPhone'],
+    Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
+    Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors','Power Banks'],
     },
     Appliances: {
       Small: ['Microwave', 'Toaster', 'Blender'],

@@ -102,10 +102,10 @@ function ProductManagement() {
     Gadgets: [],
     Furniture: [],
     Mobiles: {
-      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel'],
+      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],
       FeaturePhones: ['Nokia', 'JioPhone'],
       Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
-      Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors'],
+      Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors','Power Banks'],
     },
     Appliances: [],
     Beauty: [],

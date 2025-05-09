@@ -280,7 +280,7 @@ function Home() {
                   <div
                     className="product-item"
                     key={product._id}
-                    onClick={() => navigate(user ? `/productdetails/${product._id}` : '/login')}
+                    onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
                   >
                     <img
                       src={product.image || 'https://placehold.co/100x100?text=Product'}
