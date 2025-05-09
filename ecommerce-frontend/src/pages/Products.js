@@ -971,7 +971,7 @@ function Products() {
           </div>
           <div className="products-main">
             <div className="products-header">
-              <div className="search-bar">
+              <div className="search-bar2">
                 <input
                   type="text"
                   placeholder="Search products..."
@@ -987,7 +987,7 @@ function Products() {
                   <div className="recent-searches">
                     <div className="recent-searches-header">
                       <h4>Recent Searches</h4>
-                      <button onClick={handleClearRecentSearches}>Clear</button>
+                      <button className='clear btn ' onClick={handleClearRecentSearches}>Clear</button>
                     </div>
                     {recentSearches.map((search, index) => (
                       <div
