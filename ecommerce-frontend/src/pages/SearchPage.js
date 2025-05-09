@@ -45,7 +45,12 @@ function SearchPage() {
     },
     Mobiles: {
       image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80',
-      Brands: ['Samsung', 'Apple', 'Xiaomi', 'OnePlus']
+
+          Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],
+    FeaturePhones: ['Nokia', 'JioPhone'],
+    Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
+    Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors','Power Banks'],
+
     },
     Appliances: {
       image: 'https://img.freepik.com/free-vector/household-appliances-realistic-composition_1284-65307.jpg?uid=R187650059&ga=GA1.1.982110684.1717591516&semt=ais_hybrid&w=740',
