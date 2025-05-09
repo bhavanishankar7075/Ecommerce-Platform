@@ -325,7 +325,7 @@ option.custom-sort-dropdown:not(:last-child) {
 .search-bar input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #090909;
   border-radius: 6px;
   font-size: 13px;
   outline: none;
@@ -333,7 +333,7 @@ option.custom-sort-dropdown:not(:last-child) {
 }
 
 .search-bar input:focus {
-  border-color: #1e90ff;
+  border-color: #0f1317;
   box-shadow: 0 0 0 2px rgba(30, 144, 255, 0.2);
 }
 
@@ -344,8 +344,8 @@ option.custom-sort-dropdown:not(:last-child) {
   top: 100%;
   left: 0;
   right: 0;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: rgb(226, 209, 209);
+  border: 1px solid #f3ebeb;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 8px;
