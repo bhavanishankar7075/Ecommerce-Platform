@@ -24,6 +24,7 @@ body {
   padding: 16px 0;
   min-height: 100vh;
   background-color: #f5f5f5;
+  margin-top: 60px; /* Gap for the mini navbar */
 }
 
 /* Container */
@@ -80,28 +81,29 @@ body {
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: absolute;
-  top: 0;
+  position: fixed;
+  top: 60px; /* Start below the mini navbar (60px height) */
+  height: calc(100vh - 60px); /* Adjust height to account for mini navbar */
   left: 0;
-  height: auto; /* Only take the height of its content */
-  max-height: 80vh; /* Limit the height to avoid overflow */
   overflow-y: auto;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  z-index: 20;
+  z-index: 1000; /* High z-index to ensure it appears above other elements */
   scrollbar-width: none;
   -ms-overflow-style: none;
-  display: none; /* Hidden by default */
+  display: block; /* Always present, visibility controlled by transform */
 }
 
 .filters-sidebar::-webkit-scrollbar {
   display: none;
 }
 
-.filters-sidebar.visible {
-  display: block;
+.filters-sidebar--visible {
   transform: translateX(0);
-  z-index: 50; /* Ensure it appears above sort-options and its dropdown */
+}
+
+.filters-sidebar--hidden {
+  transform: translateX(-100%);
 }
 
 /* Filters Header */
@@ -186,6 +188,12 @@ body {
 .filter-section input[type="range"] {
   width: 100%;
   margin-bottom: 8px;
+}
+
+.filter-section input[type="checkbox"],
+.filter-section input[type="radio"] {
+  margin-right: 8px;
+  accent-color: #1e90ff;
 }
 
 .filter-section .text-xs {
@@ -553,6 +561,22 @@ option.custom-sort-dropdown:not(:last-child) {
   background-color: #187bcd;
 }
 
+/* Clear All Button in Products Header */
+.btn-clear-all {
+  padding: 8px 12px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-clear-all:hover {
+  background-color: #c82333;
+}
+
 /* Quick Filters */
 .quick-filters {
   display: flex;
@@ -600,7 +624,7 @@ option.custom-sort-dropdown:not(:last-child) {
   padding: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s;
-  height: 360px;
+  height: 400px; /* Increased height for better visibility on mobile */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -668,7 +692,7 @@ option.custom-sort-dropdown:not(:last-child) {
 /* Image Container and Product Image */
 .image-container {
   width: 100%;
-  height: 200px;
+  height: 240px; /* Increased height for better visibility on mobile */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -681,7 +705,7 @@ option.custom-sort-dropdown:not(:last-child) {
 .product-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensure images fill the container uniformly */
+  object-fit: contain; /* Ensure images are uniformly sized without stretching */
   object-position: center;
   cursor: pointer;
 }
@@ -938,7 +962,7 @@ option.custom-sort-dropdown:not(:last-child) {
 
 .skeleton-image {
   width: 100%;
-  height: 200px;
+  height: 240px; /* Match the increased image container height */
 }
 
 .skeleton-text {
@@ -1017,7 +1041,6 @@ option.custom-sort-dropdown:not(:last-child) {
     width: 280px;
     padding: 16px;
     border-radius: 8px;
-    height: 50vh;
   }
 
   .filters-header h3 {
@@ -1149,6 +1172,12 @@ option.custom-sort-dropdown:not(:last-child) {
     font-size: 14px;
   }
 
+  .btn-clear-all {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
   .quick-filters {
     gap: 8px;
     margin-bottom: 16px;
@@ -1167,7 +1196,7 @@ option.custom-sort-dropdown:not(:last-child) {
   .product-card {
     padding: 10px;
     border-radius: 8px;
-    height: 380px;
+    height: 420px; /* Increased height for better visibility */
   }
 
   .badge {
@@ -1196,13 +1225,14 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .image-container {
-    height: 220px;
+    height: 260px; /* Increased height for better visibility */
     margin-bottom: 10px;
   }
 
   .product-image {
     width: 100%;
     height: 100%;
+    object-fit: contain; /* Ensure uniform sizing */
   }
 
   .product-title {
@@ -1313,7 +1343,7 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .skeleton-image {
-    height: 220px;
+    height: 260px; /* Match the increased image container height */
   }
 
   .skeleton-text {
@@ -1360,11 +1390,6 @@ option.custom-sort-dropdown:not(:last-child) {
     gap: 24px;
   }
 
-  .filters-sidebar {
-    top: 0;
-    max-height: 600px; /* Adjusted max-height for medium screens */
-  }
-
   .products-header {
     flex-direction: row;
     align-items: center;
@@ -1385,30 +1410,23 @@ option.custom-sort-dropdown:not(:last-child) {
     width: 240px;
   }
 
-  .filters-header button {
-    padding: 8px 16px;
-  }
-
-  .btn-filter-toggle {
-    display: block;
-  }
-
   .product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
   }
 
   .product-card {
-    height: 400px;
+    height: 460px; /* Increased height for better visibility */
   }
 
   .image-container {
-    height: 240px;
+    height: 300px; /* Increased height for better visibility */
   }
 
   .product-image {
     width: 100%;
     height: 100%;
+    object-fit: contain; /* Ensure uniform sizing */
   }
 
   .comparison-bar {
@@ -1440,18 +1458,18 @@ option.custom-sort-dropdown:not(:last-child) {
   .filters-sidebar {
     position: static;
     width: 240px;
+    height: auto;
     max-height: none;
     transform: none;
     overflow-y: visible;
     display: block; /* Visible by default on large screens */
+    box-shadow: none; /* Remove shadow to match typical navbar sidebar */
+    border: none; /* Remove border for a cleaner look */
   }
 
-  .filters-sidebar.visible {
-    display: block; /* Ensure it remains visible */
-  }
-
-  .filters-sidebar.hidden {
-    display: none; /* For consistency, though not used */
+  .filters-sidebar--visible,
+  .filters-sidebar--hidden {
+    transform: none; /* Reset transform since position is static */
   }
 
   .btn-filter-toggle {
@@ -1464,16 +1482,17 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .product-card {
-    height: 420px;
+    height: 480px; /* Increased height for better visibility */
   }
 
   .image-container {
-    height: 260px;
+    height: 320px; /* Increased height for better visibility */
   }
 
   .product-image {
     width: 100%;
     height: 100%;
+    object-fit: contain; /* Ensure uniform sizing */
   }
 
   .btn-view-details {
@@ -1511,16 +1530,17 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .product-card {
-    height: 440px;
+    height: 500px; /* Increased height for better visibility */
   }
 
   .image-container {
-    height: 280px;
+    height: 340px; /* Increased height for better visibility */
   }
 
   .product-image {
     width: 100%;
     height: 100%;
+    object-fit: contain; /* Ensure uniform sizing */
   }
 
   .comparison-bar {
