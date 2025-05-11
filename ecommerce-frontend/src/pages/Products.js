@@ -149,6 +149,7 @@ function Products() {
   const [isRatingsLoading, setIsRatingsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]); // For comparison
+  const [showBackToTop, setShowBackToTop] = useState(false); // State for back-to-top visibility
   const observer = useRef();
   const navigate = useNavigate();
   const location = useLocation();
@@ -168,6 +169,20 @@ function Products() {
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
+
+  // Handle scroll to show/hide back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (user && user._id) {
@@ -1134,7 +1149,6 @@ function Products() {
                         {wishlistMessages[product._id] && (
                           <span className="wishlist-message active">In Wishlist</span>
                         )}
-                       
                         <div className="image-container">
                           <img
                             src={product.image}
@@ -1145,7 +1159,18 @@ function Products() {
                         </div>
                         <div className="card-content">
                           <div>
-                            <h3 className="product-title">{product.name}</h3>
+                            <div className="title-rating-container">
+                              <h3 className="product-title">{product.name}</h3>
+                              <div className="rating-section">
+                                {rating > 0 ? (
+                                  <span className="rating-badge">
+                                    {rating}★ ({reviewCount})
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-500">No ratings</span>
+                                )}
+                              </div>
+                            </div>
                             <div className="price-section">
                               <span className="product-price">₹{product.price}</span>
                               {product.offer && (
@@ -1157,15 +1182,6 @@ function Products() {
                                 </>
                               )}
                             </div>
-                            <div className="rating-section">
-                              {rating > 0 ? (
-                                <span className="rating-badge">
-                                  {rating}★ ({reviewCount})
-                                </span>
-                              ) : (
-                                <span className="text-xs text-gray-500">No ratings yet</span>
-                              )}
-                            </div>
                             <div className="stock-status">
                               {product.stock > 0 ? (
                                 <span className="stock-status text-green-600">In Stock ({product.stock})</span>
@@ -1173,14 +1189,14 @@ function Products() {
                                 <span className="stock-status text-red-600">Out of Stock</span>
                               )}
                             </div>
-                             <label className="compare-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={isSelectedForCompare}
-                            onChange={() => handleToggleCompare(product)}
-                          />
-                          Compare
-                        </label>
+                            <label className="compare-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={isSelectedForCompare}
+                                onChange={() => handleToggleCompare(product)}
+                              />
+                              Compare
+                            </label>
                           </div>
                           <div className="button-group">
                             <button
@@ -1243,7 +1259,7 @@ function Products() {
               </div>
             )}
             <button
-              className="back-to-top"
+              className={`back-to-top ${showBackToTop ? 'visible' : ''}`}
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             >
               ↑

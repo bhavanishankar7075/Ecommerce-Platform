@@ -624,12 +624,13 @@ option.custom-sort-dropdown:not(:last-child) {
   padding: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s;
-  height: 400px; /* Adjusted height to accommodate larger images */
+  height: 340px; /* Reduced height for better balance */
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .product-card:hover {
@@ -645,6 +646,7 @@ option.custom-sort-dropdown:not(:last-child) {
   font-size: 10px;
   color: white;
   border-radius: 4px;
+  z-index: 1;
 }
 
 .badge.bg-green-600 {
@@ -672,6 +674,7 @@ option.custom-sort-dropdown:not(:last-child) {
   background: none;
   border: none;
   cursor: pointer;
+  z-index: 1;
 }
 
 .price-alert-btn {
@@ -687,28 +690,29 @@ option.custom-sort-dropdown:not(:last-child) {
   color: white;
   background-color: #1e90ff;
   border-radius: 4px;
+  z-index: 1;
 }
 
 /* Image Container and Product Image */
 .image-container {
   width: 100%;
-  height: 280px; /* Increased height for better visibility */
+  height: 180px; /* Reduced height to balance the card */
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   overflow: hidden;
-  background-color: transparent; /* Removed placeholder background */
-  aspect-ratio: 1 / 1; /* Enforce a square aspect ratio */
+  background-color: transparent;
+  aspect-ratio: 1 / 1;
 }
 
 .product-image {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Ensure images are uniformly sized without stretching */
+  object-fit: contain;
   object-position: center;
   cursor: pointer;
-  background-color: transparent; /* Ensure no background on the image itself */
+  background-color: transparent;
 }
 
 /* Card Content */
@@ -717,6 +721,15 @@ option.custom-sort-dropdown:not(:last-child) {
   flex-direction: column;
   justify-content: space-between;
   flex: 1;
+  padding: 0 4px;
+}
+
+/* Title Container */
+.title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Align items vertically centered */
+  margin-bottom: 6px;
 }
 
 .product-title {
@@ -724,42 +737,18 @@ option.custom-sort-dropdown:not(:last-child) {
   font-weight: 500;
   color: #333;
   line-height: 1.3;
-  margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-}
-
-.price-section {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-}
-
-.product-price {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.original-price {
-  font-size: 12px;
-  color: #777;
-  text-decoration: line-through;
-}
-
-.discount {
-  font-size: 12px;
-  font-weight: 500;
-  color: #28a745;
+  flex: 1;
+  margin-right: 8px;
 }
 
 .rating-section {
-  margin-bottom: 4px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .rating-badge {
@@ -771,10 +760,47 @@ option.custom-sort-dropdown:not(:last-child) {
   border-radius: 4px;
 }
 
+/* Price Container */
+.price-container {
+  margin-bottom: 6px;
+}
+
+.price-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.product-price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.original-price {
+  font-size: 10px;
+  color: #777;
+  text-decoration: line-through;
+}
+
+.discount {
+  font-size: 10px;
+  font-weight: 500;
+  color: #28a745;
+}
+
+/* Stock and Compare Container */
+.stock-compare-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .stock-status {
   font-size: 10px;
   font-weight: 500;
-  margin-bottom: 4px;
 }
 
 .stock-status.text-green-600 {
@@ -788,7 +814,7 @@ option.custom-sort-dropdown:not(:last-child) {
 .compare-section label {
   display: flex;
   align-items: center;
-  font-size: 12px;
+  font-size: 10px;
   color: #555;
 }
 
@@ -800,6 +826,7 @@ option.custom-sort-dropdown:not(:last-child) {
 .button-group {
   display: flex;
   gap: 6px;
+  margin-top: auto;
 }
 
 .btn-add-to-cart,
@@ -933,7 +960,7 @@ option.custom-sort-dropdown:not(:last-child) {
 /* Back to Top Button */
 .back-to-top {
   position: fixed;
-  bottom: 120px; /* Increased to move further up and clear the navbar and comparison-bar */
+  bottom: 120px; /* Adjusted to account for navbar and comparison bar */
   right: 12px;
   width: 36px;
   height: 36px;
@@ -941,12 +968,18 @@ option.custom-sort-dropdown:not(:last-child) {
   color: white;
   border: none;
   border-radius: 50%;
-  display: flex;
+  display: none; /* Hidden by default, shown via JavaScript on scroll */
   align-items: center;
   justify-content: center;
   font-size: 18px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, opacity 0.3s ease;
+  z-index: 40;
+}
+
+.back-to-top.visible {
+  display: flex; /* Show when the 'visible' class is added via JavaScript */
+  opacity: 1;
 }
 
 .back-to-top:hover {
@@ -963,7 +996,7 @@ option.custom-sort-dropdown:not(:last-child) {
 
 .skeleton-image {
   width: 100%;
-  height: 280px; /* Match the increased image container height */
+  height: 180px; /* Adjusted to match the new image container height */
 }
 
 .skeleton-text {
@@ -1197,7 +1230,7 @@ option.custom-sort-dropdown:not(:last-child) {
   .product-card {
     padding: 10px;
     border-radius: 8px;
-    height: 420px; /* Adjusted height for larger images */
+    height: 360px; /* Adjusted height for better balance */
   }
 
   .badge {
@@ -1226,27 +1259,26 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .image-container {
-    height: 300px; /* Increased height for better visibility */
-    margin-bottom: 4px;
-    background-color: transparent; /* Removed placeholder background */
+    height: 200px; /* Adjusted height for better balance */
+    margin-bottom: 8px;
+    background-color: transparent;
   }
 
   .product-image {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensure uniform sizing */
-    background-color: transparent; /* Ensure no background on the image */
+    object-fit: contain;
+    background-color: transparent;
   }
 
   .product-title {
     font-size: 13px;
     line-height: 1.4;
-    margin-bottom: 8px;
+    margin-bottom: 0; /* Margin handled by container */
   }
 
   .price-section {
-    gap: 8px;
-    margin-bottom: 5px;
+    gap: 6px;
   }
 
   .product-price {
@@ -1254,15 +1286,11 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .original-price {
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .discount {
-    font-size: 13px;
-  }
-
-  .rating-section {
-    margin-bottom: 5px;
+    font-size: 11px;
   }
 
   .rating-badge {
@@ -1273,11 +1301,10 @@ option.custom-sort-dropdown:not(:last-child) {
 
   .stock-status {
     font-size: 11px;
-    margin-bottom: 5px;
   }
 
   .compare-section label {
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .compare-section input {
@@ -1346,7 +1373,7 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .skeleton-image {
-    height: 300px; /* Match the increased image container height */
+    height: 200px; /* Adjusted to match the new image container height */
   }
 
   .skeleton-text {
@@ -1419,19 +1446,19 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .product-card {
-    height: 460px; /* Adjusted height for larger images */
+    height: 380px; /* Adjusted height for better balance */
   }
 
   .image-container {
-    height: 340px; /* Increased height for better visibility */
-    background-color: transparent; /* Removed placeholder background */
+    height: 220px; /* Adjusted height for better balance */
+    background-color: transparent;
   }
 
   .product-image {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensure uniform sizing */
-    background-color: transparent; /* Ensure no background on the image */
+    object-fit: contain;
+    background-color: transparent;
   }
 
   .comparison-bar {
@@ -1472,10 +1499,15 @@ option.custom-sort-dropdown:not(:last-child) {
     border: none; /* Remove border for a cleaner look */
   }
 
-  .filters-sidebar--visible,
-  .filters-sidebar--hidden {
-    transform: none; /* Reset transform since position is static */
+ 
+  .filters-sidebar.visible {
+    display: block; /* Ensure it remains visible */
   }
+
+  .filters-sidebar.hidden {
+    display: none; /* For consistency, though not used */
+  }
+
 
   .btn-filter-toggle {
     display: none; /* Hide the filter toggle button on large screens */
@@ -1487,19 +1519,19 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .product-card {
-    height: 480px; /* Adjusted height for larger images */
+    height: 400px; /* Adjusted height for better balance */
   }
 
   .image-container {
-    height: 360px; /* Increased height for better visibility */
-    background-color: transparent; /* Removed placeholder background */
+    height: 240px; /* Adjusted height for better balance */
+    background-color: transparent;
   }
 
   .product-image {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensure uniform sizing */
-    background-color: transparent; /* Ensure no background on the image */
+    object-fit: contain;
+    background-color: transparent;
   }
 
   .btn-view-details {
@@ -1537,19 +1569,19 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .product-card {
-    height: 500px; /* Adjusted height for larger images */
+    height: 420px; /* Adjusted height for better balance */
   }
 
   .image-container {
-    height: 380px; /* Increased height for better visibility */
-    background-color: transparent; /* Removed placeholder background */
+    height: 260px; /* Adjusted height for better balance */
+    background-color: transparent;
   }
 
   .product-image {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Ensure uniform sizing */
-    background-color: transparent; /* Ensure no background on the image */
+    object-fit: contain;
+    background-color: transparent;
   }
 
   .comparison-bar {
@@ -1574,6 +1606,36 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .back-to-top {
-    bottom: 75px; /* Move further up to clear the navbar and comparison-bar */
+    bottom: 140px; /* Adjusted to clear the navbar (assuming 60px height) and comparison bar */
+  }
+
+  /* Filters Sidebar on Mobile */
+  .filters-sidebar {
+    top: auto;
+    bottom: 60px; /* Account for the navbar height */
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50vh; /* Reduced height for mobile */
+    transform: translateY(100%); /* Slide up from bottom */
+    transition: transform 0.3s ease;
+    border-radius: 12px 12px 0 0;
+    z-index: 1000;
+    padding-bottom: 16px; /* Extra padding at the bottom */
+    overflow-y: auto; /* Ensure scrolling is enabled */
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+  }
+
+  .filters-sidebar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Webkit browsers */
+  }
+
+  .filters-sidebar--visible {
+    transform: translateY(0);
+  }
+
+  .filters-sidebar--hidden {
+    transform: translateY(100%);
   }
 }
