@@ -137,7 +137,8 @@ function Products() {
   const [priceAlerts, setPriceAlerts] = useState([]); // Track price alerts
   const [productRatings, setProductRatings] = useState(
     JSON.parse(localStorage.getItem('productRatings')) || {}
-  );
+  ); // Initialize with cached ratings
+  const [ratingsError, setRatingsError] = useState(''); // Track ratings fetch errors
   const [recentSearches, setRecentSearches] = useState(
     JSON.parse(localStorage.getItem('recentSearches')) || []
   );
@@ -146,7 +147,6 @@ function Products() {
   );
   const [correctedSearch, setCorrectedSearch] = useState('');
   const [showRecentSearches, setShowRecentSearches] = useState(false);
-  const [isRatingsLoading, setIsRatingsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]); // For comparison
   const [showBackToTop, setShowBackToTop] = useState(false); // State for back-to-top visibility
@@ -202,40 +202,39 @@ function Products() {
     }
   }, [user]);
 
+  // Fetch reviews asynchronously in the background
   useEffect(() => {
     const fetchRatings = async () => {
-      const sunnyRatings = JSON.parse(localStorage.getItem('productRatings'));
-      if (sunnyRatings && Object.keys(sunnyRatings).length > 0) {
-        setProductRatings(sunnyRatings);
-        setIsRatingsLoading(false);
-        return;
-      }
-      if (user && user._id && products.length > 0) {
+      if (products.length > 0) {
         try {
-          setIsRatingsLoading(true);
+          setRatingsError('');
           const ratingsData = {};
           for (const product of products) {
             const res = await axios.get(`https://backend-ps76.onrender.com/api/reviews/product/${product._id}`);
-            if (res.data && Array.isArray(res.data)) {
-              const totalRating = res.data.reduce((sum, review) => sum + review.rating, 0);
-              const averageRating = res.data.length > 0 ? (totalRating / res.data.length).toFixed(1) : 0;
-              ratingsData[product._id] = { averageRating, reviewCount: res.data.length };
-            } else {
+            if (!Array.isArray(res.data)) {
               ratingsData[product._id] = { averageRating: 0, reviewCount: 0 };
+              setRatingsError(res.data.message || 'Failed to load ratings for some products.');
+              continue;
             }
+            const totalRating = res.data.reduce((sum, review) => sum + review.rating, 0);
+            const averageRating = res.data.length > 0 ? (totalRating / res.data.length).toFixed(1) : 0;
+            ratingsData[product._id] = { averageRating, reviewCount: res.data.length };
           }
           setProductRatings(ratingsData);
-          localStorage.setItem('productRatings', JSON.stringify(ratingsData));
+          localStorage.setItem('productRatings', JSON.stringify(ratingsData)); // Update cache
         } catch (err) {
           console.error('Error fetching ratings:', err);
-          toast.error('Failed to load product ratings.');
-        } finally {
-          setIsRatingsLoading(false);
+          setRatingsError(err.response?.data?.message || 'Failed to load product ratings. Please try again later.');
+          toast.error('Failed to load latest product ratings. Showing cached data.');
         }
       }
     };
-    fetchRatings();
-  }, [user, products]);
+
+    // Fetch reviews only if products are available
+    if (!loading && products.length > 0) {
+      fetchRatings();
+    }
+  }, [products, loading]);
 
   const lastProductElementRef = useCallback(
     (node) => {
@@ -560,7 +559,7 @@ function Products() {
     }
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('https://backend-ps76.onrender.com/api/wishlist', { productId }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`https://backend-ps76.onrender.com/api/wishlist`, { productId }, { headers: { Authorization: `Bearer ${token}` } });
       setWishlist([...wishlist, res.data.item]);
       setWishlistMessages((prev) => ({ ...prev, [productId]: true }));
       setTimeout(() => {
@@ -592,9 +591,8 @@ function Products() {
       return;
     }
     try {
-      // Mock API call for setting price alert
       const token = localStorage.getItem('token');
-      await axios.post('https://backend-ps76.onrender.com/api/price-alert', { productId }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post(`https://backend-ps76.onrender.com/api/price-alert`, { productId }, { headers: { Authorization: `Bearer ${token}` } });
       setPriceAlerts([...priceAlerts, productId]);
       toast.success('Price alert set successfully!');
     } catch (err) {
@@ -703,6 +701,15 @@ function Products() {
       <div className="container my-5 text-center">
         <h3>Error loading products</h3>
         <p>{productsError}</p>
+      </div>
+    );
+  }
+
+  if (ratingsError) {
+    return (
+      <div className="container my-5 text-center">
+        <h3>Error loading ratings</h3>
+        <p>{ratingsError}</p>
       </div>
     );
   }
@@ -1096,7 +1103,7 @@ function Products() {
               )}
             </div>
             <div className="product-grid">
-              {loading || isRatingsLoading
+              {loading
                 ? Array.from({ length: 6 }).map((_, index) => (
                     <div key={index} className="product-card">
                       <div className="skeleton-image animate-pulse"></div>
