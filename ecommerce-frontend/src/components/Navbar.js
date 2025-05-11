@@ -214,12 +214,15 @@ function Navigation() {
                     <Link to="/profile" className="dropdown-item">
                       Profile
                     </Link>
+                    <hr></hr>
                     <Link to="/wishlist" className="dropdown-item">
                       Wishlist
                     </Link>
+                    <hr></hr>
                     <Link to="/orders" className="dropdown-item">
                       Orders
                     </Link>
+                    <hr></hr>
                     <button className="dropdown-item" onClick={handleLogout}>
                       Logout
                     </button>

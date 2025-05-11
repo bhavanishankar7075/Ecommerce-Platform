@@ -1044,11 +1044,11 @@ function Products() {
                     {sortOptions.find(opt => opt.value === sort)?.label || 'Select'}
                     <span className={`arrow ${isDropdownOpen ? 'open' : ''}`}></span>
                   </div>
-                  <div className={`dropdown-menu ${isDropdownOpen ? 'open' : ''}`}>
+                  <div className={`dropdown-menu1 ${isDropdownOpen ? 'open' : ''}`}>
                     {sortOptions.map((option) => (
                       <div
                         key={option.value}
-                        className="dropdown-item"
+                        className="dropdown-item1"
                         onClick={() => {
                           setSort(option.value);
                           setIsDropdownOpen(false);
@@ -1129,7 +1129,7 @@ function Products() {
                         className="product-card"
                       >
                         {product.offer && (
-                          <span className="badge bg-green-600">{product.offer}% Off</span>
+                          <span className="badge bg-green-600">{product.offer}</span>
                         )}
                         {product.stock < 10 && product.stock > 0 && (
                           <span className="badge bg-yellow-500">Low Stock</span>

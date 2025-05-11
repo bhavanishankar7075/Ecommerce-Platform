@@ -469,7 +469,7 @@ option.custom-sort-dropdown:not(:last-child) {
 }
 
 /* Dropdown Menu */
-.dropdown-menu {
+.dropdown-menu1 {
   position: absolute;
   top: 100%;
   left: 0;
@@ -485,11 +485,13 @@ option.custom-sort-dropdown:not(:last-child) {
   animation: slideDown 0.3s ease forwards;
   max-height: 200px;
   overflow-y: auto;
+    scrollbar-width: none;
+  -ms-overflow-style: none;
   display: none; /* Hidden by default */
 }
 
 /* Ensure visibility when open */
-.dropdown-menu.open {
+.dropdown-menu1.open {
   display: block;
   opacity: 1;
 }
@@ -507,7 +509,7 @@ option.custom-sort-dropdown:not(:last-child) {
 }
 
 /* Dropdown Item */
-.dropdown-item {
+.dropdown-item1 {
   padding: 10px 12px;
   font-size: 14px;
   color: #00ddeb; /* Cyan text */
@@ -516,32 +518,32 @@ option.custom-sort-dropdown:not(:last-child) {
   border-bottom: 1px solid #333333; /* Separator between items */
 }
 
-.dropdown-item:last-child {
+.dropdown-item1:last-child {
   border-bottom: none; /* Remove border for the last item */
 }
 
-.dropdown-item:hover {
+.dropdown-item1:hover {
   background: #00ddeb; /* Cyan background on hover */
   color: #1a1a1a; /* Dark text on hover */
   transform: translateX(5px); /* Slight slide effect on hover */
 }
 
 /* Scrollbar Styling for Dropdown Menu */
-.dropdown-menu::-webkit-scrollbar {
+.dropdown-menu1::-webkit-scrollbar {
   width: 6px;
 }
 
-.dropdown-menu::-webkit-scrollbar-track {
+.dropdown-menu1::-webkit-scrollbar-track {
   background: #2a2a2a;
   border-radius: 8px;
 }
 
-.dropdown-menu::-webkit-scrollbar-thumb {
+.dropdown-menu1::-webkit-scrollbar-thumb {
   background: #00ddeb;
   border-radius: 8px;
 }
 
-.dropdown-menu::-webkit-scrollbar-thumb:hover {
+.dropdown-menu1::-webkit-scrollbar-thumb:hover {
   background: #00b8c9;
 }
 
