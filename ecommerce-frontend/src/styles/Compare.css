@@ -122,6 +122,41 @@
     height: 100px;
     object-fit: contain;
   }
+  /* Spinner Styles for Loading State */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #2874f0; /* Match the primary color used in .btn-back */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error Message Styles */
+.error-message {
+  color: #ff6161; /* Match the color used in .btn-clear for consistency */
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+/* Enhance Comparison Table with Hover Effects */
+.compare-table tr:hover {
+  background-color: #f9f9f9; /* Subtle hover effect for rows */
+}
+
+.attribute-value:hover {
+  background-color: #f1f3f6; /* Match the background color of .attribute-label */
+}
   
   /* Responsive Design */
   
@@ -171,6 +206,14 @@
       width: 60px;
       height: 60px;
     }
+    .attribute-value {
+    font-size: 12px;
+    padding: 5px;
+  }
+
+  .error-message {
+    font-size: 14px;
+  }
   }
   
   /* Small Devices (Tablets, 576px and up) */
@@ -187,6 +230,9 @@
       width: 80px;
       height: 80px;
     }
+    .error-message {
+    font-size: 16px;
+  }
   }
   
   /* Medium Devices (Tablets, 768px and up) */
