@@ -102,10 +102,10 @@ function ProductManagement() {
     Gadgets: [],
     Furniture: [],
     Mobiles: {
-      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],
+      Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel', 'Realme', 'Redmi'],
       FeaturePhones: ['Nokia', 'JioPhone'],
       Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
-      Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors','Power Banks'],
+      Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors', 'Power Banks'],
     },
     Appliances: [],
     Beauty: [],
@@ -189,7 +189,8 @@ function ProductManagement() {
     };
   }, [formData.currentMainImage, formData.newImages]);
 
-  const fetchProducts = async (showLoading = false) => {
+
+ /*  const fetchProducts = async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -218,13 +219,15 @@ function ProductManagement() {
       const productData = res.data.products || res.data || [];
       const initializedProducts = Array.isArray(productData)
         ? productData.map((product) => ({
-            ...product,
-            selected: product.selected || false,
-            image: product.image || '/default-product.jpg',
-            images: product.images || [],
-            specifications: product.specifications || {},
-            variants: product.variants || [],
-          }))
+          ...product,
+          selected: product.selected || false,
+          image: product.image || '/default-product.jpg',
+          images: product.images || [],
+          specifications: product.specifications || {},
+          variants: product.variants || [],
+          subcategory: product.subcategory || '', // Ensure subcategory is not undefined
+          nestedCategory: product.nestedCategory || '', // Ensure nestedCategory is not undefined
+        }))
         : [];
 
       setProducts(initializedProducts);
@@ -244,7 +247,120 @@ function ProductManagement() {
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }; */
+
+
+
+
+
+
+
+
+
+
+
+const fetchProducts = async (showLoading = false) => {
+  if (showLoading) setLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    const params = new URLSearchParams({
+      search: debouncedSearchQuery,
+      category: filterCategory,
+      subcategory: filterSubcategory,
+      nestedCategory: filterNestedCategory,
+      priceMin: filterPriceMin,
+      priceMax: filterPriceMax,
+      stock: filterStock,
+      offer: filterOffer,
+      page: currentPage,
+      limit: productsPerPage,
+      sort: '-createdAt',
+    });
+
+    const res = await axios.get(`https://backend-ps76.onrender.com/api/admin/products?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const productData = res.data.products || res.data || [];
+    const initializedProducts = Array.isArray(productData)
+      ? productData.map((product) => {
+          let subcategory = product.subcategory || '';
+          let nestedCategory = product.nestedCategory || '';
+
+          // Validate and fix subcategory
+          if (product.category && categories[product.category] && Object.keys(categories[product.category]).length > 0) {
+            const validSubcategories = Object.keys(categories[product.category]);
+            if (!subcategory || !validSubcategories.includes(subcategory)) {
+              console.warn(
+                `Invalid or missing subcategory for product ${product._id} (category: ${product.category}). Defaulting to first available subcategory.`
+              );
+              subcategory = validSubcategories[0] || ''; // Default to the first subcategory if invalid
+            }
+          }
+
+          // Validate and fix nestedCategory
+          if (
+            product.category &&
+            subcategory &&
+            categories[product.category] &&
+            categories[product.category][subcategory] &&
+            categories[product.category][subcategory].length > 0
+          ) {
+            const validNestedCategories = categories[product.category][subcategory];
+            if (!nestedCategory || !validNestedCategories.includes(nestedCategory)) {
+              console.warn(
+                `Invalid or missing nested category for product ${product._id} (category: ${product.category}, subcategory: ${subcategory}). Defaulting to first available nested category.`
+              );
+              nestedCategory = validNestedCategories[0] || ''; // Default to the first nested category if invalid
+            }
+          }
+
+          return {
+            ...product,
+            selected: product.selected || false,
+            image: product.image || '/default-product.jpg',
+            images: product.images || [],
+            specifications: product.specifications || {},
+            variants: product.variants || [],
+            subcategory,
+            nestedCategory,
+          };
+        })
+      : [];
+
+    setProducts(initializedProducts);
+    setTotalPages(res.data.totalPages || Math.ceil((res.data.total || productData.length) / productsPerPage));
+    setShouldFetch(false);
+  } catch (err) {
+    console.error('Error fetching products:', err.response ? err.response.data : err.message);
+    if (err.response?.status === 401) {
+      toast.error('Session expired or unauthorized. Please log in again.');
+      localStorage.removeItem('token');
+      navigate('/login');
+    } else {
+      toast.error(err.response?.data?.message || 'Failed to load products. Check server or token.');
+      setProducts([]);
+      setTotalPages(1);
+    }
+  } finally {
+    if (showLoading) setLoading(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -744,97 +860,257 @@ function ProductManagement() {
     }
   };
 
-  const handleVariantSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateVariantForm()) return;
+  /*  const handleVariantSubmit = async (e) => {
+     e.preventDefault();
+     if (!validateVariantForm()) return;
+ 
+     setSubmitting(true);
+ 
+     try {
+       const token = localStorage.getItem('token');
+       if (!token || isTokenExpired(token)) {
+         throw new Error('Session expired. Please log in again.');
+       }
+ 
+       const productToUpdate = products.find((p) => p._id === variantModal);
+       const variantId = Date.now().toString();
+ 
+       const newVariant = {
+         variantId,
+         specifications: variantFormData.specifications || {},
+       };
+ 
+       const variantForm = new FormData();
+       if (variantFormData.mainImage) {
+         variantForm.append('variantMainImage', variantFormData.mainImage);
+       }
+       if (variantFormData.newImages && variantFormData.newImages.length > 0) {
+         variantFormData.newImages.forEach((image, index) => {
+           if (image.file instanceof File) {
+             variantForm.append(`variantImages`, image.file);
+           }
+         });
+       }
+ 
+       const updateForm = new FormData();
+       updateForm.append('name', productToUpdate.name);
+       updateForm.append('price', productToUpdate.price);
+       updateForm.append('discountedPrice', productToUpdate.discountedPrice || '');
+       updateForm.append('sku', productToUpdate.sku || '');
+       updateForm.append('category', productToUpdate.category);
+       updateForm.append('subcategory', productToUpdate.subcategory);
+       updateForm.append('nestedCategory', productToUpdate.nestedCategory);
+       updateForm.append('stock', productToUpdate.stock);
+       updateForm.append('description', productToUpdate.description || '');
+       updateForm.append('offer', productToUpdate.offer || '');
+       updateForm.append('sizes', JSON.stringify(productToUpdate.sizes));
+       updateForm.append('packOf', productToUpdate.packOf || '');
+       updateForm.append('seller', productToUpdate.seller || '');
+       updateForm.append('specifications', JSON.stringify(productToUpdate.specifications || {}));
+       updateForm.append('warranty', productToUpdate.warranty || '');
+       updateForm.append('isActive', productToUpdate.isActive);
+       updateForm.append('featured', productToUpdate.featured);
+       updateForm.append('dealTag', productToUpdate.dealTag || '');
+       updateForm.append('brand', productToUpdate.brand || '');
+       updateForm.append('weight', productToUpdate.weight || '');
+       updateForm.append('weightUnit', productToUpdate.weightUnit || 'kg');
+       updateForm.append('model', productToUpdate.model || '');
+       updateForm.append('existingImages', JSON.stringify(productToUpdate.images || []));
+       updateForm.append('variants', JSON.stringify([...(productToUpdate.variants || []), newVariant]));
+ 
+       variantForm.forEach((value, key) => {
+         updateForm.append(key, value);
+       });
+ 
+       const res = await axios.put(
+         `https://backend-ps76.onrender.com/api/admin/products/${variantModal}`,
+         updateForm,
+         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+       );
+ 
+       const updatedProduct = res.data.product;
+       setProducts((prev) =>
+         prev.map((p) =>
+           p._id === variantModal ? { ...updatedProduct, selected: p.selected || false } : p
+         )
+       );
+ 
+       toast.success('Variant added successfully!');
+       setVariantModal(null);
+       setVariantFormData(null);
+     } catch (err) {
+       console.error('Error saving variant:', err.response ? err.response.data : err.message);
+       if (err.response?.status === 401) {
+         toast.error('Session expired or unauthorized. Please log in again.');
+         localStorage.removeItem('token');
+         navigate('/login');
+       } else {
+         toast.error(err.response?.data?.message || 'Failed to add variant.');
+       }
+     } finally {
+       setSubmitting(false);
+     }
+   }; */
 
-    setSubmitting(true);
 
-    try {
-      const token = localStorage.getItem('token');
-      if (!token || isTokenExpired(token)) {
-        throw new Error('Session expired. Please log in again.');
-      }
 
-      const productToUpdate = products.find((p) => p._id === variantModal);
-      const variantId = Date.now().toString();
+const handleVariantSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateVariantForm()) return;
 
-      const newVariant = {
-        variantId,
-        specifications: variantFormData.specifications || {},
-      };
+  setSubmitting(true);
 
-      const variantForm = new FormData();
-      if (variantFormData.mainImage) {
-        variantForm.append('variantMainImage', variantFormData.mainImage);
-      }
-      if (variantFormData.newImages && variantFormData.newImages.length > 0) {
-        variantFormData.newImages.forEach((image, index) => {
-          if (image.file instanceof File) {
-            variantForm.append(`variantImages`, image.file);
-          }
-        });
-      }
-
-      const updateForm = new FormData();
-      updateForm.append('name', productToUpdate.name);
-      updateForm.append('price', productToUpdate.price);
-      updateForm.append('discountedPrice', productToUpdate.discountedPrice || '');
-      updateForm.append('sku', productToUpdate.sku || '');
-      updateForm.append('category', productToUpdate.category);
-      updateForm.append('subcategory', productToUpdate.subcategory);
-      updateForm.append('nestedCategory', productToUpdate.nestedCategory);
-      updateForm.append('stock', productToUpdate.stock);
-      updateForm.append('description', productToUpdate.description || '');
-      updateForm.append('offer', productToUpdate.offer || '');
-      updateForm.append('sizes', JSON.stringify(productToUpdate.sizes));
-      updateForm.append('packOf', productToUpdate.packOf || '');
-      updateForm.append('seller', productToUpdate.seller || '');
-      updateForm.append('specifications', JSON.stringify(productToUpdate.specifications || {}));
-      updateForm.append('warranty', productToUpdate.warranty || '');
-      updateForm.append('isActive', productToUpdate.isActive);
-      updateForm.append('featured', productToUpdate.featured);
-      updateForm.append('dealTag', productToUpdate.dealTag || '');
-      updateForm.append('brand', productToUpdate.brand || '');
-      updateForm.append('weight', productToUpdate.weight || '');
-      updateForm.append('weightUnit', productToUpdate.weightUnit || 'kg');
-      updateForm.append('model', productToUpdate.model || '');
-      updateForm.append('existingImages', JSON.stringify(productToUpdate.images || []));
-      updateForm.append('variants', JSON.stringify([...(productToUpdate.variants || []), newVariant]));
-
-      variantForm.forEach((value, key) => {
-        updateForm.append(key, value);
-      });
-
-      const res = await axios.put(
-        `https://backend-ps76.onrender.com/api/admin/products/${variantModal}`,
-        updateForm,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
-      );
-
-      const updatedProduct = res.data.product;
-      setProducts((prev) =>
-        prev.map((p) =>
-          p._id === variantModal ? { ...updatedProduct, selected: p.selected || false } : p
-        )
-      );
-
-      toast.success('Variant added successfully!');
-      setVariantModal(null);
-      setVariantFormData(null);
-    } catch (err) {
-      console.error('Error saving variant:', err.response ? err.response.data : err.message);
-      if (err.response?.status === 401) {
-        toast.error('Session expired or unauthorized. Please log in again.');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        toast.error(err.response?.data?.message || 'Failed to add variant.');
-      }
-    } finally {
-      setSubmitting(false);
+  try {
+    const token = localStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      throw new Error('Session expired. Please log in again.');
     }
-  };
+
+    const productToUpdate = products.find((p) => p._id === variantModal);
+    if (!productToUpdate) {
+      throw new Error('Product not found.');
+    }
+
+    // Validate category
+    if (!productToUpdate.category) {
+      throw new Error('Product category is missing.');
+    }
+
+    // Validate and fix subcategory
+    let validatedSubcategory = productToUpdate.subcategory || '';
+    if (productToUpdate.category && categories[productToUpdate.category] && Object.keys(categories[productToUpdate.category]).length > 0) {
+      const validSubcategories = Object.keys(categories[productToUpdate.category]);
+      if (!validatedSubcategory || !validSubcategories.includes(validatedSubcategory)) {
+        validatedSubcategory = validSubcategories[0]; // Default to the first subcategory
+        if (!validatedSubcategory) {
+          throw new Error(`No valid subcategories available for category ${productToUpdate.category}.`);
+        }
+        console.warn(
+          `Subcategory for product ${productToUpdate._id} (category: ${productToUpdate.category}) was invalid. Defaulted to: ${validatedSubcategory}`
+        );
+      }
+    }
+
+    // Validate and fix nestedCategory
+    let validatedNestedCategory = productToUpdate.nestedCategory || '';
+    if (
+      validatedSubcategory &&
+      categories[productToUpdate.category] &&
+      categories[productToUpdate.category][validatedSubcategory] &&
+      categories[productToUpdate.category][validatedSubcategory].length > 0
+    ) {
+      const validNestedCategories = categories[productToUpdate.category][validatedSubcategory];
+      if (!validatedNestedCategory || !validNestedCategories.includes(validatedNestedCategory)) {
+        validatedNestedCategory = validNestedCategories[0]; // Default to the first nested category
+        if (!validatedNestedCategory) {
+          throw new Error(`No valid nested categories available for subcategory ${validatedSubcategory}.`);
+        }
+        console.warn(
+          `Nested category for product ${productToUpdate._id} (subcategory: ${validatedSubcategory}) was invalid. Defaulted to: ${validatedNestedCategory}`
+        );
+      }
+    }
+
+    const variantId = Date.now().toString();
+
+    // Construct the new variant with images and specifications
+    const newVariant = {
+      variantId,
+      mainImage: null, // Will be updated by backend after upload
+      additionalImages: [], // Will be updated by backend after upload
+      specifications: variantFormData.specifications || {},
+    };
+
+    const variantForm = new FormData();
+    if (variantFormData.mainImage) {
+      variantForm.append('variantMainImage', variantFormData.mainImage);
+    }
+    if (variantFormData.newImages && variantFormData.newImages.length > 0) {
+      variantFormData.newImages.forEach((image, index) => {
+        if (image.file instanceof File) {
+          variantForm.append(`variantImages`, image.file);
+        }
+      });
+    }
+
+    const updateForm = new FormData();
+    updateForm.append('name', productToUpdate.name);
+    updateForm.append('price', productToUpdate.price);
+    updateForm.append('discountedPrice', productToUpdate.discountedPrice || '');
+    updateForm.append('sku', productToUpdate.sku || '');
+    updateForm.append('category', productToUpdate.category);
+    updateForm.append('subcategory', validatedSubcategory);
+    updateForm.append('nestedCategory', validatedNestedCategory);
+    updateForm.append('stock', productToUpdate.stock);
+    updateForm.append('description', productToUpdate.description || '');
+    updateForm.append('offer', productToUpdate.offer || '');
+    updateForm.append('sizes', JSON.stringify(productToUpdate.sizes));
+    updateForm.append('packOf', productToUpdate.packOf || '');
+    updateForm.append('seller', productToUpdate.seller || '');
+    updateForm.append('specifications', JSON.stringify(productToUpdate.specifications || {}));
+    updateForm.append('warranty', productToUpdate.warranty || '');
+    updateForm.append('isActive', productToUpdate.isActive);
+    updateForm.append('featured', productToUpdate.featured);
+    updateForm.append('dealTag', productToUpdate.dealTag || '');
+    updateForm.append('brand', productToUpdate.brand || '');
+    updateForm.append('weight', productToUpdate.weight || '');
+    updateForm.append('weightUnit', productToUpdate.weightUnit || 'kg');
+    updateForm.append('model', productToUpdate.model || '');
+    updateForm.append('existingImages', JSON.stringify(productToUpdate.images || []));
+    updateForm.append('variants', JSON.stringify([...(productToUpdate.variants || []), newVariant]));
+
+    variantForm.forEach((value, key) => {
+      updateForm.append(key, value);
+    });
+
+    const res = await axios.put(
+      `https://backend-ps76.onrender.com/api/admin/products/${variantModal}`,
+      updateForm,
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+    );
+
+    const updatedProduct = res.data.product;
+    setProducts((prev) =>
+      prev.map((p) =>
+        p._id === variantModal ? { ...updatedProduct, selected: p.selected || false } : p
+      )
+    );
+
+    toast.success('Variant added successfully!');
+    setVariantModal(null);
+    setVariantFormData(null);
+  } catch (err) {
+    console.error('Error saving variant:', err.response ? err.response.data : err.message);
+    if (err.response?.status === 401) {
+      toast.error('Session expired or unauthorized. Please log in again.');
+      localStorage.removeItem('token');
+      navigate('/login');
+    } else {
+      toast.error(err.response?.data?.message || err.message || 'Failed to add variant.');
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleEdit = (product) => {
     const additionalImages = Array.isArray(product.images)
@@ -1055,7 +1331,7 @@ function ProductManagement() {
     });
   };
 
-  const openVariantModal = (product) => {
+  /* const openVariantModal = (product) => {
     setVariantFormData({
       mainImage: null,
       currentMainImage: null,
@@ -1064,6 +1340,45 @@ function ProductManagement() {
     });
     setVariantModal(product._id);
   };
+ */
+
+const openVariantModal = (product) => {
+  let subcategory = product.subcategory || '';
+  let nestedCategory = product.nestedCategory || '';
+
+  // Validate and fix subcategory
+  if (product.category && categories[product.category] && Object.keys(categories[product.category]).length > 0) {
+    const validSubcategories = Object.keys(categories[product.category]);
+    if (!subcategory || !validSubcategories.includes(subcategory)) {
+      subcategory = validSubcategories[0] || '';
+    }
+  }
+
+  // Validate and fix nestedCategory
+  if (
+    subcategory &&
+    categories[product.category] &&
+    categories[product.category][subcategory] &&
+    categories[product.category][subcategory].length > 0
+  ) {
+    const validNestedCategories = categories[product.category][subcategory];
+    if (!nestedCategory || !validNestedCategories.includes(nestedCategory)) {
+      nestedCategory = validNestedCategories[0] || '';
+    }
+  }
+
+  setVariantFormData({
+    mainImage: null,
+    currentMainImage: null,
+    newImages: [],
+    specifications: { ...product.specifications },
+    category: product.category,
+    subcategory,
+    nestedCategory,
+  });
+  setVariantModal(product._id);
+};
+
 
   const closeVariantModal = () => {
     if (variantFormData.currentMainImage && typeof variantFormData.currentMainImage !== 'string') {
@@ -1644,8 +1959,8 @@ function ProductManagement() {
                       ) : null}
                     </p>
                     <p>
-                      Category: {product.category || 'N/A'} 
-                      {product.subcategory ? ` > ${product.subcategory}` : ''} 
+                      Category: {product.category || 'N/A'}
+                      {product.subcategory ? ` > ${product.subcategory}` : ''}
                       {product.nestedCategory ? ` > ${product.nestedCategory}` : ''}
                     </p>
                     <p>
@@ -1796,8 +2111,8 @@ function ProductManagement() {
               ) : null}
             </p>
             <p>
-              Category: {previewModal.category || 'N/A'} 
-              {previewModal.subcategory ? ` > ${previewModal.subcategory}` : ''} 
+              Category: {previewModal.category || 'N/A'}
+              {previewModal.subcategory ? ` > ${previewModal.subcategory}` : ''}
               {previewModal.nestedCategory ? ` > ${previewModal.nestedCategory}` : ''}
             </p>
             <p>
@@ -1841,7 +2156,7 @@ function ProductManagement() {
           </div>
         </div>
       )}
-
+      {/* 
       {variantModal && (
         <div className="variant-modal">
           <div className="modal-content">
@@ -1917,6 +2232,168 @@ function ProductManagement() {
                             value={key}
                             onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value, true)}
                             placeholder="Key, Color)"
+                          />
+                          <input
+                            type="text"
+                            value={value || ''}
+                            onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value)}
+                            placeholder="Value (e.g., Red)"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeVariantSpecificationField(section, key)}
+                            className="remove-btn"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => addVariantSpecificationField(section)}
+                        className="add-btn"
+                      >
+                        Add Specification
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p>No specifications added.</p>
+                )}
+                <button type="button" onClick={addVariantSpecificationSection} className="add-btn">
+                  Add Specification Section
+                </button>
+              </div>
+              <div className="form-actions">
+                <button type="submit" className="save-btn" disabled={submitting}>
+                  {submitting ? 'Saving...' : 'Add Variant'}
+                </button>
+                <button type="button" className="cancel-btn" onClick={closeVariantModal}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )} */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      {variantModal && (
+        <div className="variant-modal">
+          <div className="modal-content">
+            <button className="close-modal" onClick={closeVariantModal}>
+              ✕
+            </button>
+            <h2>Add Variant</h2>
+            <form onSubmit={handleVariantSubmit} className="variant-form">
+              {/* Display category, subcategory, and nestedCategory as read-only */}
+              <div className="form-group">
+                <label>Category</label>
+                <input
+                  type="text"
+                  value={variantFormData.category || 'N/A'}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="form-group">
+                <label>Subcategory</label>
+                <input
+                  type="text"
+                  value={variantFormData.subcategory || 'N/A'}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="form-group">
+                <label>Nested Category</label>
+                <input
+                  type="text"
+                  value={variantFormData.nestedCategory || 'N/A'}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <div className="form-group">
+                <label>Main Image</label>
+                <input type="file" name="variantMainImage" accept="image/*" onChange={handleFileChange} />
+                {variantFormData.currentMainImage && (
+                  <div className="image-preview">
+                    <img
+                      src={variantFormData.currentMainImage}
+                      alt="Variant Main Preview"
+                      onError={(e) => {
+                        e.target.src = '/default-product.jpg';
+                        e.target.onerror = null;
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label>Additional Images</label>
+                <input type="file" name="variantImages" accept="image/*" multiple onChange={handleFileChange} />
+                <div className="additional-images-preview">
+                  {variantFormData.newImages.map((image, index) => (
+                    <div key={`new-variant-${index}`} className="image-preview-item">
+                      <img
+                        src={image.preview}
+                        alt={`New Variant ${index}`}
+                        onError={(e) => {
+                          e.target.src = '/default-product.jpg';
+                          e.target.onerror = null;
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="delete-image-btn"
+                        onClick={() =>
+                          setVariantFormData((prev) => ({
+                            ...prev,
+                            newImages: prev.newImages.filter((_, i) => i !== index),
+                          }))
+                        }
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Specifications</label>
+                {Object.keys(variantFormData.specifications || {}).length > 0 ? (
+                  Object.entries(variantFormData.specifications).map(([section, specs]) => (
+                    <div key={section} className="specification-section">
+                      <h4>{section}</h4>
+                      <div className="spec-field">
+                        <input
+                          type="text"
+                          value={section}
+                          onChange={(e) => handleVariantSpecificationSectionNameChange(section, e.target.value)}
+                          placeholder="Section Name"
+                        />
+                      </div>
+                      {Object.entries(specs || {}).map(([key, value]) => (
+                        <div key={key} className="spec-field">
+                          <input
+                            type="text"
+                            value={key}
+                            onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value, true)}
+                            placeholder="Key (e.g., Color)"
                           />
                           <input
                             type="text"
