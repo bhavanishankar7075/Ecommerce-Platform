@@ -310,6 +310,8 @@ router.post('/', authMiddleware, async (req, res) => {
  */
 
 
+
+
 // Create Stripe Checkout session (used for card payments)
 router.post('/create-session', authMiddleware, async (req, res) => {
   try {
@@ -366,7 +368,7 @@ router.post('/create-session', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Items array is empty' });
     }
 
-    // Validate each item
+    // Validate each item and prepare line_items
     const lineItems = items.map((item, index) => {
       if (!item.productId) {
         console.error(`Missing productId for item at index ${index}:`, item);
@@ -380,30 +382,63 @@ router.post('/create-session', authMiddleware, async (req, res) => {
         console.error(`Invalid item at index ${index}:`, item);
         throw new Error(`Item at index ${index} must have name, price, and quantity as numbers`);
       }
-      const unitAmount = Math.round(Number(item.price) * 100); // Ensure integer for Stripe (paise)
+      const unitAmount = Math.round(Number(item.price) * 100); // Price in paise
       if (!Number.isInteger(unitAmount) || unitAmount <= 0) {
         console.error(`Invalid unit_amount for item at index ${index}:`, unitAmount);
         throw new Error(`Unit amount for item at index ${index} must be a positive integer`);
       }
+      const quantity = Math.round(Number(item.quantity));
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        console.error(`Invalid quantity for item at index ${index}:`, quantity);
+        throw new Error(`Quantity for item at index ${index} must be a positive integer`);
+      }
+      console.log(`Item ${index}: unit_amount=${unitAmount}, quantity=${quantity}, subtotal=${unitAmount * quantity} paise`);
       return {
         price_data: {
           currency: 'inr',
           product_data: { name: item.name },
           unit_amount: unitAmount,
         },
-        quantity: Math.round(Number(item.quantity)), // Ensure integer
+        quantity: quantity,
       };
     });
 
+    // Calculate total amount due in paise
+    const totalAmountPaise = lineItems.reduce((sum, item) => {
+      const subtotal = item.price_data.unit_amount * item.quantity;
+      console.log(`Adding subtotal for item: ${item.price_data.unit_amount} * ${item.quantity} = ${subtotal}`);
+      return sum + subtotal;
+    }, 0);
+    console.log('Total amount due (in paise):', totalAmountPaise);
+
+    // Validate against Stripe's maximum limit (₹9,999,999.99 = 999,999,999 paise)
+    const STRIPE_MAX_AMOUNT_PAISE = 999999999;
+    if (totalAmountPaise > STRIPE_MAX_AMOUNT_PAISE) {
+      console.error(`Total amount due (${totalAmountPaise} paise) exceeds Stripe's maximum limit of ${STRIPE_MAX_AMOUNT_PAISE} paise`);
+      return res.status(400).json({
+        message: `Order total exceeds Stripe's maximum limit of ₹9,999,999.99. Please reduce the order amount.`,
+      });
+    }
+
+    // Validate minimum amount (Stripe requires at least ₹0.50 = 50 paise)
+    const STRIPE_MIN_AMOUNT_PAISE = 50;
+    if (totalAmountPaise < STRIPE_MIN_AMOUNT_PAISE) {
+      console.error(`Total amount due (${totalAmountPaise} paise) is below Stripe's minimum limit of ${STRIPE_MIN_AMOUNT_PAISE} paise`);
+      return res.status(400).json({
+        message: `Order total is below Stripe's minimum limit of ₹0.50. Please increase the order amount.`,
+      });
+    }
+
     console.log('Creating Stripe session with line_items:', lineItems);
 
-    // Determine success and cancel URLs based on environment
-    const isProduction = process.env.NODE_ENV === 'production';
-    const baseUrl = isProduction
-      ? 'https://frontend-8uy4.onrender.com' // Replace with your actual frontend domain on Render
-      : 'http://localhost:5003';
-    const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${baseUrl}/failure`;
+    // Use ngrok or your deployed frontend URL for Render
+    const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+    const successUrl = isLocalhost
+      ? 'http://localhost:5003/success?session_id={CHECKOUT_SESSION_ID}'
+      : 'https://frontend-8uy4.onrender.com/success?session_id={CHECKOUT_SESSION_ID}'; // Replace with your ngrok or deployed frontend URL
+    const cancelUrl = isLocalhost
+      ? 'http://localhost:5003/failure'
+      : 'https://frontend-8uy4.onrender.com/failure'; // Replace with your ngrok or deployed frontend URL
 
     console.log('Using success_url:', successUrl, 'and cancel_url:', cancelUrl);
 
@@ -460,6 +495,7 @@ router.post('/create-session', authMiddleware, async (req, res) => {
     res.json({ sessionId: session.id });
   } catch (error) {
     console.error('Error creating Stripe session:', error.message, error.stack);
+    console.error('Full Stripe error details:', JSON.stringify(error, null, 2));
     if (error.type === 'StripeInvalidRequestError') {
       return res.status(400).json({ message: 'Invalid Stripe request', error: error.message });
     }
@@ -472,7 +508,6 @@ router.post('/create-session', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Failed to create payment session', error: error.message });
   }
 });
-
 
 
 
@@ -738,7 +773,7 @@ router.put('/admin/:orderId', verifyAdmin, async (req, res) => {
 
     const order = await Order.findByIdAndUpdate(
       orderId,
-      { 
+      {
         status,
         $push: { statusHistory: { status, timestamp: new Date() } } // Update status history
       },
