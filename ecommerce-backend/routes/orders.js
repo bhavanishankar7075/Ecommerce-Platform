@@ -400,7 +400,7 @@ router.post('/create-session', authMiddleware, async (req, res) => {
     // Determine success and cancel URLs based on environment
     const isProduction = process.env.NODE_ENV === 'production';
     const baseUrl = isProduction
-      ? 'https://your-frontend-domain.com' // Replace with your actual frontend domain on Render
+      ? 'https://frontend-8uy4.onrender.com' // Replace with your actual frontend domain on Render
       : 'http://localhost:5003';
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/failure`;
