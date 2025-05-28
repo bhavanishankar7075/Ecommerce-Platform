@@ -59,7 +59,7 @@ function Success() {
       <div className="success-container">
         <h1 className="success-title">Order Confirmed!</h1>
         {error ? (
-          <p className="error-message">{error}</p>
+          <p className="error-message">{error}</p> 
         ) : orderDetails ? (
           <>
             <p className="success-message">Thank you for your purchase! Your order has been successfully placed.</p>

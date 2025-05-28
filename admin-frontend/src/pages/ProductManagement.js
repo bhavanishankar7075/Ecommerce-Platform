@@ -858,7 +858,145 @@ const fetchProducts = async (showLoading = false) => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }; 
+
+
+
+/* const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setSubmitting(true);
+
+  try {
+    const token = localStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    const form = new FormData();
+    form.append('name', formData.name);
+    form.append('price', formData.price);
+    form.append('discountedPrice', formData.discountedPrice || '');
+    form.append('sku', formData.sku || '');
+    form.append('category', formData.category);
+    form.append('subcategory', formData.subcategory);
+    form.append('nestedCategory', formData.nestedCategory);
+    form.append('stock', formData.stock);
+    form.append('description', formData.description || '');
+    form.append('offer', formData.offer || '');
+    form.append('sizes', JSON.stringify(formData.sizes));
+    form.append('packOf', formData.packOf || '');
+    form.append('seller', formData.seller || '');
+
+    const specs = { ...formData.specifications };
+    if (formData.nestedCategory === 'Trimmers') {
+      if (formData.trimmingRange) {
+        if (!specs['Trimming Range']) specs['Trimming Range'] = {};
+        specs['Trimming Range']['Range'] = formData.trimmingRange;
+      }
+      if (formData.bladeMaterial) {
+        if (!specs['Blade Material']) specs['Blade Material'] = {};
+        specs['Blade Material']['Material'] = formData.bladeMaterial;
+      }
+    }
+
+    const currentVariantId = editingProductId ? selectedVariant[editingProductId] || 'default' : 'default';
+    console.log('handleSubmit - Editing variant with ID:', currentVariantId);
+
+    const productToUpdate = products.find((p) => p._id === editingProductId);
+    let updatedVariants = [...(productToUpdate?.variants || formData.variants || [])];
+
+    if (editingProductId && currentVariantId !== 'default' && productToUpdate) {
+      const variantIndex = updatedVariants.findIndex((v) => v.variantId === currentVariantId);
+      console.log('handleSubmit - Variant Index:', variantIndex);
+      console.log('handleSubmit - Variants before update:', updatedVariants);
+
+      if (variantIndex === -1) {
+        throw new Error('Selected variant not found.');
+      }
+
+      const updatedVariant = { ...updatedVariants[variantIndex] };
+      updatedVariant.specifications = specs;
+      updatedVariant.additionalImages = formData.existingImages;
+
+      if (formData.mainImage || formData.newImages.length > 0) {
+        form.append('variantId', currentVariantId);
+        if (formData.mainImage) {
+          form.append('variantMainImage', formData.mainImage);
+          updatedVariant.mainImage = formData.currentMainImage; // Placeholder, backend will update
+        }
+        if (formData.newImages.length > 0) {
+          formData.newImages.forEach((image) => {
+            if (image.file instanceof File) {
+              form.append('variantImages', image.file);
+            }
+          });
+        }
+      }
+
+      updatedVariants[variantIndex] = updatedVariant;
+      console.log('handleSubmit - Variants after update:', updatedVariants);
+    } else {
+      form.append('specifications', JSON.stringify(specs));
+      if (formData.mainImage) {
+        form.append('image', formData.mainImage);
+      }
+      formData.newImages.forEach((image) => {
+        if (image.file instanceof File) {
+          form.append('images', image.file);
+        }
+      });
+      if (formData.existingImages.length > 0) {
+        form.append('existingImages', JSON.stringify(formData.existingImages));
+      }
+    }
+
+    // Ensure variants is always appended
+    if (!updatedVariants || updatedVariants.length === 0) {
+      throw new Error('Variants array cannot be empty');
+    }
+    form.append('variants', JSON.stringify(updatedVariants));
+
+    let updatedProduct;
+    if (editingProductId) {
+      const res = await axios.put(
+        `https://backend-ps76.onrender.com/api/admin/products/${editingProductId}`,
+        form,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      updatedProduct = res.data.product;
+      setProducts((prev) =>
+        prev.map((p) =>
+          p._id === editingProductId ? { ...updatedProduct, selected: p.selected || false } : p
+        )
+      );
+      toast.success('Product updated successfully!');
+    } else {
+      const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
+      });
+      updatedProduct = res.data.product;
+      setProducts((prev) => [updatedProduct, ...prev].map((p) => ({ ...p, selected: false })));
+      setCurrentPage(1);
+      toast.success('Product added successfully!');
+    }
+    resetForm();
+  } catch (err) {
+    console.error('Error saving product:', err.response ? err.response.data : err.message);
+    if (err.response?.status === 401) {
+      toast.error('Session expired or unauthorized. Please log in again.');
+      localStorage.removeItem('token');
+      navigate('/login');
+    } else {
+      toast.error(err.response?.data?.message || err.message || 'Failed to save product.');
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
+ */
+
 
   /*  const handleVariantSubmit = async (e) => {
      e.preventDefault();
@@ -1111,7 +1249,7 @@ const handleVariantSubmit = async (e) => {
 
 
 
-
+/* 
   const handleEdit = (product) => {
     const additionalImages = Array.isArray(product.images)
       ? product.images.filter((img) => img !== product.image)
@@ -1155,6 +1293,68 @@ const handleVariantSubmit = async (e) => {
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+ */
+
+
+  const handleEdit = (product) => {
+  // Get the selected variant for this product
+  const currentVariantId = selectedVariant[product._id] || 'default';
+  const variant = currentVariantId === 'default' ? null : product.variants.find((v) => v.variantId === currentVariantId);
+
+  // Determine images and specifications based on whether a variant is selected
+  const mainImage = variant ? variant.mainImage || product.image : product.image;
+  const additionalImages = variant
+    ? (variant.additionalImages || []).filter((img) => img !== (variant.mainImage || product.image))
+    : Array.isArray(product.images)
+    ? product.images.filter((img) => img !== product.image)
+    : [];
+  const specifications = variant ? variant.specifications || product.specifications : product.specifications || {};
+
+  setFormData({
+    name: product.name,
+    price: product.price,
+    discountedPrice: product.discountedPrice || '',
+    sku: product.sku || '',
+    category: product.category,
+    subcategory: product.subcategory,
+    nestedCategory: product.nestedCategory,
+    stock: product.stock,
+    description: product.description,
+    mainImage: null,
+    currentMainImage: mainImage,
+    existingImages: additionalImages,
+    newImages: [],
+    offer: product.offer || '',
+    sizes: product.sizes || [],
+    packOf: product.packOf || '',
+    trimmingRange: specifications?.['Trimming Range']?.['Range'] || '',
+    bladeMaterial: specifications?.['Blade Material']?.['Material'] || '',
+    seller: product.seller || '',
+    specifications: specifications,
+    warranty: product.warranty || '',
+    isActive: product.isActive,
+    featured: product.featured,
+    dealTag: product.dealTag || '',
+    brand: product.brand || '',
+    weight: product.weight
+      ? product.weightUnit === 'g'
+        ? `${product.weight * 1000}g`
+        : `${product.weight}kg`
+      : '',
+    model: product.model || '',
+    variants: product.variants || [],
+  });
+  setEditingProductId(product._id);
+  setSelectedImage({});
+  setShowForm(true);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+
+
+
+
+
 
   const handleDelete = async (productId) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
@@ -1710,7 +1910,10 @@ const openVariantModal = (product) => {
                 Featured
               </label>
             </div>
-            <div className="form-group">
+
+
+
+             {/* <div className="form-group">
               <label>Main Image</label>
               <input type="file" id="mainImageInput" name="mainImage" accept="image/*" onChange={handleFileChange} required={!editingProductId && formData.existingImages.length === 0} />
               {formData.currentMainImage && (
@@ -1753,7 +1956,7 @@ const openVariantModal = (product) => {
                       ✕
                     </button>
                   </div>
-                ))}
+                ))} 
                 {formData.newImages.map((image, index) => (
                   <div key={`new-${index}`} className="image-preview-item">
                     <img
@@ -1779,7 +1982,82 @@ const openVariantModal = (product) => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
+
+
+            <div className="form-group">
+  <label>Main Image</label>
+  <input type="file" id="mainImageInput" name="mainImage" accept="image/*" onChange={handleFileChange} required={!editingProductId && formData.existingImages.length === 0} />
+  {formData.currentMainImage && (
+    <div className="image-preview">
+      <img
+        src={formData.currentMainImage}
+        alt="Main Preview"
+        onError={(e) => {
+          e.target.src = '/default-product.jpg';
+          e.target.onerror = null;
+        }}
+      />
+    </div>
+  )}
+</div>
+<div className="form-group">
+  <label>Additional Images</label>
+  <input type="file" id="additionalImagesInput" name="images" accept="image/*" multiple onChange={handleFileChange} />
+  <div className="additional-images-preview">
+    {formData.existingImages.map((image, index) => (
+      <div key={`existing-${index}`} className="image-preview-item">
+        <img
+          src={image}
+          alt={`Existing ${index}`}
+          onError={(e) => {
+            e.target.src = '/default-product.jpg';
+            e.target.onerror = null;
+          }}
+        />
+        <button
+          type="button"
+          className="delete-image-btn"
+          onClick={() =>
+            setFormData((prev) => ({
+              ...prev,
+              existingImages: prev.existingImages.filter((_, i) => i !== index),
+            }))
+          }
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+    {formData.newImages.map((image, index) => (
+      <div key={`new-${index}`} className="image-preview-item">
+        <img
+          src={image.preview}
+          alt={`New ${index}`}
+          onError={(e) => {
+            e.target.src = '/default-product.jpg';
+            e.target.onerror = null;
+          }}
+        />
+        <button
+          type="button"
+          className="delete-image-btn"
+          onClick={() =>
+            setFormData((prev) => ({
+              ...prev,
+              newImages: prev.newImages.filter((_, i) => i !== index),
+            }))
+          }
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
+
+
+
             <div className="form-actions">
               <button type="submit" className="save-btn" disabled={submitting}>
                 {submitting ? 'Saving...' : editingProductId ? 'Update Product' : 'Add Product'}
