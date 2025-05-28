@@ -194,7 +194,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
 
 // Create Stripe Checkout session (used for card payments)
-/* router.post('/create-session', authMiddleware, async (req, res) => {
+ router.post('/create-session', authMiddleware, async (req, res) => {
   try {
     console.log('Received request to create Stripe session:', req.body);
 
@@ -307,13 +307,14 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Failed to create payment session', error: error.message });
   }
 });
- */
+ 
+
 
 
 
 
 // Create Stripe Checkout session (used for card payments)
-router.post('/create-session', authMiddleware, async (req, res) => {
+/* router.post('/create-session', authMiddleware, async (req, res) => {
   try {
     console.log('Received request to create Stripe session:', req.body);
 
@@ -435,12 +436,46 @@ router.post('/create-session', authMiddleware, async (req, res) => {
     const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
     const successUrl = isLocalhost
       ? 'http://localhost:5003/success?session_id={CHECKOUT_SESSION_ID}'
-      : 'https://frontend-8uy4.onrender.com/success?session_id={CHECKOUT_SESSION_ID}'; // Replace with your ngrok or deployed frontend URL
+      : 'https://frontend-8uy4.onrender.com/success?session_id={CHECKOUT_SESSION_ID}';
     const cancelUrl = isLocalhost
       ? 'http://localhost:5003/failure'
-      : 'https://frontend-8uy4.onrender.com/failure'; // Replace with your ngrok or deployed frontend URL
+      : 'https://frontend-8uy4.onrender.com/failure';
 
     console.log('Using success_url:', successUrl, 'and cancel_url:', cancelUrl);
+
+    // Prepare metadata with minimal data
+    const metadata = {
+      userId,
+      payment: paymentMethod === 'saved' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'Online Payment',
+      total: total.toString(),
+      // Store only essential item details
+      items: JSON.stringify(
+        items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        }))
+      ),
+      // Store minimal shipping address details
+      shippingAddress: JSON.stringify({
+        line1: shippingAddress.line1,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        postal_code: shippingAddress.postal_code,
+        country: shippingAddress.country,
+      }),
+    };
+
+    // Validate metadata size (Stripe limit: 40KB)
+    const metadataString = JSON.stringify(metadata);
+    const metadataSizeBytes = Buffer.byteLength(metadataString, 'utf8');
+    const STRIPE_METADATA_LIMIT_BYTES = 40 * 1024; // 40KB
+    console.log(`Metadata size: ${metadataSizeBytes} bytes`);
+    if (metadataSizeBytes > STRIPE_METADATA_LIMIT_BYTES) {
+      console.error(`Metadata size (${metadataSizeBytes} bytes) exceeds Stripe's limit of ${STRIPE_METADATA_LIMIT_BYTES} bytes`);
+      return res.status(400).json({
+        message: 'Order metadata is too large for Stripe. Please reduce the number of items or simplify the shipping address.',
+      });
+    }
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -451,23 +486,7 @@ router.post('/create-session', authMiddleware, async (req, res) => {
       shipping_address_collection: {
         allowed_countries: ['US', 'IN'],
       },
-      metadata: {
-        userId,
-        shippingAddress: JSON.stringify(shippingAddress),
-        payment: paymentMethod === 'saved' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'Online Payment',
-        items: JSON.stringify(
-          items.map(item => ({
-            productId: item.productId,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image || '',
-            size: item.size || '',
-            variantId: item.variantId || '',
-          }))
-        ),
-        total: total.toString(),
-      },
+      metadata: metadata,
     });
 
     console.log('Stripe session created successfully:', session.id);
@@ -508,7 +527,7 @@ router.post('/create-session', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Failed to create payment session', error: error.message });
   }
 });
-
+ */
 
 
 
