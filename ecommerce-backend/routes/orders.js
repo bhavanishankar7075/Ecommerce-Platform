@@ -315,16 +315,16 @@ router.post('/', authMiddleware, async (req, res) => {
 
 
 //practise test 
-
- router.post('/create-session', authMiddleware, async (req, res) => {
+router.post('/create-session', authenticate, async (req, res) => {
   try {
     console.log('Received request to create Stripe session:', req.body);
 
     const { items, shippingAddress, total, paymentMethod, cardDetails } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
 
     console.log('Parsed fields:', { userId, items, shippingAddress, total, paymentMethod, cardDetails });
 
+    // Validate required fields
     if (!userId || !items || !shippingAddress || !total) {
       console.error('Missing required fields:', { userId, items, shippingAddress, total });
       return res.status(400).json({ message: 'Missing required fields' });
@@ -332,7 +332,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
     if (paymentMethod === 'cod') {
       console.log('COD selected, returning dummy session ID');
-      return res.json({ sessionId: 'cod-' + Date.now() });
+      const dummySessionId = 'cod-' + Date.now();
+      return res.json({ sessionId: dummySessionId });
     }
 
     if (!Array.isArray(items)) {
@@ -344,7 +345,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Items array is empty' });
     }
 
-    // Validate each item
+    // Validate each item and prepare line_items
     const lineItems = items.map((item, index) => {
       if (!item.productId) {
         console.error(`Missing productId for item at index ${index}:`, item);
@@ -354,19 +355,56 @@ router.post('/', authMiddleware, async (req, res) => {
         console.error(`Invalid productId for item at index ${index}:`, item);
         throw new Error(`Invalid productId for item at index ${index}: ${item.productId}`);
       }
-      if (!item.name || !item.price || !item.quantity) {
+      if (!item.name || typeof item.price !== 'number' || typeof item.quantity !== 'number') {
         console.error(`Invalid item at index ${index}:`, item);
-        throw new Error(`Item at index ${index} must have name, price, and quantity`);
+        throw new Error(`Item at index ${index} must have name, price, and quantity as numbers`);
       }
+      const unitAmount = Math.round(Number(item.price) * 100); // Convert rupees to paise
+      if (!Number.isInteger(unitAmount) || unitAmount <= 0) {
+        console.error(`Invalid unit_amount for item at index ${index}:`, unitAmount);
+        throw new Error(`Unit amount for item at index ${index} must be a positive integer`);
+      }
+      const quantity = Math.round(Number(item.quantity));
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        console.error(`Invalid quantity for item at index ${index}:`, quantity);
+        throw new Error(`Quantity for item at index ${index} must be a positive integer`);
+      }
+      console.log(`Item ${index}: unit_amount=${unitAmount}, quantity=${quantity}, subtotal=${unitAmount * quantity} paise`);
       return {
         price_data: {
           currency: 'inr',
           product_data: { name: item.name },
-          unit_amount: Number(item.price) * 100,
+          unit_amount: unitAmount,
         },
-        quantity: Number(item.quantity),
+        quantity: quantity,
       };
     });
+
+    // Calculate total amount due in paise
+    const totalAmountPaise = lineItems.reduce((sum, item) => {
+      const subtotal = item.price_data.unit_amount * item.quantity;
+      console.log(`Adding subtotal for item: ${item.price_data.unit_amount} * ${item.quantity} = ${subtotal}`);
+      return sum + subtotal;
+    }, 0);
+    console.log('Total amount due (in paise):', totalAmountPaise);
+
+    // Validate against Stripe's maximum limit (₹9,999,999.99 = 999,999,999 paise)
+    const STRIPE_MAX_AMOUNT_PAISE = 999999999;
+    if (totalAmountPaise > STRIPE_MAX_AMOUNT_PAISE) {
+      console.error(`Total amount due (${totalAmountPaise} paise) exceeds Stripe's maximum limit of ${STRIPE_MAX_AMOUNT_PAISE} paise`);
+      return res.status(400).json({
+        message: `Order total exceeds Stripe's maximum limit of ₹9,999,999.99. Please reduce the order amount.`,
+      });
+    }
+
+    // Validate minimum amount (Stripe requires at least ₹0.50 = 50 paise)
+    const STRIPE_MIN_AMOUNT_PAISE = 50;
+    if (totalAmountPaise < STRIPE_MIN_AMOUNT_PAISE) {
+      console.error(`Total amount due (${totalAmountPaise} paise) is below Stripe's minimum limit of ${STRIPE_MIN_AMOUNT_PAISE} paise`);
+      return res.status(400).json({
+        message: `Order total is below Stripe's minimum limit of ₹0.50. Please increase the order amount.`,
+      });
+    }
 
     console.log('Creating Stripe session with line_items:', lineItems);
 
@@ -390,8 +428,8 @@ router.post('/', authMiddleware, async (req, res) => {
             price: item.price,
             quantity: item.quantity,
             image: item.image || '',
-            size: item.size || '', // Include size in metadata
-            variantId: item.variantId || '', // Include variantId in metadata
+            size: item.size || '',
+            variantId: item.variantId || '',
           }))
         ),
         total: total.toString(),
@@ -401,15 +439,15 @@ router.post('/', authMiddleware, async (req, res) => {
     console.log('Stripe session created successfully:', session.id);
 
     const order = new Order({
-      userId,
+      userId: new mongoose.Types.ObjectId(userId),
       items: items.map(item => ({
         productId: new mongoose.Types.ObjectId(item.productId),
         name: item.name,
         price: item.price,
         quantity: item.quantity,
         image: item.image || '',
-        size: item.size || '', // Include size
-        variantId: item.variantId || '', // Include variantId
+        size: item.size || '',
+        variantId: item.variantId || '',
       })),
       shippingAddress,
       payment: paymentMethod === 'saved' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'Online Payment',
@@ -418,7 +456,9 @@ router.post('/', authMiddleware, async (req, res) => {
       status: 'Pending',
     });
 
+    console.log('Saving order to database:', order);
     await order.save();
+    console.log('Order saved successfully');
 
     res.json({ sessionId: session.id });
   } catch (error) {
