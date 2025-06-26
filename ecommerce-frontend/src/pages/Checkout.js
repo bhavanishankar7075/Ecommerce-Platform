@@ -189,6 +189,9 @@ function Checkout() {
     setShowNewPaymentForm(value === 'new');
   };
 
+
+  //main 
+/* 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -356,7 +359,170 @@ function Checkout() {
       setIsSubmitted(false);
       navigate('/failure');
     }
-  };
+  }; */
+
+
+  //testing purpose
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+
+  if (!validateForm()) return;
+
+  if (!cart || !Array.isArray(cart) || cart.length === 0) {
+    setError('Cannot place order: Your cart is empty');
+    return;
+  }
+
+  console.log('Cart data before validation:', cart);
+  for (const item of cart) {
+    if (!item._id || !item.productId?._id || !item.productId?.name || !item.quantity || !item.productId?.price || !item.productId?.image) {
+      console.error('Invalid cart item:', item);
+      setError(`Invalid cart item: Missing required fields (id, name, quantity, price, image)`);
+      return;
+    }
+  }
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    setError('No token found');
+    navigate('/login');
+    return;
+  }
+
+  if (!user || !user._id) {
+    setError('User not authenticated. Please log in again.');
+    navigate('/login');
+    return;
+  }
+
+  try {
+    setIsSubmitted(true);
+
+    const items = cart.map(item => ({
+      productId: item.productId._id,
+      name: item.productId.name,
+      price: Number(item.productId.price), // Send price in rupees
+      quantity: item.quantity,
+      image: item.selectedVariant?.mainImage || item.productId.image || '',
+      size: item.size || '',
+      variantId: item.variantId || '',
+    }));
+
+    console.log('Items being sent to backend:', items);
+
+    console.log('Creating session for order...');
+    const sessionResponse = await axios.post(
+      'https://backend-ps76.onrender.com/api/orders/create-session',
+      {
+        userId: user._id,
+        items,
+        shippingAddress: {
+          fullName: formData.fullName.trim(),
+          address: formData.address.trim(),
+          city: formData.city.trim(),
+          postalCode: formData.postalCode.trim(),
+          country: formData.country.trim(),
+          phoneNumber: formData.phoneNumber.trim(),
+        },
+        total: total, // Send total in rupees
+        paymentMethod: selectedPaymentMethod === 'cod' ? 'cod' : 'stripe',
+        cardDetails: selectedPaymentMethod === 'new'
+          ? {
+              cardNumber: formData.cardNumber,
+              expiry: formData.expiry,
+              cvv: formData.cvv,
+            }
+          : paymentMethods.find(method => method._id === selectedPaymentMethod),
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    const { sessionId } = sessionResponse.data;
+    console.log('Session ID received:', sessionId);
+
+    if (selectedPaymentMethod === 'cod') {
+      const orderData = {
+        userId: user._id,
+        items,
+        shippingAddress: {
+          fullName: formData.fullName.trim(),
+          address: formData.address.trim(),
+          city: formData.city.trim(),
+          postalCode: formData.postalCode.trim(),
+          country: formData.country.trim(),
+          phoneNumber: formData.phoneNumber.trim(),
+        },
+        payment: 'Cash on Delivery',
+        total,
+        sessionId,
+      };
+
+      console.log('Placing COD order:', orderData);
+      const response = await axios.post('https://backend-ps76.onrender.com/api/orders', orderData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('COD Order response:', response.data);
+
+      if (saveAddress) {
+        try {
+          console.log('Saving shipping address...');
+          await axios.put(
+            'https://backend-ps76.onrender.com/api/users/profile/shipping-address',
+            {
+              fullName: formData.fullName.trim(),
+              address: formData.address.trim(),
+              city: formData.city.trim(),
+              postalCode: formData.postalCode.trim(),
+              country: formData.country.trim(),
+              phoneNumber: formData.phoneNumber.trim(),
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          console.log('Shipping address saved successfully');
+        } catch (addressError) {
+          console.error('Error saving shipping address:', addressError);
+          setError('Failed to save shipping address. Please try again later.');
+        }
+      }
+
+      console.log('Clearing cart and navigating to success...');
+      localStorage.removeItem('checkoutForm');
+      clearCart();
+      navigate(`/success?session_id=${sessionId}`, { replace: true });
+    } else {
+      console.log('Redirecting to Stripe checkout...');
+      const stripe = await stripePromise;
+
+      const result = await stripe.redirectToCheckout({ sessionId });
+
+      if (result.error) {
+        console.error('Stripe redirect error:', result.error.message);
+        setError(result.error.message || 'Failed to redirect to Stripe checkout');
+        setIsSubmitted(false);
+        navigate('/failure');
+      }
+    }
+  } catch (err) {
+    console.error('Error placing order:', err);
+    if (err.response) {
+      console.log('Error response data:', err.response.data);
+      setError(err.response.data.message || 'Failed to place order');
+    } else if (err.request) {
+      console.log('No response received:', err.request);
+      setError('No response from server. Please check your network connection.');
+    } else {
+      console.log('Error setting up request:', err.message);
+      setError('An unexpected error occurred: ' + err.message);
+    }
+    setIsSubmitted(false);
+    navigate('/failure');
+  }
+};
 
   if (authLoading) {
     return (
