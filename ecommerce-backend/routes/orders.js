@@ -315,7 +315,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
 
 //practise test 
-router.post('/create-session', authenticate, async (req, res) => {
+router.post('/create-session', authMiddleware, async (req, res) => {
   try {
     console.log('Received request to create Stripe session:', req.body);
 
