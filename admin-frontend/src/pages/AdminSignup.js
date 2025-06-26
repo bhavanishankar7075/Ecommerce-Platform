@@ -24,7 +24,7 @@ function AdminSignup() {
       localStorage.setItem('token', res.data.token); // Store the token
       navigate('/dashboard'); // Redirect to dashboard
     } catch (err) {
-      console.error('Admin Signup Error:', err);
+      console.error('Admin Signup Error:', err); 
       setError(err.response?.data?.message || 'Signup failed');
     }
   };

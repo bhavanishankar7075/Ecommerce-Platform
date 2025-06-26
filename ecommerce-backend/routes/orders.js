@@ -193,8 +193,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
 
 
-// Create Stripe Checkout session (used for card payments)
- router.post('/create-session', authMiddleware, async (req, res) => {
+// Create Stripe Checkout session (used for card payments)  main
+/*  router.post('/create-session', authMiddleware, async (req, res) => {
   try {
     console.log('Received request to create Stripe session:', req.body);
 
@@ -307,7 +307,135 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Failed to create payment session', error: error.message });
   }
 });
+  */
+
+
+
+
+
+
+//practise test 
+
+ router.post('/create-session', authMiddleware, async (req, res) => {
+  try {
+    console.log('Received request to create Stripe session:', req.body);
+
+    const { items, shippingAddress, total, paymentMethod, cardDetails } = req.body;
+    const userId = req.user.id;
+
+    console.log('Parsed fields:', { userId, items, shippingAddress, total, paymentMethod, cardDetails });
+
+    if (!userId || !items || !shippingAddress || !total) {
+      console.error('Missing required fields:', { userId, items, shippingAddress, total });
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    if (paymentMethod === 'cod') {
+      console.log('COD selected, returning dummy session ID');
+      return res.json({ sessionId: 'cod-' + Date.now() });
+    }
+
+    if (!Array.isArray(items)) {
+      console.error('Items is not an array:', items);
+      return res.status(400).json({ message: 'Items must be an array' });
+    }
+    if (items.length === 0) {
+      console.error('Items array is empty:', items);
+      return res.status(400).json({ message: 'Items array is empty' });
+    }
+
+    // Validate each item
+    const lineItems = items.map((item, index) => {
+      if (!item.productId) {
+        console.error(`Missing productId for item at index ${index}:`, item);
+        throw new Error(`Product ID is required for item at index ${index}`);
+      }
+      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+        console.error(`Invalid productId for item at index ${index}:`, item);
+        throw new Error(`Invalid productId for item at index ${index}: ${item.productId}`);
+      }
+      if (!item.name || !item.price || !item.quantity) {
+        console.error(`Invalid item at index ${index}:`, item);
+        throw new Error(`Item at index ${index} must have name, price, and quantity`);
+      }
+      return {
+        price_data: {
+          currency: 'inr',
+          product_data: { name: item.name },
+          unit_amount: Number(item.price) * 100,
+        },
+        quantity: Number(item.quantity),
+      };
+    });
+
+    console.log('Creating Stripe session with line_items:', lineItems);
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `https://frontend-8uy4.onrender.com//success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://frontend-8uy4.onrender.com/failure`,
+      shipping_address_collection: {
+        allowed_countries: ['US', 'IN'],
+      },
+      metadata: {
+        userId,
+        shippingAddress: JSON.stringify(shippingAddress),
+        payment: paymentMethod === 'saved' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'Online Payment',
+        items: JSON.stringify(
+          items.map(item => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image || '',
+            size: item.size || '', // Include size in metadata
+            variantId: item.variantId || '', // Include variantId in metadata
+          }))
+        ),
+        total: total.toString(),
+      },
+    });
+
+    console.log('Stripe session created successfully:', session.id);
+
+    const order = new Order({
+      userId,
+      items: items.map(item => ({
+        productId: new mongoose.Types.ObjectId(item.productId),
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image || '',
+        size: item.size || '', // Include size
+        variantId: item.variantId || '', // Include variantId
+      })),
+      shippingAddress,
+      payment: paymentMethod === 'saved' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'Online Payment',
+      total: total,
+      stripeSessionId: session.id,
+      status: 'Pending',
+    });
+
+    await order.save();
+
+    res.json({ sessionId: session.id });
+  } catch (error) {
+    console.error('Error creating Stripe session:', error.message, error.stack);
+    if (error.type === 'StripeAPIError') {
+      return res.status(400).json({ message: 'Invalid Stripe API Key or configuration.', error: error.message });
+    }
+    res.status(500).json({ message: 'Failed to create payment session', error: error.message });
+  }
+});
  
+
+
+
+
+
+
 
 
 
@@ -528,18 +656,6 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
  */
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
