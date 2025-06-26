@@ -53,8 +53,8 @@ router.post('/create-session', authenticate, async (req, res) => {
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
-      success_url: `${process.env.FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/cancel`,
+      success_url: `https://frontend-8uy4.onrender.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://frontend-8uy4.onrender.com/cancel`,
       customer_email: req.user.email, // Ensure user has an email
     });
 
