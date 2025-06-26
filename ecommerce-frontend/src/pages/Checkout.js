@@ -363,7 +363,7 @@ function Checkout() {
 
 
   //testing purpose
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
   setError('');
 
@@ -396,13 +396,26 @@ function Checkout() {
     return;
   }
 
+  // Pre-validate total amount
+  const subtotal = cart.reduce((sum, item) => sum + (Number(item.productId?.price) || 0) * item.quantity, 0);
+  const deliveryFee = 5.00;
+  const discountedSubtotal = passedDiscount ? subtotal * (1 - passedDiscount) : subtotal;
+  const totalInRupees = passedTotal || (discountedSubtotal + deliveryFee);
+  const totalInPaise = Math.round(totalInRupees * 100);
+
+  const STRIPE_MAX_AMOUNT_PAISE = 999999999;
+  if (totalInPaise > STRIPE_MAX_AMOUNT_PAISE) {
+    setError(`Order total exceeds Stripe's maximum limit of ₹9,999,999.99. Please reduce the order amount.`);
+    return;
+  }
+
   try {
     setIsSubmitted(true);
 
     const items = cart.map(item => ({
       productId: item.productId._id,
       name: item.productId.name,
-      price: Number(item.productId.price), // Send price in rupees
+      price: Number(item.productId.price), // In rupees
       quantity: item.quantity,
       image: item.selectedVariant?.mainImage || item.productId.image || '',
       size: item.size || '',
@@ -425,7 +438,7 @@ function Checkout() {
           country: formData.country.trim(),
           phoneNumber: formData.phoneNumber.trim(),
         },
-        total: total, // Send total in rupees
+        total: totalInRupees, // Send in rupees
         paymentMethod: selectedPaymentMethod === 'cod' ? 'cod' : 'stripe',
         cardDetails: selectedPaymentMethod === 'new'
           ? {
@@ -456,7 +469,7 @@ function Checkout() {
           phoneNumber: formData.phoneNumber.trim(),
         },
         payment: 'Cash on Delivery',
-        total,
+        total: totalInRupees,
         sessionId,
       };
 
