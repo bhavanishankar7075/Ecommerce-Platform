@@ -1232,23 +1232,6 @@ const handleVariantSubmit = async (e) => {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* 
   const handleEdit = (product) => {
     const additionalImages = Array.isArray(product.images)
@@ -1349,10 +1332,6 @@ const handleVariantSubmit = async (e) => {
   setShowForm(true);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
-
-
-
-
 
 
 

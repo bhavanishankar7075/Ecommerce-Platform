@@ -82,25 +82,6 @@ const addProduct = async (req, res) => {
 
 module.exports = { addProduct }; */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* const Product = require('../models/Product');
 const path = require('path');
 const fs = require('fs');
@@ -179,32 +160,7 @@ const addProduct = async (req, res) => {
     res.status(201).json({ product });
   } catch (error) {
     console.error('Error adding product:', error.stack);
-    res.status(500).json({ message: 'Failed to add product', error: error.message });
-  }
-};
-
-module.exports = { addProduct }; */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    res.status(50
 /* // backend/controllers/productController.js (example)
 const addProduct = async (req, res) => {
   const { name, price, category, stock, description, offer, sizes, isActive, brand, weight, weightUnit, model } = req.body;
