@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../context/ProductContext';
 import { useAuth } from '../context/AuthContext';
@@ -8,112 +8,86 @@ import '../styles/Home.css';
 function Home() {
   const { products, loading: productsLoading, error: productsError } = useProducts();
   const { user, loading: authLoading } = useAuth();
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [trendingProducts, setTrendingProducts] = useState([]);
-  const [suggestedItems, setSuggestedItems] = useState([]);
-  const [topSellingSmartphones, setTopSellingSmartphones] = useState([]);
-  const [recommendedItems, setRecommendedItems] = useState([]);
-  const [youMayLikeItems, setYouMayLikeItems] = useState([]);
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
-  const [bestSellers, setBestSellers] = useState([]);
-  const [dealTimer, setDealTimer] = useState(3600); // 1 hour in seconds
-  const [showBackToTop, setShowBackToTop] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [filteredCategoryProducts, setFilteredCategoryProducts] = useState([]);
-  const [currentPageCategory, setCurrentPageCategory] = useState(1);
-  const productsPerPage = 4;
   const navigate = useNavigate();
 
   // Admin-defined categories
   const categories = [
-    {
-      name: 'Fashion',
-      image: 'https://img.freepik.com/premium-photo/pair-shoes-are-table-with-hat-table_874904-102811.jpg',
-    },
-    {
-      name: 'Electronics',
-      image: 'https://img.freepik.com/premium-photo/household-appliances-shopping-cart-black-background-ecommerce-online-shopping-concept-3d_505080-2555.jpg',
-    },
-    {
-      name: 'Furniture',
-      image: 'https://img.freepik.com/premium-photo/hotel-furniture-white-background_996135-44810.jpg',
-    },
-    {
-      name: 'Mobiles',
-      image: 'https://img.freepik.com/premium-photo/high-angle-view-mobile-phone-table_1048944-19477214.jpg',
-    },
-    {
-      name: 'Appliances',
-      image: 'https://img.freepik.com/free-photo/overhead-view-office-stationeries-laptop-white-background_23-2148042099.jpg',
-    },
-    {
-      name: 'Beauty',
-      image: 'https://img.freepik.com/premium-photo/digital-tablet-with-woman-s-accessories-white-wooden-table-background-top-view_392895-210870.jpg',
-    },
-    {
-      name: 'Home',
-      image: 'https://img.freepik.com/free-photo/elevated-view-stethoscope-stitched-heart-shape-wireless-keyboard-succulent-plant-yellow-backdrop_23-2148214051.jpg',
-    },
-    {
-      name: 'Toys & Baby',
-      image: 'https://img.freepik.com/free-photo/cute-plush-toys-arrangement_23-2150312316.jpg',
-    },
-    {
-      name: 'Sports',
-      image: 'https://img.freepik.com/premium-photo/high-angle-view-eyeglasses-table_1048944-14435092.jpg',
-    },
+    { name: 'Fashion', image: 'https://img.freepik.com/premium-photo/pair-shoes-are-table-with-hat-table_874904-102811.jpg' },
+    { name: 'Electronics', image: 'https://img.freepik.com/premium-photo/household-appliances-shopping-cart-black-background-ecommerce-online-shopping-concept-3d_505080-2555.jpg' },
+    { name: 'Furniture', image: 'https://img.freepik.com/premium-photo/hotel-furniture-white-background_996135-44810.jpg' },
+    { name: 'Mobiles', image: 'https://img.freepik.com/premium-photo/high-angle-view-mobile-phone-table_1048944-19477214.jpg' },
+    { name: 'Appliances', image: 'https://img.freepik.com/free-photo/overhead-view-office-stationeries-laptop-white-background_23-2148042099.jpg' },
+    { name: 'Beauty', image: 'https://img.freepik.com/premium-photo/digital-tablet-with-woman-s-accessories-white-wooden-table-background-top-view_392895-210870.jpg' },
+    { name: 'Home', image: 'https://img.freepik.com/free-photo/elevated-view-stethoscope-stitched-heart-shape-wireless-keyboard-succulent-plant-yellow-backdrop_23-2148214051.jpg' },
+    { name: 'Toys & Baby', image: 'https://img.freepik.com/free-photo/cute-plush-toys-arrangement_23-2150312316.jpg' },
+    { name: 'Sports', image: 'https://img.freepik.com/premium-photo/high-angle-view-eyeglasses-table_1048944-14435092.jpg' },
   ];
 
-  // Sort products by creation date to get new products
-  const getNewProducts = () => {
-    return [...products].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  };
+  // State for derived product lists and UI controls
+  const [dealTimer, setDealTimer] = useState(3600); // 1 hour in seconds
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [currentPageCategory, setCurrentPageCategory] = useState(1);
+  const productsPerPage = 4;
 
-  useEffect(() => {
-    if (!productsLoading && products.length > 0) {
-      // Featured Products (randomized with new products)
-      const newProducts = getNewProducts().slice(0, 5);
-      const allFeatured = [...newProducts, ...products.filter((p) => p.featured)].slice(0, 3);
-      const shuffledFeatured = allFeatured.sort(() => 0.5 - Math.random());
-      setFeaturedProducts(shuffledFeatured.length >= 3 ? shuffledFeatured.slice(0, 3) : allFeatured);
+  // Memoized derived product lists
+  const derivedProducts = useMemo(() => {
+    if (!products || products.length === 0) return {};
 
-      // Trending Products (sort by price)
-      const sortedByPrice = [...products].sort((a, b) => Number(b.price) - Number(a.price));
-      setTrendingProducts(sortedByPrice.slice(0, 4));
+    // Sort by creation date for new products
+    const getNewProducts = () => [...products].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const newProducts = getNewProducts().slice(0, 5);
 
-      // Suggested Items (random selection)
-      const shuffled = [...products].sort(() => 0.5 - Math.random());
-      setSuggestedItems(shuffled.slice(0, 4));
+    // Featured Products
+    const allFeatured = [...newProducts, ...products.filter((p) => p.featured)].slice(0, 3);
+    const shuffledFeatured = allFeatured.sort(() => 0.5 - Math.random());
+    const featuredProducts = shuffledFeatured.length >= 3 ? shuffledFeatured.slice(0, 3) : allFeatured;
 
-      // Top Selling Smartphones
-      const smartphones = products
-        .filter((product) => product.category.toLowerCase().includes('mobiles'))
-        .sort((a, b) => Number(b.price) - Number(a.price));
-      setTopSellingSmartphones(smartphones.slice(0, 3));
+    // Trending Products (by price)
+    const sortedByPrice = [...products].sort((a, b) => Number(b.price) - Number(a.price));
+    const trendingProducts = sortedByPrice.slice(0, 4);
 
-      // Recommended Items
-      const recommended = [...products].sort(() => 0.5 - Math.random());
-      setRecommendedItems(recommended.slice(0, 4));
+    // Suggested Items
+    const shuffled = [...products].sort(() => 0.5 - Math.random());
+    const suggestedItems = shuffled.slice(0, 4);
 
-      // You May Like Items
-      const youMayLike = [...products].sort(() => 0.5 - Math.random());
-      setYouMayLikeItems(youMayLike.slice(0, 4));
+    // Top Selling Smartphones
+    const smartphones = products
+      .filter((product) => product.category.toLowerCase().includes('mobiles'))
+      .sort((a, b) => Number(b.price) - Number(a.price));
+    const topSellingSmartphones = smartphones.slice(0, 3);
 
-      // Recently Viewed Products
-      const viewed = JSON.parse(localStorage.getItem('recentlyViewed')) || [];
-      const viewedProducts = products.filter((product) => viewed.includes(product._id));
-      setRecentlyViewed(viewedProducts.slice(0, 10));
+    // Recommended Items
+    const recommended = [...products].sort(() => 0.5 - Math.random());
+    const recommendedItems = recommended.slice(0, 4);
 
-      // Best Sellers
-      const best = [...products].sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      setBestSellers(best.slice(0, 4));
-    }
-  }, [products, productsLoading]);
+    // You May Like Items
+    const youMayLikeItems = [...products].sort(() => 0.5 - Math.random()).slice(0, 4);
 
-  // Filter products for "Shop by Category" by main category
+    // Recently Viewed
+    const viewed = JSON.parse(localStorage.getItem('recentlyViewed')) || [];
+    const recentlyViewed = products.filter((product) => viewed.includes(product._id)).slice(0, 10);
+
+    // Best Sellers
+    const bestSellers = [...products].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4);
+
+    return {
+      featuredProducts,
+      trendingProducts,
+      suggestedItems,
+      topSellingSmartphones,
+      recommendedItems,
+      youMayLikeItems,
+      recentlyViewed,
+      bestSellers,
+    };
+  }, [products]);
+
+  // Filter products for "Shop by Category"
+  const [filteredCategoryProducts, setFilteredCategoryProducts] = useState([]);
   useEffect(() => {
     if (selectedCategory) {
-      let filtered = products.filter((product) =>
+      const filtered = products.filter((product) =>
         product.category.toLowerCase().includes(selectedCategory.toLowerCase())
       );
       setFilteredCategoryProducts(filtered);
@@ -197,7 +171,7 @@ function Home() {
       <motion.section initial="hidden" animate="visible" variants={fadeIn} className="hero-section">
         <div id="heroCarousel" className="carousel slide" data-bs-ride="carousel">
           <div className="carousel-indicators">
-            {featuredProducts.map((_, index) => (
+            {derivedProducts.featuredProducts.map((_, index) => (
               <button
                 key={index}
                 type="button"
@@ -210,7 +184,7 @@ function Home() {
             ))}
           </div>
           <div className="carousel-inner">
-            {featuredProducts.map((product, index) => (
+            {derivedProducts.featuredProducts.map((product, index) => (
               <div className={`carousel-item ${index === 0 ? 'active' : ''}`} key={product._id}>
                 <img
                   src={product.image || 'https://placehold.co/1200x400?text=Featured+Product'}
@@ -250,17 +224,13 @@ function Home() {
               <div
                 className={`category-card ${selectedCategory === category.name ? 'active' : ''}`}
                 key={category.name}
-                onClick={() => {
-                  setSelectedCategory((prev) => (prev === category.name ? null : category.name));
-                }}
+                onClick={() => setSelectedCategory((prev) => (prev === category.name ? null : category.name))}
               >
                 <img
                   src={category.image}
                   alt={category.name}
                   className="category-image"
-                  onError={(e) => {
-                    e.target.src = 'https://placehold.co/60x60?text=Category';
-                  }}
+                  onError={(e) => { e.target.src = 'https://placehold.co/60x60?text=Category'; }}
                 />
                 <p>{category.name}</p>
               </div>
@@ -269,7 +239,7 @@ function Home() {
         </div>
       </motion.section>
 
-      {/* Filtered Products by Category (Shop by Category) */}
+      {/* Filtered Products by Category */}
       {selectedCategory && filteredCategoryProducts.length > 0 && (
         <motion.section initial="hidden" animate="visible" variants={fadeIn} className="filtered-category-products-section">
           <div className="container">
@@ -285,17 +255,13 @@ function Home() {
                     <img
                       src={product.image || 'https://placehold.co/100x100?text=Product'}
                       alt={product.name}
-                      onError={(e) => {
-                        e.target.src = 'https://placehold.co/100x100?text=Product';
-                      }}
+                      onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                     />
                     <div className="product-details">
                       <h5>{product.name}</h5>
                       <p className="price">₹{Number(product.price).toFixed(2)}</p>
                       {product.variants && product.variants.length > 0 && (
-                        <p className="color-variant">
-                          Color: {product.variants.map((v) => v.color).join(', ')}
-                        </p>
+                        <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                       )}
                       <p className="discount">{product.offer || '10% OFF'}</p>
                     </div>
@@ -310,9 +276,7 @@ function Home() {
               >
                 Previous
               </button>
-              <span>
-                Page {currentPageCategory} of {totalCategoryPages}
-              </span>
+              <span>Page {currentPageCategory} of {totalCategoryPages}</span>
               <button
                 onClick={() => setCurrentPageCategory((prev) => Math.min(prev + 1, totalCategoryPages))}
                 disabled={currentPageCategory === totalCategoryPages}
@@ -330,7 +294,7 @@ function Home() {
           <h2>Suggested Items</h2>
           <div className="product-box">
             <div className="product-list">
-              {suggestedItems.map((product) => (
+              {derivedProducts.suggestedItems.map((product) => (
                 <div
                   className="product-item"
                   key={product._id}
@@ -339,17 +303,13 @@ function Home() {
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
                     alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
+                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                   />
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
                     {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
+                      <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                     )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
                   </div>
@@ -366,7 +326,7 @@ function Home() {
           <h2>Suggested for You</h2>
           <div className="product-box">
             <div className="product-list">
-              {trendingProducts.map((product) => (
+              {derivedProducts.trendingProducts.map((product) => (
                 <div
                   className="product-item"
                   key={product._id}
@@ -375,17 +335,13 @@ function Home() {
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
                     alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
+                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                   />
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
                     {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
+                      <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                     )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
                   </div>
@@ -403,7 +359,7 @@ function Home() {
           <p className="subtitle">Explore the best deals on smartphones</p>
           <div className="product-box">
             <div className="product-list">
-              {topSellingSmartphones.map((product) => (
+              {derivedProducts.topSellingSmartphones.map((product) => (
                 <div
                   className="product-item"
                   key={product._id}
@@ -412,17 +368,13 @@ function Home() {
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
                     alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
+                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                   />
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
                     {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
+                      <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                     )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
                   </div>
@@ -440,7 +392,7 @@ function Home() {
           <p className="deal-timer">Time Left: {formatTime(dealTimer)}</p>
           <div className="product-box">
             <div className="product-list">
-              {recommendedItems.map((product) => (
+              {derivedProducts.recommendedItems.map((product) => (
                 <div
                   className="product-item"
                   key={product._id}
@@ -449,17 +401,13 @@ function Home() {
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
                     alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
+                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                   />
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
                     {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
+                      <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                     )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
                   </div>
@@ -484,9 +432,7 @@ function Home() {
                 <img
                   src={category.image}
                   alt={category.name}
-                  onError={(e) => {
-                    e.target.src = 'https://placehold.co/300x200?text=Category';
-                  }}
+                  onError={(e) => { e.target.src = 'https://placehold.co/300x200?text=Category'; }}
                 />
                 <div className="category-overlay">
                   <h3>{category.name}</h3>
@@ -504,7 +450,7 @@ function Home() {
           <h2>Top Category Products</h2>
           <div className="product-box">
             <div className="product-list">
-              {youMayLikeItems.map((product) => (
+              {derivedProducts.youMayLikeItems.map((product) => (
                 <div
                   className="product-item"
                   key={product._id}
@@ -513,17 +459,13 @@ function Home() {
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
                     alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
+                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                   />
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
                     {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
+                      <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                     )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
                   </div>
@@ -540,7 +482,7 @@ function Home() {
           <h2>Best Sellers</h2>
           <div className="product-box">
             <div className="product-list">
-              {bestSellers.map((product) => (
+              {derivedProducts.bestSellers.map((product) => (
                 <div
                   className="product-item"
                   key={product._id}
@@ -549,17 +491,13 @@ function Home() {
                   <img
                     src={product.image || 'https://placehold.co/100x100?text=Product'}
                     alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
+                    onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                   />
                   <div className="product-details">
                     <h5>{product.name}</h5>
                     <p className="price">₹{Number(product.price).toFixed(2)}</p>
                     {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
+                      <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                     )}
                     <p className="discount">{product.offer || '10% OFF'}</p>
                   </div>
@@ -587,84 +525,12 @@ function Home() {
         </div>
       </motion.section>
 
-      {/* Recommended Items Section */}
-      <motion.section initial="hidden" animate="visible" variants={fadeIn} className="recommended-items-section">
-        <div className="container">
-          <h2>Recommended Items</h2>
-          <div className="product-box">
-            <div className="product-list">
-              {recommendedItems.map((product) => (
-                <div
-                  className="product-item"
-                  key={product._id}
-                  onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
-                >
-                  <img
-                    src={product.image || 'https://placehold.co/100x100?text=Product'}
-                    alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
-                  />
-                  <div className="product-details">
-                    <h5>{product.name}</h5>
-                    <p className="price">₹{Number(product.price).toFixed(2)}</p>
-                    {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
-                    )}
-                    <p className="discount">{product.offer || '10% OFF'}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* You May Like Section */}
-      <motion.section initial="hidden" animate="visible" variants={fadeIn} className="you-may-like-section">
-        <div className="container">
-          <h2>You May Like</h2>
-          <div className="product-box">
-            <div className="product-list">
-              {youMayLikeItems.map((product) => (
-                <div
-                  className="product-item"
-                  key={product._id}
-                  onClick={() => navigate(user ? `/product/${product._id}` : '/login')}
-                >
-                  <img
-                    src={product.image || 'https://placehold.co/100x100?text=Product'}
-                    alt={product.name}
-                    onError={(e) => {
-                      e.target.src = 'https://placehold.co/100x100?text=Product';
-                    }}
-                  />
-                  <div className="product-details">
-                    <h5>{product.name}</h5>
-                    <p className="price">₹{Number(product.price).toFixed(2)}</p>
-                    {product.variants && product.variants.length > 0 && (
-                      <p className="color-variant">
-                        Color: {product.variants.map((v) => v.color).join(', ')}
-                      </p>
-                    )}
-                    <p className="discount">{product.offer || '10% OFF'}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </motion.section>
-
       {/* Recently Viewed Products Section */}
       <motion.section initial="hidden" animate="visible" variants={fadeIn} className="recently-viewed-section">
         <div className="container">
           <h2>Recently Viewed</h2>
           <div className="recently-viewed-container">
-            {recentlyViewed.map((product) => (
+            {derivedProducts.recentlyViewed.map((product) => (
               <div
                 className="product-item"
                 key={product._id}
@@ -673,17 +539,13 @@ function Home() {
                 <img
                   src={product.image || 'https://placehold.co/100x100?text=Product'}
                   alt={product.name}
-                  onError={(e) => {
-                    e.target.src = 'https://placehold.co/100x100?text=Product';
-                  }}
+                  onError={(e) => { e.target.src = 'https://placehold.co/100x100?text=Product'; }}
                 />
                 <div className="product-details">
                   <h5>{product.name}</h5>
                   <p className="price">₹{Number(product.price).toFixed(2)}</p>
                   {product.variants && product.variants.length > 0 && (
-                    <p className="color-variant">
-                      Color: {product.variants.map((v) => v.color).join(', ')}
-                    </p>
+                    <p className="color-variant">Color: {product.variants.map((v) => v.color).join(', ')}</p>
                   )}
                   <p className="discount">{product.offer || '10% OFF'}</p>
                 </div>
