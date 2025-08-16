@@ -19,7 +19,7 @@ import Failure from "./pages/Failure"; // New component
 import { ToastContainer } from "react-toastify"; // Import ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Import Toastify CSS
 import Wishlist from "./pages/Wishlist.js";
-import Compare from "./pages/Compare.js";
+import Compare from "./pages/compare.js";
 import Categories from "./pages/Categories.js";
 import OrderDetails from "./pages/OrderDetails";
 import Footer from "./pages/Footer.js";
