@@ -25,7 +25,7 @@ if (!process.env.CLOUDINARY_URL) {
 }
 cloudinary.config({ url: process.env.CLOUDINARY_URL });
 
-// Define categories structure (updated to match data)
+// Define categories structure
 const categories = {
   Fashion: {
     Men: [
@@ -55,7 +55,6 @@ const categories = {
     ],
     Beauty: ["Swiss Beauty", "Sugar Pop Insights", "Renee"],
   },
-  /* Gadgets: [], */
   Gadgets: {
     Accessories: ["Phone Cases", "Chargers", "Headphones"],
     SmartDevices: ["Smartwatches", "Speakers", "Cameras"],
@@ -93,7 +92,7 @@ const categories = {
 
 // Middleware to validate categories
 const validateCategories = (req, res, next) => {
-  const { category, subcategory, nestedCategory } = req.body;
+  const { category, subcategory, nestedCategory } = req.body || req.query;
 
   if (!category) {
     return res.status(400).json({ message: "Main category is required" });
@@ -229,9 +228,15 @@ router.get("/products", async (req, res) => {
       nestedCategory,
     });
 
-    // Only filter by mainCategory at the backend level, let frontend handle subcategory and nestedCategory
+    // Filter by category, subcategory, and nestedCategory
     if (mainCategory) {
       query.category = { $regex: `^${mainCategory}$`, $options: "i" };
+    }
+    if (subcategory) {
+      query.subcategory = { $regex: `^${subcategory}$`, $options: "i" };
+    }
+    if (nestedCategory) {
+      query.nestedCategory = { $regex: `^${nestedCategory}$`, $options: "i" };
     }
 
     // Log the constructed query for debugging
@@ -331,7 +336,8 @@ router.get("/", verifyAdmin, async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const totalProducts = await Product.countDocuments(query);
-    const products = await Product.find(query)
+
+   /*  const products = await Product.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -343,7 +349,63 @@ router.get("/", verifyAdmin, async (req, res) => {
       products: formattedProducts,
       totalPages: Math.ceil(totalProducts / limitNum),
       currentPage: pageNum,
+    }); */
+
+const products = await Product.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const formattedProducts = products.map((product) => {
+      let subcategory = product.subcategory || "";
+      let nestedCategory = product.nestedCategory || "";
+
+      if (
+        product.category &&
+        categories[product.category] &&
+        Object.keys(categories[product.category]).length > 0 &&
+        subcategory &&
+        !Object.keys(categories[product.category]).includes(subcategory)
+      ) {
+        console.warn(
+          `Invalid subcategory for product ${product._id} (category: ${product.category}, received: ${subcategory}). Defaulting to "".`
+        );
+        subcategory = "";
+      }
+
+      if (
+        product.category &&
+        subcategory &&
+        categories[product.category][subcategory] &&
+        categories[product.category][subcategory].length > 0 &&
+        nestedCategory &&
+        !categories[product.category][subcategory].includes(nestedCategory)
+      ) {
+        console.warn(
+          `Invalid nested category for product ${product._id} (subcategory: ${subcategory}, received: ${nestedCategory}). Defaulting to "".`
+        );
+        nestedCategory = "";
+      }
+
+      return formatProductImage({
+        ...product.toObject(),
+        subcategory,
+        nestedCategory,
+      });
     });
+
+    res.json({
+      products: formattedProducts,
+      totalPages: Math.ceil(totalProducts / limitNum),
+      currentPage: pageNum,
+    });
+
+
+
+
+
+
+
   } catch (err) {
     console.error("Fetch Products Error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -421,7 +483,7 @@ router.post(
             typeof parsedSpecifications !== "object" ||
             Array.isArray(parsedSpecifications)
           ) {
-            return res
+            return res 
               .status(400)
               .json({ message: "Specifications must be an object" });
           }
@@ -729,9 +791,7 @@ router.put(
       product.brand =
         brand !== undefined && brand !== "" ? brand : product.brand;
       product.weight =
-        weight !== undefined && weight !== ""
-          ? parseFloat(weight)
-          : product.weight;
+        weight !== undefined && weight !== "" ? parseFloat(weight) : product.weight;
       product.weightUnit = weightUnit || product.weightUnit || "kg";
       product.model =
         model !== undefined && model !== "" ? model : product.model;
@@ -751,199 +811,6 @@ router.put(
     }
   }
 );
-
-/* 
-// PUT: Update a product
-router.put('/:id', verifyAdmin, upload.fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'images', maxCount: 10 },
-  { name: 'variantMainImage', maxCount: 1 },
-  { name: 'variantImages', maxCount: 10 },
-]), validateCategories, async (req, res) => {
-  console.log('PUT /:id - req.body:', req.body);
-  console.log('PUT /:id - req.files:', req.files);
-
-  const {
-    name, price, stock, category, subcategory, nestedCategory, description, offer, sizes,
-    isActive, featured, brand, seller, specifications, warranty, dealTag, weight, weightUnit, model, existingImages,
-    variants, variantId,
-  } = req.body;
-
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    const normalizedVariantId = Array.isArray(variantId) ? variantId[0] : variantId;
-    console.log('PUT /:id - Normalized variantId:', normalizedVariantId);
-
-    const priceNum = price ? parseFloat(price) : product.price;
-    const stockNum = stock ? parseInt(stock) : product.stock;
-    if (isNaN(priceNum) || priceNum <= 0) {
-      return res.status(400).json({ message: 'Price must be a positive number' });
-    }
-    if (isNaN(stockNum) || stockNum < 0) {
-      return res.status(400).json({ message: 'Stock must be a non-negative integer' });
-    }
-
-    let parsedSizes = product.sizes;
-    if (sizes) {
-      try {
-        parsedSizes = JSON.parse(sizes);
-        if (!Array.isArray(parsedSizes)) {
-          return res.status(400).json({ message: 'Sizes must be an array' });
-        }
-      } catch (err) {
-        console.error('Error parsing sizes:', err);
-        return res.status(400).json({ message: 'Invalid sizes format' });
-      }
-    }
-
-    let parsedSpecifications = product.specifications;
-    if (specifications) {
-      try {
-        parsedSpecifications = JSON.parse(specifications);
-        if (typeof parsedSpecifications !== 'object' || Array.isArray(parsedSpecifications)) {
-          return res.status(400).json({ message: 'Specifications must be an object' });
-        }
-      } catch (err) {
-        console.error('Error parsing specifications:', err);
-        return res.status(400).json({ message: 'Invalid specifications format' });
-      }
-    }
-
-    // Require variants in the request
-    if (!variants) {
-      return res.status(400).json({ message: 'Variants array is required in the request' });
-    }
-
-    let parsedVariants;
-    try {
-      parsedVariants = JSON.parse(variants);
-      if (!Array.isArray(parsedVariants)) {
-        return res.status(400).json({ message: 'Variants must be an array' });
-      }
-    } catch (err) {
-      console.error('Error parsing variants from request:', err);
-      return res.status(400).json({ message: 'Invalid variants format' });
-    }
-    console.log('PUT /:id - Parsed Variants:', parsedVariants);
-
-    let image = product.image;
-    if (req.files['image']) {
-      const mainImageResult = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }).end(req.files['image'][0].buffer);
-      });
-      image = mainImageResult.secure_url;
-    }
-
-    let updatedImages = [...product.images];
-    if (existingImages) {
-      try {
-        const retainedImages = JSON.parse(existingImages);
-        updatedImages = retainedImages.length > 0 ? retainedImages : product.images;
-      } catch (parseErr) {
-        console.error('Error parsing existingImages:', parseErr.message);
-        updatedImages = [...product.images];
-      }
-    }
-    if (req.files['images']) {
-      const newImages = await Promise.all(
-        req.files['images'].map(async (file) => {
-          const result = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }).end(file.buffer);
-          });
-          return result.secure_url;
-        })
-      );
-      updatedImages = [...updatedImages, ...newImages];
-    }
-
-    // Handle variant image updates
-    if (req.files['variantMainImage'] || req.files['variantImages']) {
-      if (!normalizedVariantId) {
-        return res.status(400).json({ message: 'variantId is required when updating variant images' });
-      }
-
-      const variantIndex = parsedVariants.findIndex((v) => v.variantId === normalizedVariantId);
-      console.log('PUT /:id - Variant Index:', variantIndex);
-
-      if (variantIndex === -1) {
-        return res.status(404).json({ message: `Variant not found for variantId: ${normalizedVariantId}` });
-      }
-
-      const updatedVariant = { ...parsedVariants[variantIndex] };
-
-      if (req.files['variantMainImage']) {
-        const variantMainImageResult = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }).end(req.files['variantMainImage'][0].buffer);
-        });
-        updatedVariant.mainImage = variantMainImageResult.secure_url;
-      }
-
-      if (req.files['variantImages']) {
-        const variantImages = await Promise.all(
-          req.files['variantImages'].map(async (file) => {
-            const result = await new Promise((resolve, reject) => {
-              cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }).end(file.buffer);
-            });
-            return result.secure_url;
-          })
-        );
-        updatedVariant.additionalImages = [
-          ...(updatedVariant.additionalImages || []),
-          ...variantImages,
-        ];
-      }
-
-      parsedVariants[variantIndex] = updatedVariant;
-      console.log('PUT /:id - Updated Variants:', parsedVariants);
-    }
-
-    product.name = name || product.name;
-    product.price = priceNum;
-    product.stock = stockNum;
-    product.category = category || product.category;
-    product.subcategory = subcategory !== undefined ? subcategory : product.subcategory;
-    product.nestedCategory = nestedCategory !== undefined ? nestedCategory : product.nestedCategory;
-    product.description = description !== undefined && description !== '' ? description : product.description;
-    product.offer = offer !== undefined ? offer : product.offer;
-    product.sizes = parsedSizes;
-    product.seller = seller !== undefined ? seller : product.seller;
-    product.specifications = parsedSpecifications;
-    product.warranty = warranty !== undefined ? warranty : product.warranty;
-    product.isActive = isActive !== undefined ? (isActive === 'true' || isActive === true) : product.isActive;
-    product.featured = featured !== undefined ? (featured === 'true' || featured === true) : product.featured;
-    product.dealTag = dealTag !== undefined ? dealTag : product.dealTag;
-    product.brand = brand !== undefined && brand !== '' ? brand : product.brand;
-    product.weight = weight !== undefined && weight !== '' ? parseFloat(weight) : product.weight;
-    product.weightUnit = weightUnit || product.weightUnit || 'kg';
-    product.model = model !== undefined && model !== '' ? model : product.model;
-    product.image = image;
-    product.images = updatedImages;
-    product.variants = parsedVariants;
-
-    const updatedProduct = await product.save();
-    const formattedProduct = formatProductImage(updatedProduct.toObject());
-    res.json({ message: 'Product updated successfully', product: formattedProduct });
-  } catch (err) {
-    console.error('Update Product Error:', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-}); */
 
 // DELETE: Delete a product
 router.delete("/:id", verifyAdmin, async (req, res) => {
@@ -983,6 +850,54 @@ router.put("/:id/toggle-status", verifyAdmin, async (req, res) => {
 });
 
 module.exports = router;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ///main
 /* const express = require('express');

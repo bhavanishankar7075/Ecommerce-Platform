@@ -99,13 +99,10 @@ function ProductManagement() {
       ],
       Beauty: ["Swiss Beauty", "Sugar Pop Insights", "Renee"],
     },
-    /*  Gadgets: [], */
     Gadgets: {
       Accessories: ["Phone Cases", "Chargers", "Headphones"],
       SmartDevices: ["Smartwatches", "Speakers", "Cameras"],
     },
-
-    /*  Furniture: ['Chairs', 'Tables', 'Sofas', 'Beds', 'Cabinets'], */
     Furniture: {
       Living: ["Sofas", "Tables", "Chairs"],
       Bedroom: ["Beds", "Wardrobes", "Mattresses"],
@@ -130,7 +127,6 @@ function ProductManagement() {
         "Power Banks",
       ],
     },
-    /*  Appliances: [], */
     Appliances: {
       Small: ["Microwave", "Toaster", "Blender"],
       Large: ["Refrigerator", "Washing Machine", "Air Conditioner"],
@@ -229,65 +225,6 @@ function ProductManagement() {
     };
   }, [formData.currentMainImage, formData.newImages]);
 
-  /*  const fetchProducts = async (showLoading = false) => {
-    if (showLoading) setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      if (!token || isTokenExpired(token)) {
-        throw new Error('Session expired. Please log in again.');
-      }
-
-      const params = new URLSearchParams({
-        search: debouncedSearchQuery,
-        category: filterCategory,
-        subcategory: filterSubcategory,
-        nestedCategory: filterNestedCategory,
-        priceMin: filterPriceMin,
-        priceMax: filterPriceMax,
-        stock: filterStock,
-        offer: filterOffer,
-        page: currentPage,
-        limit: productsPerPage,
-        sort: '-createdAt',
-      });
-
-      const res = await axios.get(`https://backend-ps76.onrender.com/api/admin/products?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const productData = res.data.products || res.data || [];
-      const initializedProducts = Array.isArray(productData)
-        ? productData.map((product) => ({
-          ...product,
-          selected: product.selected || false,
-          image: product.image || '/default-product.jpg',
-          images: product.images || [],
-          specifications: product.specifications || {},
-          variants: product.variants || [],
-          subcategory: product.subcategory || '', // Ensure subcategory is not undefined
-          nestedCategory: product.nestedCategory || '', // Ensure nestedCategory is not undefined
-        }))
-        : [];
-
-      setProducts(initializedProducts);
-      setTotalPages(res.data.totalPages || Math.ceil((res.data.total || productData.length) / productsPerPage));
-      setShouldFetch(false);
-    } catch (err) {
-      console.error('Error fetching products:', err.response ? err.response.data : err.message);
-      if (err.response?.status === 401) {
-        toast.error('Session expired or unauthorized. Please log in again.');
-        localStorage.removeItem('token');
-        navigate('/login');
-      } else {
-        toast.error(err.response?.data?.message || 'Failed to load products. Check server or token.');
-        setProducts([]);
-        setTotalPages(1);
-      }
-    } finally {
-      if (showLoading) setLoading(false);
-    }
-  }; */
-
   const fetchProducts = async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
@@ -320,45 +257,37 @@ function ProductManagement() {
       const productData = res.data.products || res.data || [];
       const initializedProducts = Array.isArray(productData)
         ? productData.map((product) => {
+            // Use values from the API response, fall back to empty strings if undefined
             let subcategory = product.subcategory || "";
             let nestedCategory = product.nestedCategory || "";
 
-            // Validate and fix subcategory
+            // Only apply defaulting if the category structure exists and the field is invalid
             if (
               product.category &&
               categories[product.category] &&
-              Object.keys(categories[product.category]).length > 0
+              Object.keys(categories[product.category]).length > 0 &&
+              subcategory &&
+              (!subcategory || !Object.keys(categories[product.category]).includes(subcategory))
             ) {
-              const validSubcategories = Object.keys(
-                categories[product.category]
+              console.warn(
+                `Invalid or missing subcategory for product ${product._id} (category: ${product.category}). Defaulting to first available subcategory.`
               );
-              if (!subcategory || !validSubcategories.includes(subcategory)) {
-                console.warn(
-                  `Invalid or missing subcategory for product ${product._id} (category: ${product.category}). Defaulting to first available subcategory.`
-                );
-                subcategory = validSubcategories[0] || ""; // Default to the first subcategory if invalid
-              }
+              subcategory = Object.keys(categories[product.category])[0] || "";
             }
 
-            // Validate and fix nestedCategory
             if (
               product.category &&
               subcategory &&
               categories[product.category] &&
               categories[product.category][subcategory] &&
-              categories[product.category][subcategory].length > 0
+              categories[product.category][subcategory].length > 0 &&
+              nestedCategory &&
+              (!nestedCategory || !categories[product.category][subcategory].includes(nestedCategory))
             ) {
-              const validNestedCategories =
-                categories[product.category][subcategory];
-              if (
-                !nestedCategory ||
-                !validNestedCategories.includes(nestedCategory)
-              ) {
-                console.warn(
-                  `Invalid or missing nested category for product ${product._id} (category: ${product.category}, subcategory: ${subcategory}). Defaulting to first available nested category.`
-                );
-                nestedCategory = validNestedCategories[0] || ""; // Default to the first nested category if invalid
-              }
+              console.warn(
+                `Invalid or missing nested category for product ${product._id} (category: ${product.category}, subcategory: ${subcategory}). Defaulting to first available nested category. Received: ${nestedCategory}`
+              );
+              nestedCategory = categories[product.category][subcategory][0] || "";
             }
 
             return {
@@ -834,10 +763,26 @@ function ProductManagement() {
   };
 
   const validateVariantForm = () => {
+    if (!variantFormData) {
+      toast.error("Variant form data is missing");
+      return false;
+    }
+    if (
+      !variantFormData.mainImage &&
+      !variantFormData.currentMainImage &&
+      variantFormData.newImages.length === 0
+    ) {
+      toast.error("At least one image is required for the variant");
+      return false;
+    }
+    if (Object.keys(variantFormData.specifications || {}).length === 0) {
+      toast.error("At least one specification is required for the variant");
+      return false;
+    }
     return true;
   };
 
-  const handleSubmit = async (e) => {
+ /*  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -967,236 +912,10 @@ function ProductManagement() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }; */
 
-  /* const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
 
-  setSubmitting(true);
-
-  try {
-    const token = localStorage.getItem('token');
-    if (!token || isTokenExpired(token)) {
-      throw new Error('Session expired. Please log in again.');
-    }
-
-    const form = new FormData();
-    form.append('name', formData.name);
-    form.append('price', formData.price);
-    form.append('discountedPrice', formData.discountedPrice || '');
-    form.append('sku', formData.sku || '');
-    form.append('category', formData.category);
-    form.append('subcategory', formData.subcategory);
-    form.append('nestedCategory', formData.nestedCategory);
-    form.append('stock', formData.stock);
-    form.append('description', formData.description || '');
-    form.append('offer', formData.offer || '');
-    form.append('sizes', JSON.stringify(formData.sizes));
-    form.append('packOf', formData.packOf || '');
-    form.append('seller', formData.seller || '');
-
-    const specs = { ...formData.specifications };
-    if (formData.nestedCategory === 'Trimmers') {
-      if (formData.trimmingRange) {
-        if (!specs['Trimming Range']) specs['Trimming Range'] = {};
-        specs['Trimming Range']['Range'] = formData.trimmingRange;
-      }
-      if (formData.bladeMaterial) {
-        if (!specs['Blade Material']) specs['Blade Material'] = {};
-        specs['Blade Material']['Material'] = formData.bladeMaterial;
-      }
-    }
-
-    const currentVariantId = editingProductId ? selectedVariant[editingProductId] || 'default' : 'default';
-    console.log('handleSubmit - Editing variant with ID:', currentVariantId);
-
-    const productToUpdate = products.find((p) => p._id === editingProductId);
-    let updatedVariants = [...(productToUpdate?.variants || formData.variants || [])];
-
-    if (editingProductId && currentVariantId !== 'default' && productToUpdate) {
-      const variantIndex = updatedVariants.findIndex((v) => v.variantId === currentVariantId);
-      console.log('handleSubmit - Variant Index:', variantIndex);
-      console.log('handleSubmit - Variants before update:', updatedVariants);
-
-      if (variantIndex === -1) {
-        throw new Error('Selected variant not found.');
-      }
-
-      const updatedVariant = { ...updatedVariants[variantIndex] };
-      updatedVariant.specifications = specs;
-      updatedVariant.additionalImages = formData.existingImages;
-
-      if (formData.mainImage || formData.newImages.length > 0) {
-        form.append('variantId', currentVariantId);
-        if (formData.mainImage) {
-          form.append('variantMainImage', formData.mainImage);
-          updatedVariant.mainImage = formData.currentMainImage; // Placeholder, backend will update
-        }
-        if (formData.newImages.length > 0) {
-          formData.newImages.forEach((image) => {
-            if (image.file instanceof File) {
-              form.append('variantImages', image.file);
-            }
-          });
-        }
-      }
-
-      updatedVariants[variantIndex] = updatedVariant;
-      console.log('handleSubmit - Variants after update:', updatedVariants);
-    } else {
-      form.append('specifications', JSON.stringify(specs));
-      if (formData.mainImage) {
-        form.append('image', formData.mainImage);
-      }
-      formData.newImages.forEach((image) => {
-        if (image.file instanceof File) {
-          form.append('images', image.file);
-        }
-      });
-      if (formData.existingImages.length > 0) {
-        form.append('existingImages', JSON.stringify(formData.existingImages));
-      }
-    }
-
-    // Ensure variants is always appended
-    if (!updatedVariants || updatedVariants.length === 0) {
-      throw new Error('Variants array cannot be empty');
-    }
-    form.append('variants', JSON.stringify(updatedVariants));
-
-    let updatedProduct;
-    if (editingProductId) {
-      const res = await axios.put(
-        `https://backend-ps76.onrender.com/api/admin/products/${editingProductId}`,
-        form,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
-      );
-      updatedProduct = res.data.product;
-      setProducts((prev) =>
-        prev.map((p) =>
-          p._id === editingProductId ? { ...updatedProduct, selected: p.selected || false } : p
-        )
-      );
-      toast.success('Product updated successfully!');
-    } else {
-      const res = await axios.post('https://backend-ps76.onrender.com/api/admin/products', form, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-      });
-      updatedProduct = res.data.product;
-      setProducts((prev) => [updatedProduct, ...prev].map((p) => ({ ...p, selected: false })));
-      setCurrentPage(1);
-      toast.success('Product added successfully!');
-    }
-    resetForm();
-  } catch (err) {
-    console.error('Error saving product:', err.response ? err.response.data : err.message);
-    if (err.response?.status === 401) {
-      toast.error('Session expired or unauthorized. Please log in again.');
-      localStorage.removeItem('token');
-      navigate('/login');
-    } else {
-      toast.error(err.response?.data?.message || err.message || 'Failed to save product.');
-    }
-  } finally {
-    setSubmitting(false);
-  }
-};
- */
-
-  /*  const handleVariantSubmit = async (e) => {
-     e.preventDefault();
-     if (!validateVariantForm()) return;
- 
-     setSubmitting(true);
- 
-     try {
-       const token = localStorage.getItem('token');
-       if (!token || isTokenExpired(token)) {
-         throw new Error('Session expired. Please log in again.');
-       }
- 
-       const productToUpdate = products.find((p) => p._id === variantModal);
-       const variantId = Date.now().toString();
- 
-       const newVariant = {
-         variantId,
-         specifications: variantFormData.specifications || {},
-       };
- 
-       const variantForm = new FormData();
-       if (variantFormData.mainImage) {
-         variantForm.append('variantMainImage', variantFormData.mainImage);
-       }
-       if (variantFormData.newImages && variantFormData.newImages.length > 0) {
-         variantFormData.newImages.forEach((image, index) => {
-           if (image.file instanceof File) {
-             variantForm.append(`variantImages`, image.file);
-           }
-         });
-       }
- 
-       const updateForm = new FormData();
-       updateForm.append('name', productToUpdate.name);
-       updateForm.append('price', productToUpdate.price);
-       updateForm.append('discountedPrice', productToUpdate.discountedPrice || '');
-       updateForm.append('sku', productToUpdate.sku || '');
-       updateForm.append('category', productToUpdate.category);
-       updateForm.append('subcategory', productToUpdate.subcategory);
-       updateForm.append('nestedCategory', productToUpdate.nestedCategory);
-       updateForm.append('stock', productToUpdate.stock);
-       updateForm.append('description', productToUpdate.description || '');
-       updateForm.append('offer', productToUpdate.offer || '');
-       updateForm.append('sizes', JSON.stringify(productToUpdate.sizes));
-       updateForm.append('packOf', productToUpdate.packOf || '');
-       updateForm.append('seller', productToUpdate.seller || '');
-       updateForm.append('specifications', JSON.stringify(productToUpdate.specifications || {}));
-       updateForm.append('warranty', productToUpdate.warranty || '');
-       updateForm.append('isActive', productToUpdate.isActive);
-       updateForm.append('featured', productToUpdate.featured);
-       updateForm.append('dealTag', productToUpdate.dealTag || '');
-       updateForm.append('brand', productToUpdate.brand || '');
-       updateForm.append('weight', productToUpdate.weight || '');
-       updateForm.append('weightUnit', productToUpdate.weightUnit || 'kg');
-       updateForm.append('model', productToUpdate.model || '');
-       updateForm.append('existingImages', JSON.stringify(productToUpdate.images || []));
-       updateForm.append('variants', JSON.stringify([...(productToUpdate.variants || []), newVariant]));
- 
-       variantForm.forEach((value, key) => {
-         updateForm.append(key, value);
-       });
- 
-       const res = await axios.put(
-         `https://backend-ps76.onrender.com/api/admin/products/${variantModal}`,
-         updateForm,
-         { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
-       );
- 
-       const updatedProduct = res.data.product;
-       setProducts((prev) =>
-         prev.map((p) =>
-           p._id === variantModal ? { ...updatedProduct, selected: p.selected || false } : p
-         )
-       );
- 
-       toast.success('Variant added successfully!');
-       setVariantModal(null);
-       setVariantFormData(null);
-     } catch (err) {
-       console.error('Error saving variant:', err.response ? err.response.data : err.message);
-       if (err.response?.status === 401) {
-         toast.error('Session expired or unauthorized. Please log in again.');
-         localStorage.removeItem('token');
-         navigate('/login');
-       } else {
-         toast.error(err.response?.data?.message || 'Failed to add variant.');
-       }
-     } finally {
-       setSubmitting(false);
-     }
-   }; */
-
-  const handleVariantSubmit = async (e) => {
+  /* const handleVariantSubmit = async (e) => {
     e.preventDefault();
     if (!validateVariantForm()) return;
 
@@ -1213,12 +932,6 @@ function ProductManagement() {
         throw new Error("Product not found.");
       }
 
-      // Validate category
-      if (!productToUpdate.category) {
-        throw new Error("Product category is missing.");
-      }
-
-      // Validate and fix subcategory
       let validatedSubcategory = productToUpdate.subcategory || "";
       if (
         productToUpdate.category &&
@@ -1232,7 +945,7 @@ function ProductManagement() {
           !validatedSubcategory ||
           !validSubcategories.includes(validatedSubcategory)
         ) {
-          validatedSubcategory = validSubcategories[0]; // Default to the first subcategory
+          validatedSubcategory = validSubcategories[0];
           if (!validatedSubcategory) {
             throw new Error(
               `No valid subcategories available for category ${productToUpdate.category}.`
@@ -1244,7 +957,6 @@ function ProductManagement() {
         }
       }
 
-      // Validate and fix nestedCategory
       let validatedNestedCategory = productToUpdate.nestedCategory || "";
       if (
         validatedSubcategory &&
@@ -1258,7 +970,7 @@ function ProductManagement() {
           !validatedNestedCategory ||
           !validNestedCategories.includes(validatedNestedCategory)
         ) {
-          validatedNestedCategory = validNestedCategories[0]; // Default to the first nested category
+          validatedNestedCategory = validNestedCategories[0];
           if (!validatedNestedCategory) {
             throw new Error(
               `No valid nested categories available for subcategory ${validatedSubcategory}.`
@@ -1272,11 +984,10 @@ function ProductManagement() {
 
       const variantId = Date.now().toString();
 
-      // Construct the new variant with images and specifications
       const newVariant = {
         variantId,
-        mainImage: null, // Will be updated by backend after upload
-        additionalImages: [], // Will be updated by backend after upload
+        mainImage: null,
+        additionalImages: [],
         specifications: variantFormData.specifications || {},
       };
 
@@ -1285,7 +996,7 @@ function ProductManagement() {
         variantForm.append("variantMainImage", variantFormData.mainImage);
       }
       if (variantFormData.newImages && variantFormData.newImages.length > 0) {
-        variantFormData.newImages.forEach((image, index) => {
+        variantFormData.newImages.forEach((image) => {
           if (image.file instanceof File) {
             variantForm.append(`variantImages`, image.file);
           }
@@ -1374,63 +1085,281 @@ function ProductManagement() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }; */
 
-  /* 
-  const handleEdit = (product) => {
-    const additionalImages = Array.isArray(product.images)
-      ? product.images.filter((img) => img !== product.image)
-      : [];
-    setFormData({
-      name: product.name,
-      price: product.price,
-      discountedPrice: product.discountedPrice || '',
-      sku: product.sku || '',
-      category: product.category,
-      subcategory: product.subcategory,
-      nestedCategory: product.nestedCategory,
-      stock: product.stock,
-      description: product.description,
+
+// ... (previous imports and initial state remain unchanged)
+
+// Inside the ProductManagement component...
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  setSubmitting(true);
+
+  const form = new FormData();
+  form.append("name", formData.name);
+  form.append("price", formData.price);
+  form.append("discountedPrice", formData.discountedPrice || "");
+  form.append("sku", formData.sku || "");
+  form.append("category", formData.category);
+  form.append("subcategory", formData.subcategory || ""); // Ensure sent even if empty
+  form.append("nestedCategory", formData.nestedCategory || ""); // Ensure sent even if empty
+  form.append("stock", formData.stock);
+  form.append("description", formData.description || "");
+  form.append("offer", formData.offer || "");
+  form.append("sizes", JSON.stringify(formData.sizes));
+  form.append("packOf", formData.packOf || "");
+  form.append("seller", formData.seller || "");
+
+  const specs = { ...formData.specifications };
+  if (formData.nestedCategory === "Trimmers") {
+    if (formData.trimmingRange) {
+      if (!specs["Trimming Range"]) specs["Trimming Range"] = {};
+      specs["Trimming Range"]["Range"] = formData.trimmingRange;
+    }
+    if (formData.bladeMaterial) {
+      if (!specs["Blade Material"]) specs["Blade Material"] = {};
+      specs["Blade Material"]["Material"] = formData.bladeMaterial;
+    }
+  }
+  form.append("specifications", JSON.stringify(specs));
+
+  form.append("warranty", formData.warranty || "");
+  form.append("isActive", formData.isActive);
+  form.append("featured", formData.featured);
+  form.append("dealTag", formData.dealTag || "");
+  form.append("brand", formData.brand || "");
+
+  let weightValue = formData.weight.trim();
+  if (weightValue) {
+    if (weightValue.toLowerCase().endsWith("g")) {
+      weightValue = parseFloat(weightValue.replace(/g/i, "")) / 1000;
+    } else if (weightValue.toLowerCase().endsWith("kg")) {
+      weightValue = parseFloat(weightValue.replace(/kg/i, ""));
+    } else {
+      weightValue = parseFloat(weightValue);
+    }
+    if (isNaN(weightValue) || weightValue <= 0) {
+      toast.error(
+        'Invalid weight format. Use numbers with "kg" or "g" (e.g., 0.5kg or 500g)'
+      );
+      setSubmitting(false);
+      return;
+    }
+    form.append("weight", weightValue);
+    form.append("weightUnit", weightValue < 1 ? "g" : "kg");
+  } else {
+    form.append("weight", "");
+    form.append("weightUnit", "kg");
+  }
+
+  form.append("model", formData.model || "");
+  if (formData.mainImage) form.append("image", formData.mainImage);
+  formData.newImages.forEach((image) => {
+    if (image.file instanceof File) form.append("images", image.file);
+  });
+  if (formData.existingImages.length > 0) {
+    form.append("existingImages", JSON.stringify(formData.existingImages));
+  }
+  form.append("variants", JSON.stringify(formData.variants || []));
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token || isTokenExpired(token)) {
+      throw new Error("Session expired. Please log in again.");
+    }
+
+    let updatedProduct;
+    if (editingProductId) {
+      const res = await axios.put(
+        `https://backend-ps76.onrender.com/api/admin/products/${editingProductId}`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      updatedProduct = res.data.product;
+      setProducts((prev) =>
+        prev.map((p) =>
+          p._id === editingProductId
+            ? { ...updatedProduct, selected: p.selected || false }
+            : p
+        )
+      );
+      toast.success("Product updated successfully!");
+    } else {
+      const res = await axios.post(
+        "https://backend-ps76.onrender.com/api/admin/products",
+        form,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      updatedProduct = res.data.product;
+      setProducts((prev) =>
+        [updatedProduct, ...prev].map((p) => ({ ...p, selected: false }))
+      );
+      setCurrentPage(1);
+      toast.success("Product added successfully!");
+    }
+    resetForm();
+  } catch (err) {
+    console.error(
+      "Error saving product:",
+      err.response ? err.response.data : err.message
+    );
+    if (err.response?.status === 401) {
+      toast.error("Session expired or unauthorized. Please log in again.");
+      localStorage.removeItem("token");
+      navigate("/login");
+    } else {
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to save product."
+      );
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+const handleVariantSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateVariantForm()) return;
+
+  setSubmitting(true);
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token || isTokenExpired(token)) {
+      throw new Error("Session expired. Please log in again.");
+    }
+
+    const productToUpdate = products.find((p) => p._id === variantModal);
+    if (!productToUpdate) {
+      throw new Error("Product not found.");
+    }
+
+    const variantId = Date.now().toString();
+
+    const newVariant = {
+      variantId,
       mainImage: null,
-      currentMainImage: product.image,
-      existingImages: additionalImages,
-      newImages: [],
-      offer: product.offer || '',
-      sizes: product.sizes || [],
-      packOf: product.packOf || '',
-      trimmingRange: product.specifications?.['Trimming Range']?.['Range'] || '',
-      bladeMaterial: product.specifications?.['Blade Material']?.['Material'] || '',
-      seller: product.seller || '',
-      specifications: product.specifications || {},
-      warranty: product.warranty || '',
-      isActive: product.isActive,
-      featured: product.featured,
-      dealTag: product.dealTag || '',
-      brand: product.brand || '',
-      weight: product.weight
-        ? product.weightUnit === 'g'
-          ? `${product.weight * 1000}g`
-          : `${product.weight}kg`
-        : '',
-      model: product.model || '',
-      variants: product.variants || [],
+      additionalImages: [],
+      specifications: variantFormData.specifications || {},
+    };
+
+    const variantForm = new FormData();
+    if (variantFormData.mainImage) {
+      variantForm.append("variantMainImage", variantFormData.mainImage);
+    }
+    if (variantFormData.newImages && variantFormData.newImages.length > 0) {
+      variantFormData.newImages.forEach((image) => {
+        if (image.file instanceof File) {
+          variantForm.append(`variantImages`, image.file);
+        }
+      });
+    }
+
+    const updateForm = new FormData();
+    updateForm.append("name", productToUpdate.name);
+    updateForm.append("price", productToUpdate.price);
+    updateForm.append("discountedPrice", productToUpdate.discountedPrice || "");
+    updateForm.append("sku", productToUpdate.sku || "");
+    updateForm.append("category", productToUpdate.category);
+    updateForm.append("subcategory", productToUpdate.subcategory || ""); // Ensure sent
+    updateForm.append("nestedCategory", productToUpdate.nestedCategory || ""); // Ensure sent
+    updateForm.append("stock", productToUpdate.stock);
+    updateForm.append("description", productToUpdate.description || "");
+    updateForm.append("offer", productToUpdate.offer || "");
+    updateForm.append("sizes", JSON.stringify(productToUpdate.sizes));
+    updateForm.append("packOf", productToUpdate.packOf || "");
+    updateForm.append("seller", productToUpdate.seller || "");
+    updateForm.append(
+      "specifications",
+      JSON.stringify(productToUpdate.specifications || {})
+    );
+    updateForm.append("warranty", productToUpdate.warranty || "");
+    updateForm.append("isActive", productToUpdate.isActive);
+    updateForm.append("featured", productToUpdate.featured);
+    updateForm.append("dealTag", productToUpdate.dealTag || "");
+    updateForm.append("brand", productToUpdate.brand || "");
+    updateForm.append("weight", productToUpdate.weight || "");
+    updateForm.append("weightUnit", productToUpdate.weightUnit || "kg");
+    updateForm.append("model", productToUpdate.model || "");
+    updateForm.append(
+      "existingImages",
+      JSON.stringify(productToUpdate.images || [])
+    );
+    updateForm.append(
+      "variants",
+      JSON.stringify([...(productToUpdate.variants || []), newVariant])
+    );
+
+    variantForm.forEach((value, key) => {
+      updateForm.append(key, value);
     });
-    setEditingProductId(product._id);
-    setSelectedImage({});
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
- */
+
+    const res = await axios.put(
+      `https://backend-ps76.onrender.com/api/admin/products/${variantModal}`,
+      updateForm,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    const updatedProduct = res.data.product;
+    setProducts((prev) =>
+      prev.map((p) =>
+        p._id === variantModal
+          ? { ...updatedProduct, selected: p.selected || false }
+          : p
+      )
+    );
+
+    toast.success("Variant added successfully!");
+    setVariantModal(null);
+    setVariantFormData(null);
+  } catch (err) {
+    console.error(
+      "Error saving variant:",
+      err.response ? err.response.data : err.message
+    );
+    if (err.response?.status === 401) {
+      toast.error("Session expired or unauthorized. Please log in again.");
+      localStorage.removeItem("token");
+      navigate("/login");
+    } else {
+      toast.error(
+        err.response?.data?.message || err.message || "Failed to add variant."
+      );
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
 
   const handleEdit = (product) => {
-    // Get the selected variant for this product
     const currentVariantId = selectedVariant[product._id] || "default";
     const variant =
       currentVariantId === "default"
         ? null
         : product.variants.find((v) => v.variantId === currentVariantId);
 
-    // Determine images and specifications based on whether a variant is selected
     const mainImage = variant
       ? variant.mainImage || product.image
       : product.image;
@@ -1707,22 +1636,10 @@ function ProductManagement() {
     });
   };
 
-  /* const openVariantModal = (product) => {
-    setVariantFormData({
-      mainImage: null,
-      currentMainImage: null,
-      newImages: [],
-      specifications: {},
-    });
-    setVariantModal(product._id);
-  };
- */
-
   const openVariantModal = (product) => {
     let subcategory = product.subcategory || "";
     let nestedCategory = product.nestedCategory || "";
 
-    // Validate and fix subcategory
     if (
       product.category &&
       categories[product.category] &&
@@ -1734,7 +1651,6 @@ function ProductManagement() {
       }
     }
 
-    // Validate and fix nestedCategory
     if (
       subcategory &&
       categories[product.category] &&
@@ -2248,78 +2164,6 @@ function ProductManagement() {
                 Featured
               </label>
             </div>
-
-            {/* <div className="form-group">
-              <label>Main Image</label>
-              <input type="file" id="mainImageInput" name="mainImage" accept="image/*" onChange={handleFileChange} required={!editingProductId && formData.existingImages.length === 0} />
-              {formData.currentMainImage && (
-                <div className="image-preview">
-                  <img
-                    src={formData.currentMainImage}
-                    alt="Main Preview"
-                    onError={(e) => {
-                      e.target.src = '/default-product.jpg';
-                      e.target.onerror = null;
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-            <div className="form-group">
-              <label>Additional Images</label>
-              <input type="file" id="additionalImagesInput" name="images" accept="image/*" multiple onChange={handleFileChange} />
-              <div className="additional-images-preview">
-                {formData.existingImages.map((image, index) => (
-                  <div key={`existing-${index}`} className="image-preview-item">
-                    <img
-                      src={image}
-                      alt={`Existing ${index}`}
-                      onError={(e) => {
-                        e.target.src = '/default-product.jpg';
-                        e.target.onerror = null;
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="delete-image-btn"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          existingImages: prev.existingImages.filter((_, i) => i !== index),
-                        }))
-                      }
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))} 
-                {formData.newImages.map((image, index) => (
-                  <div key={`new-${index}`} className="image-preview-item">
-                    <img
-                      src={image.preview}
-                      alt={`New ${index}`}
-                      onError={(e) => {
-                        e.target.src = '/default-product.jpg';
-                        e.target.onerror = null;
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="delete-image-btn"
-                      onClick={() =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          newImages: prev.newImages.filter((_, i) => i !== index),
-                        }))
-                      }
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div> */}
-
             <div className="form-group">
               <label>Main Image</label>
               <input
@@ -2410,7 +2254,6 @@ function ProductManagement() {
                 ))}
               </div>
             </div>
-
             <div className="form-actions">
               <button type="submit" className="save-btn" disabled={submitting}>
                 {submitting
@@ -2776,69 +2619,30 @@ function ProductManagement() {
       </section>
 
       {previewModal && (
-        <div className="preview-modal">
+        <div className="modal-overlay">
           <div className="modal-content">
-            <button className="close-modal" onClick={closePreviewModal}>
+            <button className="modal-close" onClick={closePreviewModal}>
               ✕
             </button>
             <h2>{previewModal.name}</h2>
-            {previewModal.variants && previewModal.variants.length > 0 && (
-              <div className="variant-selector">
-                <label>Variant: </label>
-                <select
-                  value={selectedVariant[previewModal._id] || "default"}
-                  onChange={(e) =>
-                    handleVariantSelect(previewModal._id, e.target.value)
+            <div className="modal-body">
+              <div className="modal-image-section">
+                <img
+                  src={
+                    selectedImage[previewModal._id] ||
+                    previewModal.image ||
+                    "/default-product.jpg"
                   }
-                >
-                  <option value="default">Default</option>
-                  {previewModal.variants.map((variant, index) => (
-                    <option key={variant.variantId} value={variant.variantId}>
-                      Variant {index + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            <div className="image-wrapper">
-              <img
-                src={
-                  selectedImage[previewModal._id] ||
-                  previewModal.image ||
-                  "/default-product.jpg"
-                }
-                alt={previewModal.name}
-                className="modal-image"
-                onError={(e) => {
-                  e.target.src = "/default-product.jpg";
-                  e.target.onerror = null;
-                }}
-              />
-              {previewModal.dealTag && (
-                <span className="deal-tag">{previewModal.dealTag}</span>
-              )}
-            </div>
-            {(() => {
-              const currentVariantId =
-                selectedVariant[previewModal._id] || "default";
-              const variant =
-                currentVariantId === "default"
-                  ? null
-                  : previewModal.variants.find(
-                      (v) => v.variantId === currentVariantId
-                    );
-              const allImages = variant
-                ? [
-                    variant.mainImage || previewModal.image,
-                    ...(variant.additionalImages || previewModal.images || []),
-                  ].filter(Boolean)
-                : [previewModal.image, ...(previewModal.images || [])].filter(
-                    Boolean
-                  );
-              return (
-                allImages.length > 0 && (
-                  <div className="image-thumbnails">
-                    {allImages.map((img, index) => (
+                  alt={previewModal.name}
+                  className="modal-main-image"
+                  onError={(e) => {
+                    e.target.src = "/default-product.jpg";
+                    e.target.onerror = null;
+                  }}
+                />
+                <div className="image-thumbnails">
+                  {[previewModal.image, ...(previewModal.images || [])].map(
+                    (img, index) => (
                       <img
                         key={index}
                         src={img || "/default-product.jpg"}
@@ -2854,238 +2658,182 @@ function ProductManagement() {
                           e.target.onerror = null;
                         }}
                       />
-                    ))}
-                  </div>
-                )
-              );
-            })()}
-            <p>SKU: {previewModal.sku || "N/A"}</p>
-            <p>
-              Price: ₹{previewModal.price.toFixed(2)}
-              {previewModal.discountedPrice ? (
-                <span className="discounted-price">
-                  {" "}
-                  (Now ₹{previewModal.discountedPrice.toFixed(2)})
-                </span>
-              ) : null}
-            </p>
-            <p>
-              Category: {previewModal.category || "N/A"}
-              {previewModal.subcategory ? ` > ${previewModal.subcategory}` : ""}
-              {previewModal.nestedCategory
-                ? ` > ${previewModal.nestedCategory}`
-                : ""}
-            </p>
-            <p>
-              Stock: {previewModal.stock}{" "}
-              {previewModal.stock === 0 ? (
-                <span className="stock-badge out-of-stock">Out of Stock</span>
-              ) : previewModal.stock <= 5 ? (
-                <span className="stock-badge low-stock">Low Stock</span>
-              ) : (
-                <span className="stock-badge in-stock">In Stock</span>
-              )}
-            </p>
-            {previewModal.offer && (
-              <p className="offer">Offer: {previewModal.offer}</p>
-            )}
-            {previewModal.sizes?.length > 0 && (
-              <p>Sizes: {previewModal.sizes.join(", ")}</p>
-            )}
-            {previewModal.packOf && <p>Pack Of: {previewModal.packOf}</p>}
-            {previewModal.seller && <p>Seller: {previewModal.seller}</p>}
-            {previewModal.warranty && <p>Warranty: {previewModal.warranty}</p>}
-            {previewModal.brand && <p>Brand: {previewModal.brand}</p>}
-            {previewModal.weight && (
-              <p>
-                Weight:{" "}
-                {previewModal.weightUnit === "g"
-                  ? `${previewModal.weight * 1000} g`
-                  : `${previewModal.weight} kg`}
-              </p>
-            )}
-            {previewModal.model && <p>Model: {previewModal.model}</p>}
-            <p>{previewModal.description}</p>
-            {Object.keys(previewModal.specifications || {}).length > 0 ? (
-              <div className="specifications-preview">
-                {Object.entries(previewModal.specifications || {}).map(
-                  ([section, specs]) => (
-                    <div key={section}>
-                      <h4>{section}</h4>
-                      {Object.entries(specs || {}).map(([key, value]) => (
-                        <p key={key} className="spec-item">
-                          <span className="spec-key">{key}:</span>{" "}
-                          <span className="spec-value">{value || "N/A"}</span>
-                        </p>
+                    )
+                  )}
+                </div>
+                {previewModal.variants && previewModal.variants.length > 0 && (
+                  <div className="variant-selector">
+                    <label>Variant: </label>
+                    <select
+                      value={selectedVariant[previewModal._id] || "default"}
+                      onChange={(e) =>
+                        handleVariantSelect(previewModal._id, e.target.value)
+                      }
+                    >
+                      <option value="default">Default</option>
+                      {previewModal.variants.map((variant, index) => (
+                        <option
+                          key={variant.variantId}
+                          value={variant.variantId}
+                        >
+                          Variant {index + 1}
+                        </option>
                       ))}
-                    </div>
-                  )
+                    </select>
+                  </div>
                 )}
               </div>
-            ) : (
-              <p>No specifications available.</p>
-            )}
+              <div className="modal-details">
+                <p>
+                  <strong>SKU:</strong> {previewModal.sku || "N/A"}
+                </p>
+                <p>
+                  <strong>Price:</strong> ₹{previewModal.price.toFixed(2)}
+                  {previewModal.discountedPrice ? (
+                    <span className="discounted-price">
+                      {" "}
+                      (Now ₹{previewModal.discountedPrice.toFixed(2)})
+                    </span>
+                  ) : null}
+                </p>
+                <p>
+                  <strong>Category:</strong> {previewModal.category || "N/A"}
+                  {previewModal.subcategory
+                    ? ` > ${previewModal.subcategory}`
+                    : ""}
+                  {previewModal.nestedCategory
+                    ? ` > ${previewModal.nestedCategory}`
+                    : ""}
+                </p>
+                <p>
+                  <strong>Stock:</strong> {previewModal.stock}{" "}
+                  {previewModal.stock === 0 ? (
+                    <span className="stock-badge out-of-stock">
+                      Out of Stock
+                    </span>
+                  ) : previewModal.stock <= 5 ? (
+                    <span className="stock-badge low-stock">Low Stock</span>
+                  ) : (
+                    <span className="stock-badge in-stock">In Stock</span>
+                  )}
+                </p>
+                {previewModal.offer && (
+                  <p>
+                    <strong>Offer:</strong> {previewModal.offer}
+                  </p>
+                )}
+                {previewModal.sizes?.length > 0 && (
+                  <p>
+                    <strong>Sizes:</strong> {previewModal.sizes.join(", ")}
+                  </p>
+                )}
+                {previewModal.packOf && (
+                  <p>
+                    <strong>Pack Of:</strong> {previewModal.packOf}
+                  </p>
+                )}
+                {previewModal.seller && (
+                  <p>
+                    <strong>Seller:</strong> {previewModal.seller}
+                  </p>
+                )}
+                {previewModal.warranty && (
+                  <p>
+                    <strong>Warranty:</strong> {previewModal.warranty}
+                  </p>
+                )}
+                {previewModal.brand && (
+                  <p>
+                    <strong>Brand:</strong> {previewModal.brand}
+                  </p>
+                )}
+                {previewModal.weight && (
+                  <p>
+                    <strong>Weight:</strong>{" "}
+                    {previewModal.weightUnit === "g"
+                      ? `${previewModal.weight * 1000} g`
+                      : `${previewModal.weight} kg`}
+                  </p>
+                )}
+                {previewModal.model && (
+                  <p>
+                    <strong>Model:</strong> {previewModal.model}
+                  </p>
+                )}
+                <p>
+                  <strong>Description:</strong>{" "}
+                  {previewModal.description || "N/A"}
+                </p>
+                {Object.keys(previewModal.specifications || {}).length > 0 && (
+                  <div className="specifications-preview">
+                    <h4>Specifications</h4>
+                    {Object.entries(previewModal.specifications).map(
+                      ([section, specs]) => (
+                        <div key={section}>
+                          <h5>{section}</h5>
+                          {Object.entries(specs || {}).map(([key, value]) => (
+                            <p key={key} className="spec-item">
+                              <span className="spec-key">{key}:</span>{" "}
+                              <span className="spec-value">
+                                {value || "N/A"}
+                              </span>
+                            </p>
+                          ))}
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => handleEdit(previewModal)}
+                className="edit-btn"
+              >
+                Edit Product
+              </button>
+              <button
+                onClick={() => handleDuplicate(previewModal)}
+                className="duplicate-btn"
+              >
+                Duplicate
+              </button>
+              <button
+                onClick={() =>
+                  toggleProductStatus(previewModal._id, previewModal.isActive)
+                }
+                className={
+                  previewModal.isActive ? "deactivate-btn" : "activate-btn"
+                }
+              >
+                {previewModal.isActive ? "Deactivate" : "Activate"}
+              </button>
+              <button
+                onClick={() => handleDelete(previewModal._id)}
+                className="delete-btn"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => openVariantModal(previewModal)}
+                className="add-variant-btn2"
+              >
+                Add Variant
+              </button>
+            </div>
           </div>
         </div>
       )}
-      {/* 
-      {variantModal && (
-        <div className="variant-modal">
-          <div className="modal-content">
-            <button className="close-modal" onClick={closeVariantModal}>
-              ✕
-            </button>
-            <h2>Add Variant</h2>
-            <form onSubmit={handleVariantSubmit} className="variant-form">
-              <div className="form-group">
-                <label>Main Image</label>
-                <input type="file" name="variantMainImage" accept="image/*" onChange={handleFileChange} />
-                {variantFormData.currentMainImage && (
-                  <div className="image-preview">
-                    <img
-                      src={variantFormData.currentMainImage}
-                      alt="Variant Main Preview"
-                      onError={(e) => {
-                        e.target.src = '/default-product.jpg';
-                        e.target.onerror = null;
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="form-group">
-                <label>Additional Images</label>
-                <input type="file" name="variantImages" accept="image/*" multiple onChange={handleFileChange} />
-                <div className="additional-images-preview">
-                  {variantFormData.newImages.map((image, index) => (
-                    <div key={`new-variant-${index}`} className="image-preview-item">
-                      <img
-                        src={image.preview}
-                        alt={`New Variant ${index}`}
-                        onError={(e) => {
-                          e.target.src = '/default-product.jpg';
-                          e.target.onerror = null;
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="delete-image-btn"
-                        onClick={() =>
-                          setVariantFormData((prev) => ({
-                            ...prev,
-                            newImages: prev.newImages.filter((_, i) => i !== index),
-                          }))
-                        }
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Specifications</label>
-                {Object.keys(variantFormData.specifications || {}).length > 0 ? (
-                  Object.entries(variantFormData.specifications).map(([section, specs]) => (
-                    <div key={section} className="specification-section">
-                      <h4>{section}</h4>
-                      <div className="spec-field">
-                        <input
-                          type="text"
-                          value={section}
-                          onChange={(e) => handleVariantSpecificationSectionNameChange(section, e.target.value)}
-                          placeholder="Section Name"
-                        />
-                      </div>
-                      {Object.entries(specs || {}).map(([key, value]) => (
-                        <div key={key} className="spec-field">
-                          <input
-                            type="text"
-                            value={key}
-                            onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value, true)}
-                            placeholder="Key, Color)"
-                          />
-                          <input
-                            type="text"
-                            value={value || ''}
-                            onChange={(e) => handleVariantSpecificationChange(section, key, e.target.value)}
-                            placeholder="Value (e.g., Red)"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeVariantSpecificationField(section, key)}
-                            className="remove-btn"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => addVariantSpecificationField(section)}
-                        className="add-btn"
-                      >
-                        Add Specification
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p>No specifications added.</p>
-                )}
-                <button type="button" onClick={addVariantSpecificationSection} className="add-btn">
-                  Add Specification Section
-                </button>
-              </div>
-              <div className="form-actions">
-                <button type="submit" className="save-btn" disabled={submitting}>
-                  {submitting ? 'Saving...' : 'Add Variant'}
-                </button>
-                <button type="button" className="cancel-btn" onClick={closeVariantModal}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )} */}
 
       {variantModal && (
-        <div className="variant-modal">
+        <div className="modal-overlay">
           <div className="modal-content">
-            <button className="close-modal" onClick={closeVariantModal}>
+            <button className="modal-close" onClick={closeVariantModal}>
               ✕
             </button>
             <h2>Add Variant</h2>
             <form onSubmit={handleVariantSubmit} className="variant-form">
-              {/* Display category, subcategory, and nestedCategory as read-only */}
-              <div className="form-group">
-                <label>Category</label>
-                <input
-                  type="text"
-                  value={variantFormData.category || "N/A"}
-                  readOnly
-                  disabled
-                />
-              </div>
-              <div className="form-group">
-                <label>Subcategory</label>
-                <input
-                  type="text"
-                  value={variantFormData.subcategory || "N/A"}
-                  readOnly
-                  disabled
-                />
-              </div>
-              <div className="form-group">
-                <label>Nested Category</label>
-                <input
-                  type="text"
-                  value={variantFormData.nestedCategory || "N/A"}
-                  readOnly
-                  disabled
-                />
-              </div>
               <div className="form-group">
                 <label>Main Image</label>
                 <input
@@ -3094,7 +2842,7 @@ function ProductManagement() {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
-                {variantFormData.currentMainImage && (
+                {variantFormData?.currentMainImage && (
                   <div className="image-preview">
                     <img
                       src={variantFormData.currentMainImage}
@@ -3117,14 +2865,14 @@ function ProductManagement() {
                   onChange={handleFileChange}
                 />
                 <div className="additional-images-preview">
-                  {variantFormData.newImages.map((image, index) => (
+                  {(variantFormData?.newImages || []).map((image, index) => (
                     <div
-                      key={`new-variant-${index}`}
+                      key={`variant-new-${index}`}
                       className="image-preview-item"
                     >
                       <img
                         src={image.preview}
-                        alt={`New Variant ${index}`}
+                        alt={`Variant New ${index}`}
                         onError={(e) => {
                           e.target.src = "/default-product.jpg";
                           e.target.onerror = null;
@@ -3150,7 +2898,7 @@ function ProductManagement() {
               </div>
               <div className="form-group">
                 <label>Specifications</label>
-                {Object.keys(variantFormData.specifications || {}).length >
+                {Object.keys(variantFormData?.specifications || {}).length >
                 0 ? (
                   Object.entries(variantFormData.specifications).map(
                     ([section, specs]) => (
