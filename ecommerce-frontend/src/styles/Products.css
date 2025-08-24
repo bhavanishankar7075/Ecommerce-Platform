@@ -73,7 +73,7 @@ body {
   min-height: 400px; /* Ensure the container has enough height to contain the sidebar */
 }
 
-/* Filters Sidebar */
+/* Filters Sidebar - FIXED VERSION */
 .filters-sidebar {
   width: 260px;
   background-color: white;
@@ -88,7 +88,7 @@ body {
   overflow-y: auto;
   transform: translateX(-100%);
   transition: transform 0.3s ease;
-  z-index: 1000; /* High z-index to ensure it appears above other elements */
+  z-index: 999; /* Below navbar but above other content */
   scrollbar-width: none;
   -ms-overflow-style: none;
   display: block; /* Always present, visibility controlled by transform */
@@ -112,6 +112,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  margin-top: 30px;
 }
 
 .filters-header h3 {
@@ -125,7 +126,11 @@ body {
   font-size: 12px;
   font-weight: 500;
   color: #ffffff;
-  background: linear-gradient(135deg, #ff4757, #ff6b81); /* Red gradient for Clear All */
+  background: linear-gradient(
+    135deg,
+    #ff4757,
+    #ff6b81
+  ); /* Red gradient for Clear All */
   padding: 6px 12px;
   border: none;
   border-radius: 20px;
@@ -134,7 +139,11 @@ body {
 }
 
 .filters-header button:hover {
-  background: linear-gradient(135deg, #e84150, #e85c72); /* Darker gradient on hover */
+  background: linear-gradient(
+    135deg,
+    #e84150,
+    #e85c72
+  ); /* Darker gradient on hover */
   transform: scale(1.05); /* Slight scale on hover */
 }
 
@@ -246,7 +255,11 @@ body {
   display: block;
   width: 100%;
   padding: 10px;
-  background: linear-gradient(135deg, #00c4b4, #00e676); /* Green gradient for Apply */
+  background: linear-gradient(
+    135deg,
+    #00c4b4,
+    #00e676
+  ); /* Green gradient for Apply */
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
@@ -259,7 +272,11 @@ body {
 }
 
 .apply-btn:hover {
-  background: linear-gradient(135deg, #00a89a, #00c466); /* Darker gradient on hover */
+  background: linear-gradient(
+    135deg,
+    #00a89a,
+    #00c466
+  ); /* Darker gradient on hover */
   transform: translateY(-2px); /* Lift effect on hover */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -279,7 +296,7 @@ select {
   border-radius: 12px;
   padding: 12px;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   color: #1e293b;
   background-image: url("data:image/svg+xml,%3Csvg fill='none' stroke='%236b7280' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
@@ -349,7 +366,7 @@ option.custom-sort-dropdown:not(:last-child) {
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 8px;
-  z-index: 15; /* Increased to be above sort-options (z-index 10) */
+  z-index: 998; /* Below sidebar but above other elements */
   margin-top: 4px;
 }
 
@@ -402,14 +419,18 @@ option.custom-sort-dropdown:not(:last-child) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #6b48ff, #00ddeb); /* Gradient background */
+  background: linear-gradient(
+    135deg,
+    #6b48ff,
+    #00ddeb
+  ); /* Gradient background */
   padding: 8px 12px;
   border-radius: 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative; /* Ensure proper positioning context */
   overflow: visible; /* Prevent overflow clipping */
-  z-index: 10; /* Below filters-sidebar when visible */
+  z-index: 997; /* Below search suggestions */
 }
 
 .sort-options:hover {
@@ -430,7 +451,7 @@ option.custom-sort-dropdown:not(:last-child) {
 .custom-sort-dropdown {
   position: relative;
   width: 200px;
-  z-index: 15; /* Below filters-sidebar when visible, but above other elements */
+  z-index: 996; /* Below sort options container */
 }
 
 /* Dropdown Toggle Button */
@@ -447,7 +468,8 @@ option.custom-sort-dropdown:not(:last-child) {
   border: 2px solid #00ddeb; /* Cyan border */
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease;
   box-shadow: 0 0 8px rgba(0, 221, 235, 0.3); /* Glowing effect */
 }
 
@@ -479,13 +501,13 @@ option.custom-sort-dropdown:not(:last-child) {
   border: 2px solid #00ddeb; /* Cyan border */
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 8px rgba(0, 221, 235, 0.3); /* Shadow and glow */
-  z-index: 20; /* Below filters-sidebar when visible */
+  z-index: 995; /* Below dropdown toggle */
   opacity: 0;
   transform: translateY(-10px);
   animation: slideDown 0.3s ease forwards;
   max-height: 200px;
   overflow-y: auto;
-    scrollbar-width: none;
+  scrollbar-width: none;
   -ms-overflow-style: none;
   display: none; /* Hidden by default */
 }
@@ -875,7 +897,7 @@ option.custom-sort-dropdown:not(:last-child) {
   border-top: 1px solid #e0e0e0;
   padding: 12px;
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
-  z-index: 30;
+  z-index: 994; /* Below sidebar */
 }
 
 .comparison-content {
@@ -976,7 +998,7 @@ option.custom-sort-dropdown:not(:last-child) {
   font-size: 18px;
   cursor: pointer;
   transition: background-color 0.2s, opacity 0.3s ease;
-  z-index: 40;
+  z-index: 993; /* Below comparison bar */
 }
 
 .back-to-top.visible {
@@ -1490,18 +1512,22 @@ option.custom-sort-dropdown:not(:last-child) {
   }
 
   .filters-sidebar {
-    position: static;
+    position: sticky;
+    top: 80px; /* or 60px if your navbar is 60px tall */
+    align-self: flex-start;
     width: 240px;
     height: auto;
-    max-height: none;
-    transform: none;
-    overflow-y: visible;
-    display: block; /* Visible by default on large screens */
-    box-shadow: none; /* Remove shadow to match typical navbar sidebar */
-    border: none; /* Remove border for a cleaner look */
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    box-shadow: none;
+    border: none;
+    display: block;
+    background: white;
+    z-index: 10;
+    transform: translateX(0); /* Always visible on large screens */
+    margin-top: 30px;
   }
 
- 
   .filters-sidebar.visible {
     display: block; /* Ensure it remains visible */
   }
@@ -1509,7 +1535,6 @@ option.custom-sort-dropdown:not(:last-child) {
   .filters-sidebar.hidden {
     display: none; /* For consistency, though not used */
   }
-
 
   .btn-filter-toggle {
     display: none; /* Hide the filter toggle button on large screens */
@@ -1611,18 +1636,18 @@ option.custom-sort-dropdown:not(:last-child) {
     bottom: 140px; /* Adjusted to clear the navbar (assuming 60px height) and comparison bar */
   }
 
-  /* Filters Sidebar on Mobile */
+  /* Filters Sidebar on Mobile - FIXED VERSION */
   .filters-sidebar {
-    top: auto;
-    bottom: 60px; /* Account for the navbar height */
+    top: 60px; /* Keep below navbar */
+    bottom: 60px; /* Account for navbar at bottom */
     left: 0;
     right: 0;
     width: 100%;
-    height: 50vh; /* Reduced height for mobile */
+    height: auto; /* Let it calculate automatically */
     transform: translateY(100%); /* Slide up from bottom */
     transition: transform 0.3s ease;
     border-radius: 12px 12px 0 0;
-    z-index: 1000;
+    z-index: 999; /* Below navbar */
     padding-bottom: 16px; /* Extra padding at the bottom */
     overflow-y: auto; /* Ensure scrolling is enabled */
     scrollbar-width: none; /* Hide scrollbar for Firefox */
