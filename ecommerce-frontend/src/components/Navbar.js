@@ -95,6 +95,7 @@ function Navigation() {
       Accessories: ['Phone Cases', 'Chargers', 'Headphones'],
       SmartDevices: ['Smartwatches', 'Speakers', 'Cameras']
     },
+ 
     Electronics: {
       Audio: ['Headphones', 'Speakers', 'Earphones'],
       Computing: ['Laptops', 'Desktops', 'Monitors']

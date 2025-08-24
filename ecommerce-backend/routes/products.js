@@ -52,7 +52,11 @@ const categories = {
     ],
     Beauty: ['Swiss Beauty', 'Sugar Pop Insights', 'Renee'],
   },
-  Gadgets: [],
+  /* Gadgets: [], */
+   Gadgets: {
+      Accessories: ['Phone Cases', 'Chargers', 'Headphones'],
+      SmartDevices: ['Smartwatches', 'Speakers', 'Cameras']
+    },
   Furniture: [],
   Mobiles: {
     Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel','Realme','Redmi'],

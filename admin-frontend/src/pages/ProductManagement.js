@@ -99,15 +99,29 @@ function ProductManagement() {
       ],
       Beauty: ['Swiss Beauty', 'Sugar Pop Insights', 'Renee'],
     },
-    Gadgets: [],
-    Furniture: [],
+   /*  Gadgets: [], */
+     Gadgets: {
+      Accessories: ['Phone Cases', 'Chargers', 'Headphones'],
+      SmartDevices: ['Smartwatches', 'Speakers', 'Cameras']
+    },
+
+   /*  Furniture: ['Chairs', 'Tables', 'Sofas', 'Beds', 'Cabinets'], */
+      Furniture: {
+        Living: ['Sofas','Tables','Chairs'],
+        Bedroom: ['Beds', 'Wardrobes','Mattresses'],
+
+      },
     Mobiles: {
       Smartphones: ['iPhone', 'Samsung', 'Xiaomi', 'OnePlus', 'Google Pixel', 'Realme', 'Redmi'],
       FeaturePhones: ['Nokia', 'JioPhone'],
       Tablets: ['iPad', 'Samsung Galaxy Tab', 'Lenovo Tab'],
       Accessories: ['Chargers', 'Earphones', 'Cases', 'Screen Protectors', 'Power Banks'],
     },
-    Appliances: [],
+   /*  Appliances: [], */
+    Appliances: {
+      Small: ['Microwave', 'Toaster', 'Blender'],
+      Large: ['Refrigerator', 'Washing Machine', 'Air Conditioner']
+    },
     Beauty: [],
     Home: [],
     'Toys & Baby': [],
