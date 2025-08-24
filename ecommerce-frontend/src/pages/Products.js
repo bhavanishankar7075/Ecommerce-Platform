@@ -1028,6 +1028,8 @@ function Products() {
                   </div>
                 )}
               </div>
+
+
               <div className="sort-options">
                 <button
                   className="btn-filter-toggle md:hidden"
@@ -1066,6 +1068,9 @@ function Products() {
                 )}
               </div>
             </div>
+
+
+
             <div className="quick-filters">
               <button
                 className={`quick-filter-chip ${quickFilters.inStock ? 'bg-blue-600' : ''}`}
@@ -1185,7 +1190,7 @@ function Products() {
                                   <span className="original-price">
                                     ₹{Math.round(product.price / (1 - parseFloat(product.offer) / 100))}
                                   </span>
-                                  <span className="discount">{product.offer}% off</span>
+                                  <span className="discount">{product.offer}</span>
                                 </>
                               )}
                             </div>

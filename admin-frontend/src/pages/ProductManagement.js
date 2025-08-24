@@ -157,7 +157,7 @@ function ProductManagement() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 500);
+    }, 50);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 

@@ -414,38 +414,13 @@ option.custom-sort-dropdown:not(:last-child) {
   text-decoration: underline;
 }
 
-/* Sort Options Container */
-.sort-options {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(
-    135deg,
-    #6b48ff,
-    #00ddeb
-  ); /* Gradient background */
-  padding: 8px 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  position: relative; /* Ensure proper positioning context */
-  overflow: visible; /* Prevent overflow clipping */
-  z-index: 997; /* Below search suggestions */
-}
 
 .sort-options:hover {
   transform: translateY(-2px); /* Slight lift on hover */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Label Styling */
-.sort-options label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff; /* White text for contrast */
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+
 
 /* Custom Sort Dropdown Container */
 .custom-sort-dropdown {
@@ -454,70 +429,129 @@ option.custom-sort-dropdown:not(:last-child) {
   z-index: 996; /* Below sort options container */
 }
 
-/* Dropdown Toggle Button */
+
+/* --- NEW STYLES FOR SORTING DROPDOWN --- */
+
+/* --- NEW & IMPROVED STYLES FOR SORTING DROPDOWN --- */
+
+/* 1. Main container for the sort options */
+.sort-options {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative; 
+  z-index: 50;
+}
+
+/* 2. Label styling */
+.sort-options label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+/* 3. Wrapper for the custom dropdown */
+.custom-sort-dropdown {
+  position: relative;
+  width: 220px;
+}
+
+/* 4. The clickable part of the dropdown (FIXED) */
 .dropdown-toggle {
+  position: relative; /* Important for positioning context */
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   padding: 8px 12px;
-  background: #1a1a1a; /* Dark background */
-  color: #00ddeb; /* Cyan text */
+  background-color: #f8fafc;
+  color: #1e293b;
   font-size: 14px;
-  font-weight: 500;
-  border: 2px solid #00ddeb; /* Cyan border */
-  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease,
-    box-shadow 0.3s ease;
-  box-shadow: 0 0 8px rgba(0, 221, 235, 0.3); /* Glowing effect */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  
+  /* --- FIX 1: Force remove background arrow --- */
+  background-image: none !important;
+}
+
+/* --- FIX 2: Hide arrows added via pseudo-elements --- */
+.dropdown-toggle::before,
+.dropdown-toggle::after {
+  display: none !important;
+  content: '' !important;
 }
 
 .dropdown-toggle:hover {
-  background: #2a2a2a; /* Slightly lighter background on hover */
-  color: #ffffff; /* White text on hover */
-  border-color: #ffffff; /* White border on hover */
-  box-shadow: 0 0 12px rgba(0, 221, 235, 0.5); /* Stronger glow on hover */
+  border-color: #a0aec0; 
 }
 
-/* Dropdown Arrow */
+.dropdown-toggle:focus,
+.dropdown-toggle:active {
+  outline: none;
+  border-color: #3b82f6; 
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* 5. The arrow icon inside the toggle (this is the one we want to keep) */
 .dropdown-toggle .arrow {
-  font-size: 12px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #718096;
   transition: transform 0.3s ease;
 }
 
 .dropdown-toggle .arrow.open {
-  transform: rotate(180deg); /* Rotate arrow when dropdown is open */
+  transform: rotate(180deg);
 }
 
-/* Dropdown Menu */
+/* 6. The menu that appears */
 .dropdown-menu1 {
+  display: none;
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
-  margin-top: 4px;
-  background: #1a1a1a; /* Dark background */
-  border: 2px solid #00ddeb; /* Cyan border */
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 8px rgba(0, 221, 235, 0.3); /* Shadow and glow */
-  z-index: 995; /* Below dropdown toggle */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 51;
+  max-height: 240px;
+  overflow-y: auto;
   opacity: 0;
   transform: translateY(-10px);
-  animation: slideDown 0.3s ease forwards;
-  max-height: 200px;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  display: none; /* Hidden by default */
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Ensure visibility when open */
+/* 7. Class to show the menu */
 .dropdown-menu1.open {
   display: block;
   opacity: 1;
+  transform: translateY(0);
 }
 
+/* 8. Individual items in the dropdown menu */
+.dropdown-item1 {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #2d3748;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-item1:hover {
+  background-color: #f1f5f9;
+  color: #1a202c;
+}
 /* Slide-down animation for dropdown menu */
 @keyframes slideDown {
   0% {
@@ -528,26 +562,6 @@ option.custom-sort-dropdown:not(:last-child) {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Dropdown Item */
-.dropdown-item1 {
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #00ddeb; /* Cyan text */
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-  border-bottom: 1px solid #333333; /* Separator between items */
-}
-
-.dropdown-item1:last-child {
-  border-bottom: none; /* Remove border for the last item */
-}
-
-.dropdown-item1:hover {
-  background: #00ddeb; /* Cyan background on hover */
-  color: #1a1a1a; /* Dark text on hover */
-  transform: translateX(5px); /* Slight slide effect on hover */
 }
 
 /* Scrollbar Styling for Dropdown Menu */
