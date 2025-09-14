@@ -24,7 +24,7 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET || 'your-secret-key', // Fallback for JWT_SECRET
-      { expiresIn: '1h' }
+      { expiresIn: '6h' }
     );
 
     const userResponse = {
@@ -67,7 +67,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: user._id, isAdmin: user.isAdmin },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '1h' }
+      { expiresIn: '6h' }
     );
 
     const userResponse = {

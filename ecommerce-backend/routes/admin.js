@@ -64,7 +64,7 @@ router.post('/register', async (req, res) => {
     await admin.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: admin._id, isAdmin: admin.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: admin._id, isAdmin: admin.isAdmin }, process.env.JWT_SECRET, { expiresIn: '6h' });
 
     // Return success response with token
     res.status(201).json({ message: 'Admin registered successfully', token });
@@ -85,7 +85,7 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: admin._id, isAdmin: admin.isAdmin || false }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: admin._id, isAdmin: admin.isAdmin || false }, process.env.JWT_SECRET, { expiresIn: '6h' });
     res.json({ token });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
